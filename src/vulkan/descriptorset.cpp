@@ -32,6 +32,37 @@ void DescriptorSet::addSampler(VkImageView textureImageView, VkSampler sampler)
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
+void DescriptorSet::addUniformBuffer(VkShaderStageFlags shaderStage, VkBuffer uniformBuffer, uint32_t bufferSize)
+{
+    const uint32_t bindingId = static_cast<uint32_t>(m_descriptorWrites.size());
+
+    m_poolSizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 });
+
+    VkDescriptorSetLayoutBinding layoutBinding = {};
+    layoutBinding.binding = bindingId;
+    layoutBinding.descriptorCount = 1;
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    layoutBinding.pImmutableSamplers = nullptr;
+    layoutBinding.stageFlags = shaderStage;
+    m_bindings.push_back(layoutBinding);
+
+    VkDescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = uniformBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = VK_WHOLE_SIZE; // bufferSize?
+    m_bufferInfos.push_back(bufferInfo);
+
+    VkWriteDescriptorSet descriptorWrite = {};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //    descriptorWrite.dstSet = m_descriptorSet; // filled in finalize
+    descriptorWrite.dstBinding = bindingId;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &m_bufferInfos.back();
+    m_descriptorWrites.push_back(descriptorWrite);
+}
+
 void DescriptorSet::finalize(VkDevice device)
 {
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -61,6 +92,9 @@ void DescriptorSet::finalize(VkDevice device)
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(m_descriptorWrites.size()), m_descriptorWrites.data(), 0, nullptr);
 
     m_imageInfos.clear();
+    m_bufferInfos.clear();
+    m_descriptorWrites.clear();
+    m_bindings.clear();
 }
 
 void DescriptorSet::bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout)
@@ -73,6 +107,7 @@ void DescriptorSet::destroy(VkDevice device)
     vkDestroyDescriptorSetLayout(device, m_layout, nullptr);
     m_layout = VK_NULL_HANDLE;
 
+    // descriptor set is destroyed by pool destruction
     vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
     m_descriptorPool = VK_NULL_HANDLE;
 }

@@ -8,7 +8,21 @@ bool SimpleRenderer::setup()
 
     m_device.createSampler(m_sampler);
 
+    const float scaling = 2.0f;
+    const uint32_t bufferSize = sizeof(scaling);
+
+    m_device.createBuffer(bufferSize,
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_uniformBuffer, m_uniformBufferMemory);
+
+    void* data;
+    vkMapMemory(m_device.getVkDevice(), m_uniformBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, &scaling, bufferSize);
+    vkUnmapMemory(m_device.getVkDevice(), m_uniformBufferMemory);
+
     m_descriptorSet.addSampler(m_texture.getImageView(), m_sampler);
+    m_descriptorSet.addUniformBuffer(VK_SHADER_STAGE_VERTEX_BIT, m_uniformBuffer, bufferSize);
     m_descriptorSet.finalize(m_device.getVkDevice());
 
     m_pipelineLayout.init(m_device.getVkDevice(), { m_descriptorSet.getLayout() });
@@ -67,6 +81,11 @@ void SimpleRenderer::shutdown()
     m_pipelineLayout.destroy();
     m_texture.destroy();
     vkDestroySampler(m_device.getVkDevice(), m_sampler, nullptr);
+
+    vkDestroyBuffer(m_device.getVkDevice(), m_uniformBuffer, nullptr);
+    m_uniformBuffer = VK_NULL_HANDLE;
+    vkFreeMemory(m_device.getVkDevice(), m_uniformBufferMemory, nullptr);
+    m_uniformBufferMemory = VK_NULL_HANDLE;
 }
 
 void SimpleRenderer::fillCommandBuffers()

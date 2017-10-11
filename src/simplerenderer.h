@@ -21,4 +21,8 @@ private:
     Shader m_shader;
     Texture m_texture;
     VkSampler m_sampler = VK_NULL_HANDLE;
+
+    VkBuffer m_uniformBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_uniformBufferMemory = VK_NULL_HANDLE;
+
 };

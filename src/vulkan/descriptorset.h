@@ -7,6 +7,7 @@ class DescriptorSet
 {
 public:
     void addSampler(VkImageView textureImageView, VkSampler sampler);
+    void addUniformBuffer(VkShaderStageFlags shaderStage, VkBuffer uniformBuffer, uint32_t bufferSize);
 
     void finalize(VkDevice device);
 
@@ -27,4 +28,5 @@ private:
     VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
 
     std::vector<VkDescriptorImageInfo> m_imageInfos;
+    std::vector<VkDescriptorBufferInfo> m_bufferInfos;
 };
