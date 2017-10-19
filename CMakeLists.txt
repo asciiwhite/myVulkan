@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.7)
 
 project(myVulkan)
 
+if (MSVC)
+    add_compile_options(/W3 /WX)
+else()
+    add_compile_options(/W /Wall /Werror)
+endif()
+
+
 if(MSVC)
     set(SDL2_DIR externals/SDL2-2.0.6)
 endif()
@@ -9,7 +16,6 @@ find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
 find_package(Vulkan REQUIRED)
-include_directories(${Vulkan_INCLUDE_DIRS})
 
 include_directories(externals/stb)
 
@@ -46,23 +52,25 @@ set(SOURCES
     src/simplerenderer.cpp
 )
 
-set(RESOURCE_DIR data)
-set(TEXTURE_DIR ${RESOURCE_DIR}/textures)
-set(SHADER_DIR ${RESOURCE_DIR}/shaders)
-file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag")
-source_group("shaders" FILES ${SHADERS})
 source_group("source" FILES ${SOURCES})
 source_group("vulkan" FILES ${VULKAN_SOURCES})
+
+set(RESOURCE_DIR data)
+set(TEXTURE_DIR ${RESOURCE_DIR}/textures)
+
+include(CompileShaders.cmake)
+
 
 add_executable(${PROJECT_NAME}
     ${VULKAN_SOURCES}
     ${SOURCES}
     ${SHADERS}
+    ${BINARY_SHADERS}
 )
 
 target_link_libraries(${PROJECT_NAME}
     ${SDL2_LIBRARIES}
-    ${Vulkan_LIBRARY}
+    Vulkan::Vulkan
 )
 
 if(MSVC)
@@ -75,18 +83,4 @@ if(MSVC)
     )
 endif()
 
-file(COPY ${TEXTURE_DIR}
-     DESTINATION ${CMAKE_BINARY_DIR}/${RESOURCE_DIR})
-
-find_program(GLSLANGVALIDATOR glslangValidator)
-
-set(SHADER_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${SHADER_DIR}/)
-file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
-foreach(SHADER ${SHADERS})
-    get_filename_component(filename ${SHADER} NAME)
-    add_custom_command(
-        OUTPUT ${SHADER}
-	    COMMAND ${GLSLANGVALIDATOR} -V ${SHADER} -o ${SHADER_OUTPUT_DIR}${filename}.spv
-        COMMENT "Rebuilding ${SHADER}.spv"
-    )
-endforeach(SHADER)
+file(COPY ${TEXTURE_DIR} DESTINATION ${CMAKE_BINARY_DIR}/${RESOURCE_DIR})
