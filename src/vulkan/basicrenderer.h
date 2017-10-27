@@ -5,6 +5,8 @@
 #include "framebuffer.h"
 #include "renderpass.h"
 
+#include "../utils/statistics.h"
+
 #include <vulkan/vulkan.h>
 
 struct SDL_Window;
@@ -45,4 +47,6 @@ protected:
     RenderPass m_renderPass;
     std::vector<VkCommandBuffer> m_commandBuffers;
     std::vector<Framebuffer> m_framebuffers;
+
+    Statistics m_stats;
 };

@@ -178,6 +178,8 @@ void BasicRenderer::destroyCommandBuffers()
 
 void BasicRenderer::draw()
 {
+    m_stats.startFrame();
+
     if (enableValidationLayers)
     {
         // to avoid memory leak from validation layers
@@ -192,6 +194,12 @@ void BasicRenderer::draw()
 
     if (!m_swapChain.present(imageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
+
+    if (m_stats.endFrame())
+    {
+        std::cout << "Min/Max/Avg: " << m_stats.getMin() << " " << m_stats.getMax() << " " << m_stats.getAvg() << std::endl;
+        m_stats.reset();
+    }
 }
 
 void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer)
