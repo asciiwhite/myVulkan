@@ -20,7 +20,7 @@ bool BasicRenderer::init(SDL_Window* window)
     SDL_Vulkan_CreateSurface(window, m_instance, &m_surface);
 
     createDevice();
-    createSwapChain(window);
+    createSwapChain();
     m_renderPass.init(m_device.getVkDevice(), m_swapChain.getImageFormat());
 
     if (!setup())
@@ -78,14 +78,10 @@ bool BasicRenderer::createInstance(SDL_Window* window)
     return true;
 }
 
-bool BasicRenderer::createSwapChain(SDL_Window* window)
+bool BasicRenderer::createSwapChain()
 {
     m_swapChain.init(m_instance, m_surface, m_device);
-
-    int width(0);
-    int height(0);
-    SDL_Vulkan_GetDrawableSize(window, &width, &height);
-    return m_swapChain.create(width, height);
+    return m_swapChain.create();
 }
 
 bool BasicRenderer::createDevice()
@@ -146,11 +142,11 @@ void BasicRenderer::destroy()
     vkDestroyInstance(m_instance, nullptr);
 }
 
-bool BasicRenderer::resize(uint32_t width, uint32_t height)
+bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
 {
     vkDeviceWaitIdle(m_device.getVkDevice());
 
-    if (m_swapChain.create(width, height))
+    if (m_swapChain.create())
     {
         destroyFramebuffers();
         destroyCommandBuffers();

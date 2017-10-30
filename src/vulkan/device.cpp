@@ -84,9 +84,7 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
     vkGetPhysicalDeviceProperties(physicalDevice, &device_properties);
     vkGetPhysicalDeviceFeatures(physicalDevice, &device_features);
 
-    uint32_t major_version = VK_VERSION_MAJOR(device_properties.apiVersion);
-    uint32_t minor_version = VK_VERSION_MINOR(device_properties.apiVersion);
-    uint32_t patch_version = VK_VERSION_PATCH(device_properties.apiVersion);
+    const uint32_t major_version = VK_VERSION_MAJOR(device_properties.apiVersion);
 
     if ((major_version < 1) || (device_properties.limits.maxImageDimension2D < 4096))
     {
@@ -266,7 +264,7 @@ uint32_t Device::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFi
     return ~0u;
 }
 
-void Device::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void Device::transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 

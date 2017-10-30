@@ -167,7 +167,7 @@ VkCompositeAlphaFlagBitsKHR SwapChain::getCompositeAlphaFlags(VkSurfaceCapabilit
     return compositeAlpha;
 }
 
-bool SwapChain::create(uint32_t width, uint32_t height, bool vsync)
+bool SwapChain::create(bool vsync)
 {
     VkSwapchainKHR oldSwapchain = m_swapChain;
 
@@ -211,7 +211,7 @@ bool SwapChain::create(uint32_t width, uint32_t height, bool vsync)
     swapchainCI.imageFormat = m_surfaceFormat.format;
     swapchainCI.imageColorSpace = m_surfaceFormat.colorSpace;
     swapchainCI.imageExtent = { m_extent.width, m_extent.height };
-    swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchainCI.imageUsage = usage;
     swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)transform;
     swapchainCI.imageArrayLayers = 1;
     swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;

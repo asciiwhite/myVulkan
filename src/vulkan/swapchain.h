@@ -9,7 +9,7 @@ class SwapChain
 {
 public:
     void init(VkInstance instance, VkSurfaceKHR surface, Device& device);
-    bool create(uint32_t width, uint32_t height, bool vsync = false);
+    bool create(bool vsync = false);
     void destroy();
 
     uint32_t getImageCount() const { return static_cast<uint32_t>(m_images.size()); }

@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 11)
 project(myVulkan LANGUAGES CXX)
 
 if (MSVC)
-    add_compile_options(/W3 /WX)
+    add_compile_options(/W4 /WX)
 else()
     add_compile_options(/W /Wall /Werror)
 endif()

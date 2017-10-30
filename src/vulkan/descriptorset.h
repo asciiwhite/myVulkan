@@ -7,7 +7,7 @@ class DescriptorSet
 {
 public:
     void addSampler(VkImageView textureImageView, VkSampler sampler);
-    void addUniformBuffer(VkShaderStageFlags shaderStage, VkBuffer uniformBuffer, uint32_t bufferSize);
+    void addUniformBuffer(VkShaderStageFlags shaderStage, VkBuffer uniformBuffer);
 
     void finalize(VkDevice device);
 

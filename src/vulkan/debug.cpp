@@ -14,14 +14,14 @@ namespace debug
     VkDebugReportCallbackEXT dbgCallback = VK_NULL_HANDLE;
 
     VkBool32 debugCallback(
-        VkDebugReportFlagsEXT flags,
-        VkDebugReportObjectTypeEXT objType,
-        uint64_t obj,
-        size_t location,
-        int32_t code,
-        const char* layerPrefix,
+        VkDebugReportFlagsEXT /*flags*/,
+        VkDebugReportObjectTypeEXT /*objType*/,
+        uint64_t /*obj*/,
+        size_t /*location*/,
+        int32_t /*code*/,
+        const char* /*layerPrefix*/,
         const char* msg,
-        void* userData)
+        void* /*userData*/)
     {
         std::cerr << "validation layer: " << msg << std::endl;
         return VK_FALSE;
@@ -38,8 +38,7 @@ namespace debug
         dbgCreateInfo.flags = flags;
         dbgCreateInfo.pfnCallback = debugCallback;
 
-        VkResult err = CreateDebugReportCallback(instance, &dbgCreateInfo, nullptr, (callBack != VK_NULL_HANDLE) ? &callBack : &dbgCallback);
-        assert(!err);
+        VK_CHECK_RESULT(CreateDebugReportCallback(instance, &dbgCreateInfo, nullptr, (callBack != VK_NULL_HANDLE) ? &callBack : &dbgCallback));
     }
 
     void destroyDebugCallback(VkInstance instance)

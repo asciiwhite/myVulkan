@@ -22,7 +22,7 @@ bool SimpleRenderer::setup()
     vkUnmapMemory(m_device.getVkDevice(), m_uniformBufferMemory);
 
     m_descriptorSet.addSampler(m_texture.getImageView(), m_sampler);
-    m_descriptorSet.addUniformBuffer(VK_SHADER_STAGE_VERTEX_BIT, m_uniformBuffer, bufferSize);
+    m_descriptorSet.addUniformBuffer(VK_SHADER_STAGE_VERTEX_BIT, m_uniformBuffer);
     m_descriptorSet.finalize(m_device.getVkDevice());
 
     m_pipelineLayout.init(m_device.getVkDevice(), { m_descriptorSet.getLayout() });

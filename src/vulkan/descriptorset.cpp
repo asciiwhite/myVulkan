@@ -32,7 +32,7 @@ void DescriptorSet::addSampler(VkImageView textureImageView, VkSampler sampler)
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
-void DescriptorSet::addUniformBuffer(VkShaderStageFlags shaderStage, VkBuffer uniformBuffer, uint32_t bufferSize)
+void DescriptorSet::addUniformBuffer(VkShaderStageFlags shaderStage, VkBuffer uniformBuffer)
 {
     const uint32_t bindingId = static_cast<uint32_t>(m_descriptorWrites.size());
 
@@ -49,7 +49,7 @@ void DescriptorSet::addUniformBuffer(VkShaderStageFlags shaderStage, VkBuffer un
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = uniformBuffer;
     bufferInfo.offset = 0;
-    bufferInfo.range = VK_WHOLE_SIZE; // bufferSize?
+    bufferInfo.range = VK_WHOLE_SIZE;
     m_bufferInfos.push_back(bufferInfo);
 
     VkWriteDescriptorSet descriptorWrite = {};
