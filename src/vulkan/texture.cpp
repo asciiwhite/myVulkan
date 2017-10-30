@@ -5,6 +5,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include <cstring>
+
 bool Texture::loadFromFile(Device* device, const std::string& filename)
 {
     m_device = device;
@@ -28,7 +30,7 @@ bool Texture::loadFromFile(Device* device, const std::string& filename)
 
     void* data;
     vkMapMemory(device->getVkDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    std::memcpy(data, pixels, static_cast<size_t>(imageSize));
     vkUnmapMemory(device->getVkDevice(), stagingBufferMemory);
 
     stbi_image_free(pixels);

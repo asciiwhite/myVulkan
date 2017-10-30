@@ -1,6 +1,8 @@
 #include "simplerenderer.h"
 #include "vulkan/vulkanhelper.h"
 
+#include <cstring>
+
 bool SimpleRenderer::setup()
 {
     m_shader.createFromFiles(m_device.getVkDevice(), "data/shaders/simple.vert.spv", "data/shaders/simple.frag.spv");
@@ -18,7 +20,7 @@ bool SimpleRenderer::setup()
 
     void* data;
     vkMapMemory(m_device.getVkDevice(), m_uniformBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, &scaling, bufferSize);
+    std::memcpy(data, &scaling, bufferSize);
     vkUnmapMemory(m_device.getVkDevice(), m_uniformBufferMemory);
 
     m_descriptorSet.addSampler(m_texture.getImageView(), m_sampler);

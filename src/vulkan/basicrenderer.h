@@ -24,7 +24,7 @@ public:
 private:
     bool createInstance(SDL_Window* window);
     bool createDevice();
-    bool createSwapChain(SDL_Window* window);
+    bool createSwapChain();
     bool createCommandBuffers();
     bool createSwapChainFramebuffers();
 

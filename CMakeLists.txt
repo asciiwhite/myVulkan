@@ -6,7 +6,7 @@ project(myVulkan LANGUAGES CXX)
 if (MSVC)
     add_compile_options(/W4 /WX)
 else()
-    add_compile_options(/W /Wall /Werror)
+    add_compile_options(-W -Wall -Werror)
 endif()
 
 

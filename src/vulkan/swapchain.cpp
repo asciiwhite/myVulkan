@@ -56,7 +56,7 @@ VkExtent2D SwapChain::getSwapChainExtent(VkSurfaceCapabilitiesKHR &surfaceCaps)
 {
     // Special value of surface extent is width == height == -1
     // If this is so we define the size by ourselves but it must fit within defined confines
-    if (surfaceCaps.currentExtent.width == -1)
+    if (surfaceCaps.currentExtent.width == ~0u)
     {
         VkExtent2D swap_chain_extent = { 640, 480 };
         if (swap_chain_extent.width < surfaceCaps.minImageExtent.width) {

@@ -2,6 +2,8 @@
 #include "vulkanhelper.h"
 #include "device.h"
 
+#include <cstring>
+
 const static bool useStaging = true;
 
 namespace
@@ -31,7 +33,7 @@ void VertexBuffer::init(Device* device, const std::vector<AttributeDescription>&
     auto totalSize = 0;
     m_attributesDescriptions.resize(descriptions.size());
     m_bindingDescriptions.resize(descriptions.size());
-    for (auto i = 0; i < descriptions.size(); i++)
+    for (auto i = 0u; i < descriptions.size(); i++)
     {
         const auto& desc = descriptions[i];
         assert(m_numVertices == desc.vertexCount);
@@ -58,7 +60,7 @@ void VertexBuffer::init(Device* device, const std::vector<AttributeDescription>&
         for (auto& desc : descriptions)
         {
             const auto attributeSize = desc.componentCount * desc.vertexCount;
-            memcpy(data, desc.vertexData, attributeSize * 4);
+            std::memcpy(data, desc.vertexData, attributeSize * 4);
             data += attributeSize;
         }
     };
@@ -128,7 +130,7 @@ void VertexBuffer::createIndexBuffer(const void *indices, uint32_t numIndices, V
     const uint32_t size = numIndices * (indexType == VK_INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t));
 
     auto memcpyFunc = [=](void *mappedMemory) {
-        memcpy(mappedMemory, indices, size);
+        std::memcpy(mappedMemory, indices, size);
     };
 
     createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, size, m_indexBuffer, m_indexBufferMemory, memcpyFunc);
@@ -138,7 +140,7 @@ void VertexBuffer::draw(VkCommandBuffer commandBuffer) const
 {
     const VkDeviceSize offset = 0;
 
-    for (auto i = 0; i < m_bindingDescriptions.size(); i++)
+    for (auto i = 0u; i < m_bindingDescriptions.size(); i++)
     {
         vkCmdBindVertexBuffers(commandBuffer, i, 1, &m_vertexBuffer, &offset);
     }
