@@ -9,20 +9,21 @@
 
 #include <vulkan/vulkan.h>
 
-struct SDL_Window;
+struct GLFWwindow;
 
 class BasicRenderer
 {
 public:
-    bool init(SDL_Window* window);
+    bool init(GLFWwindow* window);
     void destroy();
 
     bool resize(uint32_t width, uint32_t height);
 
+    virtual void update() = 0;
     void draw();
 
 private:
-    bool createInstance(SDL_Window* window);
+    bool createInstance();
     bool createDevice();
     bool createSwapChain();
     bool createCommandBuffers();

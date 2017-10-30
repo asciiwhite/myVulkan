@@ -4,17 +4,14 @@ set(CMAKE_CXX_STANDARD 11)
 project(myVulkan LANGUAGES CXX)
 
 if (MSVC)
-    add_compile_options(/W4 /WX)
-else()
-    add_compile_options(-W -Wall -Werror)
+    add_compile_options(/MP)
 endif()
 
-
-if(MSVC)
-    set(SDL2_DIR externals/SDL2-2.0.6)
-endif()
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
+set(GLFW_BUILD_TESTS False)
+set(GLFW_BUILD_EXAMPLES False)
+set(GLFW_BUILD_DOCS False)
+add_subdirectory(externals/glfw)
+include_directories(externals/glfw/include)
 
 find_package(Vulkan REQUIRED)
 
@@ -53,6 +50,8 @@ set(SOURCES
     src/utils/statistics.cpp
     src/simplerenderer.h
     src/simplerenderer.cpp
+    src/window.h
+    src/window.cpp
 )
 
 source_group("source" FILES ${SOURCES})
@@ -72,18 +71,14 @@ add_executable(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-    ${SDL2_LIBRARIES}
+    glfw
     Vulkan::Vulkan
 )
 
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE "/MP")
-
-    ADD_CUSTOM_COMMAND(
-        TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} ARGS -E copy_if_different ${SDL2_RUNTIME_LIBRARIES} ${CMAKE_CURRENT_BINARY_DIR}
-    )
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX)
+elseif()
+    target_compile_options(${PROJECT_NAME} PRIVATE -W -Wall -Werror)
 endif()
 
 file(COPY ${TEXTURE_DIR} DESTINATION ${CMAKE_BINARY_DIR}/${RESOURCE_DIR})

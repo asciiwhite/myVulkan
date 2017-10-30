@@ -2,7 +2,7 @@
 #include "vulkanhelper.h"
 #include "debug.h"
 
-#include <SDL_vulkan.h>
+#include <glfw/glfw3.h>
 
 #include <vector>
 #include <iostream>
@@ -13,11 +13,11 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-bool BasicRenderer::init(SDL_Window* window)
+bool BasicRenderer::init(GLFWwindow* window)
 {
-    createInstance(window);
+    createInstance();
 
-    SDL_Vulkan_CreateSurface(window, m_instance, &m_surface);
+    VK_CHECK_RESULT(glfwCreateWindowSurface(m_instance, window, NULL, &m_surface));
 
     createDevice();
     createSwapChain();
@@ -34,15 +34,16 @@ bool BasicRenderer::init(SDL_Window* window)
     return true;
 }
 
-bool BasicRenderer::createInstance(SDL_Window* window)
+bool BasicRenderer::createInstance()
 {
     uint32_t extensionCount(0);
-    if (!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, nullptr))
-        return false;
+    const char** rawExtensions = glfwGetRequiredInstanceExtensions(&extensionCount);
 
-    std::vector<const char*> extensions(extensionCount);
-    if (!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, &extensions[0]))
-        return false;
+    std::vector<const char*> extensions;
+    for (unsigned int i = 0; i < extensionCount; i++)
+    {
+        extensions.push_back(rawExtensions[i]);
+    }
 
     if (enableValidationLayers)
     {
