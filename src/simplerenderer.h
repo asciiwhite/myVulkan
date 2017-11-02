@@ -9,6 +9,9 @@
 
 class SimpleRenderer : public BasicRenderer
 {
+public:
+    void update() override;
+
 private:
     bool setup() override;
     void shutdown() override;

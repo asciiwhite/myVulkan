@@ -1,4 +1,5 @@
 #include "simplerenderer.h"
+#include "utils/timer.h"
 #include "vulkan/vulkanhelper.h"
 
 #include <cstring>
@@ -128,4 +129,15 @@ void SimpleRenderer::fillCommandBuffers()
 
         VK_CHECK_RESULT(vkEndCommandBuffer(m_commandBuffers[i]));
     }
+}
+
+void SimpleRenderer::update()
+{
+    const auto time = static_cast<float>(Timer::getMicroseconds()) / 1000000;
+    const auto scaling = cos(time) + 2.0f;
+    const auto bufferSize(sizeof(scaling));
+    void* data;
+    vkMapMemory(m_device.getVkDevice(), m_uniformBufferMemory, 0, bufferSize, 0, &data);
+    std::memcpy(data, &scaling, bufferSize);
+    vkUnmapMemory(m_device.getVkDevice(), m_uniformBufferMemory);
 }
