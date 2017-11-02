@@ -3,6 +3,7 @@
 #include "vulkan/vulkanhelper.h"
 
 #include <cstring>
+#include <cmath>
 
 bool SimpleRenderer::setup()
 {
