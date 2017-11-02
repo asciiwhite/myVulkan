@@ -1,4 +1,4 @@
-#include <chrono>
+#include <stdint.h>
 
 class Statistics
 {
@@ -14,13 +14,10 @@ public:
     uint64_t getAvg() const;
 
 private:
-    using TimeUnit = std::chrono::microseconds;
-    using Clock = std::chrono::high_resolution_clock;
-
-    Clock::time_point m_frameStartTime;
-    TimeUnit m_minFrameTime;
-    TimeUnit m_maxFrameTime;
-    TimeUnit m_avgFrameTime;
-    TimeUnit m_totalTime;
+    uint64_t m_frameStartTime;
+    uint64_t m_minFrameTime;
+    uint64_t m_maxFrameTime;
+    uint64_t m_avgFrameTime;
+    uint64_t m_totalTime;
     uint32_t m_frameCount;
 };

@@ -46,6 +46,7 @@ set(VULKAN_SOURCES
 
 set(SOURCES
     src/main.cpp
+    src/utils/timer.h
     src/utils/statistics.h
     src/utils/statistics.cpp
     src/simplerenderer.h
