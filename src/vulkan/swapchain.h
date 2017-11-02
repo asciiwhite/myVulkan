@@ -17,15 +17,15 @@ public:
     VkImageView getImageView(uint32_t imageViewId) const { return m_imageViews[imageViewId]; }
     VkFormat getImageFormat() const { return m_surfaceFormat.format; }
 
-    const VkSemaphore* getImageAvailableSemaphore() const { return &m_imageAvailableSemaphore; }
-    const VkSemaphore* getRenderFinishedSemaphore() const { return &m_renderFinishedSemaphore; }
+    const VkSemaphore* getImageAvailableSemaphore() const { return &m_semaphores[m_currentImageId].first; }
+    const VkSemaphore* getRenderFinishedSemaphore() const { return &m_semaphores[m_currentImageId].second; }
 
     bool acquireNextImage(uint32_t& imageId);
     bool present(uint32_t imageId);
 
 private:
     void createImageViews(uint32_t imageCount);
-    void createSemaphores();
+    void createSemaphores(uint32_t imageCount);
     void destroySwapChain(VkSwapchainKHR& swapChain);
 
     uint32_t                        getSwapChainNumImages(VkSurfaceCapabilitiesKHR &surfaceCaps);
@@ -43,8 +43,8 @@ private:
     VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
     std::vector<VkImage> m_images;
     std::vector<VkImageView> m_imageViews;
-    VkSemaphore m_imageAvailableSemaphore = VK_NULL_HANDLE;
-    VkSemaphore m_renderFinishedSemaphore = VK_NULL_HANDLE;
+    std::vector<std::pair<VkSemaphore, VkSemaphore>> m_semaphores;
     VkExtent2D m_extent = { 0, 0 };
     VkSurfaceFormatKHR m_surfaceFormat = { VK_FORMAT_UNDEFINED, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
+    uint32_t m_currentImageId = 0;
 };

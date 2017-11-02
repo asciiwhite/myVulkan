@@ -10,8 +10,6 @@ void SwapChain::init(VkInstance instance, VkSurfaceKHR surface, Device& device)
     m_instance = instance;
     m_surface = surface;
     m_device = &device;
-
-    createSemaphores();
 }
 
 uint32_t SwapChain::getSwapChainNumImages(VkSurfaceCapabilitiesKHR &surfaceCaps)
@@ -249,6 +247,7 @@ bool SwapChain::create(bool vsync)
     VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device->getVkDevice(), m_swapChain, &imageCount, m_images.data()));
 
     createImageViews(imageCount);
+    createSemaphores(imageCount);
 
     return true;
 }
@@ -263,20 +262,25 @@ void SwapChain::createImageViews(uint32_t imageCount)
     }
 }
 
-void SwapChain::createSemaphores()
+void SwapChain::createSemaphores(uint32_t imageCount)
 {
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    VK_CHECK_RESULT(vkCreateSemaphore(m_device->getVkDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphore));
-    VK_CHECK_RESULT(vkCreateSemaphore(m_device->getVkDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore));
+    m_semaphores.resize(imageCount);
+    for (auto& sems : m_semaphores)
+    {
+        VK_CHECK_RESULT(vkCreateSemaphore(m_device->getVkDevice(), &semaphoreInfo, nullptr, &sems.first));
+        VK_CHECK_RESULT(vkCreateSemaphore(m_device->getVkDevice(), &semaphoreInfo, nullptr, &sems.second));
+    }
 }
 
 bool SwapChain::acquireNextImage(uint32_t& imageId)
 {
     // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
     // With that we don't have to handle VK_NOT_READY
-    auto result = vkAcquireNextImageKHR(m_device->getVkDevice(), m_swapChain, UINT64_MAX, m_imageAvailableSemaphore, VK_NULL_HANDLE, &imageId);
+    auto imageAcquiredSemaphore = m_semaphores[m_currentImageId].first;
+    auto result = vkAcquireNextImageKHR(m_device->getVkDevice(), m_swapChain, UINT64_MAX, imageAcquiredSemaphore, VK_NULL_HANDLE, &imageId);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -295,12 +299,14 @@ bool SwapChain::present(uint32_t imageId)
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &m_renderFinishedSemaphore;
+    presentInfo.pWaitSemaphores = &m_semaphores[m_currentImageId].second;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &m_swapChain;
     presentInfo.pImageIndices = &imageId;
 
     auto result = vkQueuePresentKHR(m_device->getPresentationQueue(), &presentInfo);
+
+    m_currentImageId = ++m_currentImageId % m_images.size();
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
@@ -318,8 +324,11 @@ void SwapChain::destroy()
 {
     destroySwapChain(m_swapChain);
 
-    vkDestroySemaphore(m_device->getVkDevice(), m_renderFinishedSemaphore, nullptr);
-    vkDestroySemaphore(m_device->getVkDevice(), m_imageAvailableSemaphore, nullptr);
+    for (auto& sems : m_semaphores)
+    {
+        vkDestroySemaphore(m_device->getVkDevice(), sems.first, nullptr);
+        vkDestroySemaphore(m_device->getVkDevice(), sems.second, nullptr);
+    }
 }
 
 void SwapChain::destroySwapChain(VkSwapchainKHR& swapChain)
