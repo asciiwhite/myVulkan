@@ -16,10 +16,6 @@
 
 bool SimpleRenderer::setup()
 {
-    m_shader.createFromFiles(m_device.getVkDevice(), "data/shaders/color.vert.spv", "data/shaders/color.frag.spv");
-
-    m_device.createSampler(m_sampler);
-
     m_device.createBuffer(sizeof(glm::mat4),
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -27,24 +23,12 @@ bool SimpleRenderer::setup()
 
     updateMVP();
 
-    m_descriptorSet.addUniformBuffer(VK_SHADER_STAGE_VERTEX_BIT, m_uniformBuffer);
-    m_descriptorSet.finalize(m_device.getVkDevice());
-
-    m_pipelineLayout.init(m_device.getVkDevice(), { m_descriptorSet.getLayout() });
-    
-    const std::string meshFilename = "data/meshes/bunny.obj";
-    const std::string materialBaseDir = meshFilename.substr(0, meshFilename.find_last_of("/\\") + 1);
-    if (!m_mesh.loadFromObj(m_device, meshFilename, materialBaseDir))
+    if (!m_mesh.loadFromObj(m_device, "data/meshes/conference.obj"))
         return false;
 
-    PipelineSettings settings;
-
-    m_pipeline.init(m_device.getVkDevice(),
-        m_renderPass.getVkRenderPass(),
-        m_pipelineLayout.getVkPipelineLayout(),
-        settings,
-        m_shader.getShaderStages(),
-        &m_mesh.getVertexBuffer());
+    m_mesh.addUniformBuffer(VK_SHADER_STAGE_VERTEX_BIT, m_uniformBuffer);
+    if (!m_mesh.finalize(m_renderPass))
+        return false;
 
     return true;
 }
@@ -53,11 +37,7 @@ void SimpleRenderer::shutdown()
 {
     m_mesh.destroy();
 
-    m_descriptorSet.destroy(m_device.getVkDevice());
-    m_shader.destory();
-    m_pipeline.destroy();
-    m_pipelineLayout.destroy();
-    vkDestroySampler(m_device.getVkDevice(), m_sampler, nullptr);
+//    vkDestroySampler(m_device.getVkDevice(), m_sampler, nullptr);
 
     vkDestroyBuffer(m_device.getVkDevice(), m_uniformBuffer, nullptr);
     m_uniformBuffer = VK_NULL_HANDLE;
@@ -95,11 +75,7 @@ void SimpleRenderer::fillCommandBuffers()
         VkRect2D scissor = { {0, 0}, m_swapChain.getImageExtent() };
         vkCmdSetScissor(m_commandBuffers[i], 0, 1, &scissor);
 
-        vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipeline());
-
-        m_descriptorSet.bind(m_commandBuffers[i], m_pipelineLayout.getVkPipelineLayout());
-
-        m_mesh.getVertexBuffer().draw(m_commandBuffers[i]);
+        m_mesh.render(m_commandBuffers[i]);
 
         vkCmdEndRenderPass(m_commandBuffers[i]);
 

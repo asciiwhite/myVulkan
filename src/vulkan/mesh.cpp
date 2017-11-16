@@ -1,5 +1,7 @@
 #include "mesh.h"
 #include "device.h"
+#include "shader.h"
+#include "renderpass.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -10,11 +12,18 @@
 
 void Mesh::destroy()
 {
+    m_pipeline.destroy();
+    m_descriptorSet.destroy(m_device->getVkDevice());
+    m_pipelineLayout.destroy();
     m_vertexBuffer.destroy();
+    Shader::release(m_shader);
+    m_device = nullptr;
 }
 
-bool Mesh::loadFromObj(Device& device, const std::string& filename, const std::string& materialBaseDir)
+bool Mesh::loadFromObj(Device& device, const std::string& filename)
 {
+    m_device = &device;
+
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -22,7 +31,8 @@ bool Mesh::loadFromObj(Device& device, const std::string& filename, const std::s
 
     std::cout << "Loading mesh: " << filename << std::endl;
 
-    bool res = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename.c_str(), materialBaseDir.c_str());
+    const auto materialBaseDir = filename.substr(0, filename.find_last_of("/\\") + 1);
+    const auto res = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename.c_str(), materialBaseDir.c_str());
     if (!err.empty())
     {
         std::cerr << err << std::endl;
@@ -33,21 +43,23 @@ bool Mesh::loadFromObj(Device& device, const std::string& filename, const std::s
         return false;
     }
 
-    if ((attrib.normals.size() > 0 && attrib.normals.size() != attrib.vertices.size()) ||
-        (attrib.colors.size() > 0 && attrib.colors.size() != attrib.vertices.size()) ||
+    if ((attrib.normals.size()   > 0 && attrib.normals.size()   != attrib.vertices.size()) ||
+        (attrib.colors.size()    > 0 && attrib.colors.size()    != attrib.vertices.size()) ||
         (attrib.texcoords.size() > 0 && attrib.texcoords.size() != attrib.vertices.size()))
     {
-        createInterleavedVertexAttributes(device, attrib, shapes);
+        createInterleavedVertexAttributes(attrib, shapes);
     }
     else
     {
-        createSeparateVertexAttributes(device, attrib, shapes);
+        createSeparateVertexAttributes(attrib, shapes);
     }
 
-    return true;
+    m_shader = getShaderFromAttributes(attrib);
+
+    return m_shader != nullptr;
 }
 
-void Mesh::createInterleavedVertexAttributes(Device& device, const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes)
+void Mesh::createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes)
 {
     std::vector<uint32_t> indices;
     uint32_t numIndices = 0;
@@ -129,7 +141,7 @@ void Mesh::createInterleavedVertexAttributes(Device& device, const tinyobj::attr
     }
     assert(interleavedOffset == vertexSize * sizeof(float));
 
-    m_vertexBuffer.createFromInterleavedAttributes(&device, vertexDesc);
+    m_vertexBuffer.createFromInterleavedAttributes(m_device, vertexDesc);
 
     m_vertexBuffer.setIndices(&indices.front(), static_cast<uint32_t>(indices.size()));
 
@@ -138,7 +150,7 @@ void Mesh::createInterleavedVertexAttributes(Device& device, const tinyobj::attr
     std::cout << "Unique vertex count:\t " << uniqueVertexCount << std::endl;
 }
 
-void Mesh::createSeparateVertexAttributes(Device& device, const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes)
+void Mesh::createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes)
 {
     std::vector<uint32_t> indices;
     uint32_t numIndices = 0;
@@ -150,21 +162,18 @@ void Mesh::createSeparateVertexAttributes(Device& device, const tinyobj::attrib_
     std::vector<VertexBuffer::AttributeDescription> vertexDesc(1, { 0, 3, vertexCount, &attrib.vertices.front() });
     if (!attrib.normals.empty())
     {
-        assert(attrib.normals.size() == attrib.vertices.size());
         vertexDesc.push_back({ 1, 3, vertexCount, &attrib.normals.front() });
     }
     if (!attrib.colors.empty())
     {
-        assert(attrib.colors.size() == attrib.vertices.size());
         vertexDesc.push_back({ 2, 3, vertexCount, &attrib.colors.front() });
     }
     if (!attrib.texcoords.empty())
     {
-        assert(attrib.texcoords.size() == attrib.vertices.size());
         vertexDesc.push_back({ 3, 2, vertexCount, &attrib.texcoords.front() });
     }
 
-    m_vertexBuffer.createFromSeparateAttributes(&device, vertexDesc);
+    m_vertexBuffer.createFromSeparateAttributes(m_device, vertexDesc);
 
     for (const auto& shape : shapes)
     {
@@ -178,4 +187,44 @@ void Mesh::createSeparateVertexAttributes(Device& device, const tinyobj::attrib_
 
     std::cout << "Triangle count:\t " << indices.size() / 3 << std::endl;
     std::cout << "Vertex count:\t " << attrib.vertices.size() / 3 << std::endl;
+}
+
+std::shared_ptr<Shader> Mesh::getShaderFromAttributes(const tinyobj::attrib_t& attrib)
+{
+    assert(!m_shader);
+
+    if (attrib.normals.size() > 0)
+        return Shader::getShader(m_device->getVkDevice(), "data/shaders/normal_color.vert.spv", "data/shaders/normal_color.frag.spv");
+    else
+        return Shader::getShader(m_device->getVkDevice(), "data/shaders/color.vert.spv", "data/shaders/color.frag.spv");
+}
+
+void Mesh::addUniformBuffer(VkShaderStageFlags shaderStages, VkBuffer uniformBuffer)
+{
+    m_descriptorSet.addUniformBuffer(shaderStages, uniformBuffer);
+}
+
+bool Mesh::finalize(const RenderPass& renderPass)
+{
+    m_descriptorSet.finalize(m_device->getVkDevice());
+
+    m_pipelineLayout.init(m_device->getVkDevice(), { m_descriptorSet.getLayout() });
+
+    static const PipelineSettings defaultSettings;
+
+    return m_pipeline.init(m_device->getVkDevice(),
+        renderPass.getVkRenderPass(),
+        m_pipelineLayout.getVkPipelineLayout(),
+        defaultSettings,
+        m_shader->getShaderStages(),
+        &m_vertexBuffer);
+}
+
+void Mesh::render(VkCommandBuffer commandBuffer) const
+{
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipeline());
+
+    m_descriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout());
+
+    m_vertexBuffer.draw(commandBuffer);
 }

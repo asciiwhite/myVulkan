@@ -11,7 +11,7 @@ public:
 
     void finalize(VkDevice device);
 
-    void bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout);
+    void bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout) const;
 
     VkDescriptorSetLayout getLayout() const { return m_layout; }
 

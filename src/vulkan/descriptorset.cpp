@@ -97,7 +97,7 @@ void DescriptorSet::finalize(VkDevice device)
     m_bindings.clear();
 }
 
-void DescriptorSet::bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout)
+void DescriptorSet::bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout) const
 {
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_descriptorSet, 0, nullptr);
 }

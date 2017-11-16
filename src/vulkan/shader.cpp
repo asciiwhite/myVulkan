@@ -2,6 +2,48 @@
 #include "vulkanhelper.h"
 
 #include <fstream>
+#include <algorithm>
+
+Shader::ShaderMap Shader::m_loadedShaders;
+
+std::shared_ptr<Shader> Shader::getShader(VkDevice device, const std::string& vertexFilename, const std::string& fragmentFilename)
+{
+    const auto combindedShaderFilenames = vertexFilename + fragmentFilename;
+    if (m_loadedShaders.count(combindedShaderFilenames) == 0)
+    {
+        auto newShader = std::make_shared<Shader>();
+        if (newShader->createFromFiles(device, vertexFilename, fragmentFilename))
+        {
+            m_loadedShaders[combindedShaderFilenames] = newShader;
+        }
+        else
+        {
+            return newShader;
+        }
+    }
+
+    return m_loadedShaders[combindedShaderFilenames];
+}
+
+void Shader::release(std::shared_ptr<Shader>& shader)
+{
+    auto iter = std::find_if(m_loadedShaders.begin(), m_loadedShaders.end(), [=](const auto& shaderPair) { return shaderPair.second == shader; });
+    assert(iter != m_loadedShaders.end());
+    m_loadedShaders.erase(iter);
+    shader.reset();
+}
+
+Shader::Shader()
+{
+}
+
+Shader::~Shader()
+{
+    for (auto shaderModule : m_shaderModules)
+    {
+        vkDestroyShaderModule(m_device, shaderModule, nullptr);
+    }
+}
 
 bool Shader::createFromFiles(VkDevice device, const std::string& vertexFilename, const std::string& fragmentFilename)
 {
@@ -30,19 +72,14 @@ bool Shader::createFromFiles(VkDevice device, const std::string& vertexFilename,
     return true;
 }
 
-void Shader::destory()
-{
-    for (auto shaderModule : m_shaderModules)
-    {
-        vkDestroyShaderModule(m_device, shaderModule, nullptr);
-    }
-}
-
 VkShaderModule Shader::CreateShaderModule(VkDevice device, const std::string& filename)
 {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     if (!file.is_open())
+    {
+        std::cerr << "Failed to open shader file: " << filename << std::endl;
         return VK_NULL_HANDLE;
+    }
 
     size_t fileSize = static_cast<size_t>(file.tellg());
     std::vector<char> buffer(fileSize);
