@@ -1,16 +1,15 @@
 #include "framebuffer.h"
 #include "vulkanhelper.h"
 
-
-bool Framebuffer::init(VkDevice device, VkRenderPass renderPass, VkImageView attachment, VkExtent2D extent)
+bool Framebuffer::init(VkDevice device, VkRenderPass renderPass, const std::vector<VkImageView>& attachments, VkExtent2D extent)
 {
     m_device = device;
 
     VkFramebufferCreateInfo framebufferInfo = {};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass = renderPass;
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.pAttachments = &attachment;
+    framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    framebufferInfo.pAttachments = &attachments.front();
     framebufferInfo.width = extent.width;
     framebufferInfo.height = extent.height;
     framebufferInfo.layers = 1;

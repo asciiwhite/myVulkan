@@ -4,6 +4,7 @@
 #include "device.h"
 #include "framebuffer.h"
 #include "renderpass.h"
+#include "texture.h"
 
 #include "../utils/statistics.h"
 
@@ -38,6 +39,7 @@ private:
     virtual bool setup() = 0;
     virtual void shutdown() = 0;
     virtual void fillCommandBuffers() = 0;
+    virtual void resized() = 0;
 
     VkInstance m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
@@ -45,6 +47,8 @@ private:
 protected:
     Device m_device;
     SwapChain m_swapChain;
+    Texture m_swapChainDepthBuffer;
+    VkFormat m_swapChainDepthBufferFormat = VK_FORMAT_UNDEFINED;
     RenderPass m_renderPass;
     std::vector<VkCommandBuffer> m_commandBuffers;
     std::vector<Framebuffer> m_framebuffers;

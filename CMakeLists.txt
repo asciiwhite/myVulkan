@@ -12,10 +12,13 @@ set(GLFW_BUILD_EXAMPLES False)
 set(GLFW_BUILD_DOCS False)
 add_subdirectory(externals/glfw)
 include_directories(externals/glfw/include)
+include_directories(externals/stb)
+include_directories(externals/tiny_obj_loader)
+
+find_package(GLM REQUIRED)
+include_directories(${GLM_INCLUDE_DIRS})
 
 find_package(Vulkan REQUIRED)
-
-include_directories(externals/stb)
 
 set(VULKAN_SOURCES
     src/vulkan/basicrenderer.h
@@ -42,6 +45,8 @@ set(VULKAN_SOURCES
     src/vulkan/vertexbuffer.cpp
     src/vulkan/texture.h
     src/vulkan/texture.cpp
+    src/vulkan/mesh.h
+    src/vulkan/mesh.cpp
 )
 
 set(SOURCES
@@ -60,6 +65,7 @@ source_group("vulkan" FILES ${VULKAN_SOURCES})
 
 set(RESOURCE_DIR data)
 set(TEXTURE_DIR ${RESOURCE_DIR}/textures)
+set(MESH_DIR ${RESOURCE_DIR}/meshes)
 
 include(CompileShaders.cmake)
 
@@ -83,3 +89,4 @@ elseif()
 endif()
 
 file(COPY ${TEXTURE_DIR} DESTINATION ${CMAKE_BINARY_DIR}/${RESOURCE_DIR})
+file(COPY ${MESH_DIR} DESTINATION ${CMAKE_BINARY_DIR}/${RESOURCE_DIR})

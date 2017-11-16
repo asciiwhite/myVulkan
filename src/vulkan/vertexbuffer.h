@@ -12,20 +12,23 @@ class VertexBuffer
 public:
     struct AttributeDescription
     {
-        AttributeDescription(uint32_t _location, uint32_t _componentCount, uint32_t _vertexCount, const float* _vertexData)
+        AttributeDescription(uint32_t _location, uint32_t _componentCount, uint32_t _attributeCount, const float* _attributeData, uint32_t _interleavedOffset = 0)
             : location(_location)
             , componentCount(_componentCount)
-            , vertexCount(_vertexCount)
-            , vertexData(_vertexData)
+            , attributeCount(_attributeCount)
+            , interleavedOffset(_interleavedOffset)
+            , attributeData(_attributeData)
         {}
 
         uint32_t location = 0;
         uint32_t componentCount = 0;
-        uint32_t vertexCount = 0;
-        const float* vertexData = nullptr;
+        uint32_t attributeCount = 0;
+        uint32_t interleavedOffset = 0;
+        const float* attributeData = nullptr;
     };
 
-    void init(Device* device, const std::vector<AttributeDescription>& descriptions);
+    void createFromSeparateAttributes(Device* device, const std::vector<AttributeDescription>& descriptions);
+    void createFromInterleavedAttributes(Device* device, const std::vector<AttributeDescription>& descriptions);
     void destroy();
 
     void setIndices(const uint16_t *indices, uint32_t numIndices);
@@ -54,4 +57,5 @@ private:
     uint32_t m_numIndices = 0;
     std::vector<VkVertexInputAttributeDescription> m_attributesDescriptions;
     std::vector<VkVertexInputBindingDescription> m_bindingDescriptions;
+    std::vector<VkDeviceSize> m_bindingOffsets;
 };

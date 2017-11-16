@@ -247,6 +247,8 @@ bool SwapChain::create(bool vsync)
     VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device->getVkDevice(), m_swapChain, &imageCount, m_images.data()));
 
     createImageViews(imageCount);
+
+    destroySemaphores();
     createSemaphores(imageCount);
 
     return true;
@@ -258,7 +260,7 @@ void SwapChain::createImageViews(uint32_t imageCount)
     m_imageViews.resize(imageCount);
     for (uint32_t i = 0; i < imageCount; i++)
     {
-        m_device->createImageView(m_images[i], m_surfaceFormat.format, m_imageViews[i]);
+        m_device->createImageView(m_images[i], m_surfaceFormat.format, m_imageViews[i], VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 
@@ -323,12 +325,17 @@ bool SwapChain::present(uint32_t imageId)
 void SwapChain::destroy()
 {
     destroySwapChain(m_swapChain);
+    destroySemaphores();
+}
 
+void SwapChain::destroySemaphores()
+{
     for (auto& sems : m_semaphores)
     {
         vkDestroySemaphore(m_device->getVkDevice(), sems.first, nullptr);
         vkDestroySemaphore(m_device->getVkDevice(), sems.second, nullptr);
     }
+    m_semaphores.clear();
 }
 
 void SwapChain::destroySwapChain(VkSwapchainKHR& swapChain)

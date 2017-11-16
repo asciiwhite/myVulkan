@@ -43,21 +43,42 @@ bool Texture::loadFromFile(Device* device, const std::string& filename)
         m_image, m_imageMemory);
 
     device->transitionImageLayout(m_image,
+        VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     device->copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
     device->transitionImageLayout(m_image,
+        VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     vkDestroyBuffer(device->getVkDevice(), stagingBuffer, nullptr);
     vkFreeMemory(device->getVkDevice(), stagingBufferMemory, nullptr);
 
-    device->createImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, m_imageView);
+    device->createImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, m_imageView, VK_IMAGE_ASPECT_COLOR_BIT);
 
     return true;
+}
+
+void Texture::createDepthBuffer(Device* device, const VkExtent2D& extend, VkFormat format)
+{
+    m_device = device;
+
+    device->createImage(extend.width, extend.height,
+        format,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        m_image, m_imageMemory);
+
+    device->createImageView(m_image, format, m_imageView, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    device->transitionImageLayout(m_image,
+        format,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
 void Texture::destroy()

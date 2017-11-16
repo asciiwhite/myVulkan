@@ -2,8 +2,6 @@
 #include "vulkanhelper.h"
 #include "debug.h"
 
-#include <vector>
-
 bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidationLayers)
 {
     uint32_t numDevices = 0;
@@ -161,7 +159,7 @@ void Device::createCommandPool()
     VK_CHECK_RESULT(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool));
 }
 
-void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -172,7 +170,7 @@ void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
     endSingleTimeCommands(commandBuffer);
 }
 
-void Device::createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+void Device::createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
 {
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -194,7 +192,7 @@ void Device::createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPrope
     VK_CHECK_RESULT(vkBindBufferMemory(m_device, buffer, bufferMemory, 0));
 }
 
-void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const
 {
     VkImageCreateInfo imageInfo = {};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -225,7 +223,7 @@ void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkIma
     VK_CHECK_RESULT(vkBindImageMemory(m_device, image, imageMemory, 0));
 }
 
-void Device::createSampler(VkSampler& sampler)
+void Device::createSampler(VkSampler& sampler) const
 {
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -264,6 +262,31 @@ uint32_t Device::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFi
     return ~0u;
 }
 
+VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
+{
+    for (VkFormat format : candidates)
+    {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &props);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+        {
+            return format;
+        }
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+        {
+            return format;
+        }
+    }
+
+    return VK_FORMAT_UNDEFINED;
+}
+
+bool Device::hasStencilComponent(VkFormat format)
+{
+    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
 static VkPipelineStageFlags getPipelineStageFlags(VkAccessFlags access)
 {
     if (access & (VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT))
@@ -273,6 +296,10 @@ static VkPipelineStageFlags getPipelineStageFlags(VkAccessFlags access)
     else if (access & (VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT))
     {
         return VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    else if (access & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT))
+    {
+        return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     }
     else if ((access & ~(VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT)) == 0)
     {
@@ -321,7 +348,7 @@ static VkAccessFlags getAccessFlags(VkImageLayout layout)
     return 0;
 }
 
-void Device::transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
+void Device::transitionImageLayout(VkImage image, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout) const
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -332,13 +359,26 @@ void Device::transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkIma
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = image;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
     barrier.srcAccessMask = getAccessFlags(oldLayout);
     barrier.dstAccessMask = getAccessFlags(newLayout);
+
+    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if (hasStencilComponent(imageFormat))
+        {
+            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+    }
+    else
+    {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    }
 
     const auto sourceStage = getPipelineStageFlags(barrier.srcAccessMask);
     const auto destinationStage = getPipelineStageFlags(barrier.dstAccessMask);
@@ -355,7 +395,7 @@ void Device::transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkIma
     endSingleTimeCommands(commandBuffer);
 }
 
-void Device::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+void Device::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -375,7 +415,7 @@ void Device::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
     endSingleTimeCommands(commandBuffer);
 }
 
-VkCommandBuffer Device::beginSingleTimeCommands()
+VkCommandBuffer Device::beginSingleTimeCommands() const
 {
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -395,7 +435,7 @@ VkCommandBuffer Device::beginSingleTimeCommands()
     return commandBuffer;
 }
 
-void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
 {
     VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
@@ -410,7 +450,7 @@ void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
     vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
 }
 
-void Device::createImageView(VkImage image, VkFormat format, VkImageView& imageView)
+void Device::createImageView(VkImage image, VkFormat format, VkImageView& imageView, VkImageAspectFlags aspectFlags) const
 {
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -422,7 +462,7 @@ void Device::createImageView(VkImage image, VkFormat format, VkImageView& imageV
         VK_COMPONENT_SWIZZLE_IDENTITY,
         VK_COMPONENT_SWIZZLE_IDENTITY
     };
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.aspectMask = aspectFlags;
     viewInfo.subresourceRange.baseMipLevel = 0;
     viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;

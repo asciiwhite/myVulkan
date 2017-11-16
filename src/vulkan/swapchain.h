@@ -27,6 +27,7 @@ private:
     void createImageViews(uint32_t imageCount);
     void createSemaphores(uint32_t imageCount);
     void destroySwapChain(VkSwapchainKHR& swapChain);
+    void destroySemaphores();
 
     uint32_t                        getSwapChainNumImages(VkSurfaceCapabilitiesKHR &surfaceCaps);
     VkImageUsageFlags               getSwapChainUsageFlags(VkSurfaceCapabilitiesKHR &surfaceCaps);

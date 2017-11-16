@@ -9,6 +9,7 @@ class Texture
 {
 public:
     bool loadFromFile(Device* device, const std::string& filename);
+    void createDepthBuffer(Device* device, const VkExtent2D& extend, VkFormat format);
     void destroy();
 
     VkImageView getImageView() const { return m_imageView; }

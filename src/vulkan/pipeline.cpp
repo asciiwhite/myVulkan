@@ -83,6 +83,18 @@ PipelineSettings::PipelineSettings()
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.flags = 0;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.minDepthBounds = 0.f;
+    depthStencil.maxDepthBounds = 1.f;
+    depthStencil.stencilTestEnable = VK_FALSE;
+    depthStencil.front = {};
+    depthStencil.back = {};
+
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.flags = 0;
     dynamicState.dynamicStateCount = 2;
@@ -96,7 +108,7 @@ bool Pipeline::init(VkDevice device,
     VkPipelineLayout layout,
     const PipelineSettings& settings,
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
-    VertexBuffer* vertexbuffer)
+    const VertexBuffer* vertexbuffer)
 {
     assert(shaderStages.size() > 0);
 
@@ -119,6 +131,7 @@ bool Pipeline::init(VkDevice device,
     pipelineInfo.pViewportState = &settings.viewportState;
     pipelineInfo.pRasterizationState = &settings.rasterizer;
     pipelineInfo.pMultisampleState = &settings.multisampling;
+    pipelineInfo.pDepthStencilState = &settings.depthStencil;
     pipelineInfo.pColorBlendState = &settings.colorBlending;
     pipelineInfo.pDynamicState = &settings.dynamicState;
     pipelineInfo.layout = layout;

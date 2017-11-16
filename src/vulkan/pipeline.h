@@ -27,6 +27,7 @@ public:
     VkPipelineMultisampleStateCreateInfo multisampling = {};
     VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
     VkPipelineColorBlendStateCreateInfo colorBlending = {};
+    VkPipelineDepthStencilStateCreateInfo depthStencil = {};
     VkPipelineDynamicStateCreateInfo dynamicState = {};
 
     static VkDynamicState dynamicStates[2];
@@ -42,7 +43,7 @@ public:
         VkPipelineLayout layout,
         const PipelineSettings& settings,
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
-        VertexBuffer* vertexbuffer = nullptr);
+        const VertexBuffer* vertexbuffer = nullptr);
 
     void destroy();
 

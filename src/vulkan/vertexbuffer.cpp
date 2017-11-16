@@ -22,27 +22,28 @@ namespace
     }
 }
 
-void VertexBuffer::init(Device* device, const std::vector<AttributeDescription>& descriptions)
+void VertexBuffer::createFromSeparateAttributes(Device* device, const std::vector<AttributeDescription>& descriptions)
 {
     if (descriptions.size() == 0)
         return;
 
     m_device = device;
-    m_numVertices = descriptions[0].vertexCount;
+    m_numVertices = descriptions[0].attributeCount;
 
     auto totalSize = 0;
     m_attributesDescriptions.resize(descriptions.size());
     m_bindingDescriptions.resize(descriptions.size());
+    m_bindingOffsets.resize(descriptions.size());
     for (auto i = 0u; i < descriptions.size(); i++)
     {
         const auto& desc = descriptions[i];
-        assert(m_numVertices == desc.vertexCount);
+        assert(m_numVertices == desc.attributeCount);
 
         VkVertexInputAttributeDescription& attribDesc = m_attributesDescriptions[i];
         attribDesc.binding = i;
         attribDesc.location = desc.location;
         attribDesc.format = getAttributeFormat(desc.componentCount);
-        attribDesc.offset = totalSize;
+        attribDesc.offset = 0;
 
         const auto attributeSize = desc.componentCount * 4;
 
@@ -51,7 +52,9 @@ void VertexBuffer::init(Device* device, const std::vector<AttributeDescription>&
         bindingDesc.stride = attributeSize;
         bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-        totalSize += desc.vertexCount * attributeSize;
+        m_bindingOffsets[i] = totalSize;
+
+        totalSize += desc.attributeCount * attributeSize;
     }
 
     auto memcpyFunc = [&](void *mappedMemory)
@@ -59,10 +62,49 @@ void VertexBuffer::init(Device* device, const std::vector<AttributeDescription>&
         auto data = reinterpret_cast<float*>(mappedMemory);
         for (auto& desc : descriptions)
         {
-            const auto attributeSize = desc.componentCount * desc.vertexCount;
-            std::memcpy(data, desc.vertexData, attributeSize * 4);
+            const auto attributeSize = desc.componentCount * desc.attributeCount;
+            std::memcpy(data, desc.attributeData, attributeSize * 4);
             data += attributeSize;
         }
+    };
+
+    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, totalSize, m_vertexBuffer, m_vertexBufferMemory, memcpyFunc);
+}
+
+void VertexBuffer::createFromInterleavedAttributes(Device* device, const std::vector<AttributeDescription>& descriptions)
+{
+    if (descriptions.size() == 0)
+        return;
+
+    m_device = device;
+    m_numVertices = descriptions[0].attributeCount;
+
+    uint32_t totalSize = 0;
+    uint32_t vertexSize = 0;
+    m_attributesDescriptions.resize(descriptions.size());
+    for (auto i = 0u; i < descriptions.size(); i++)
+    {
+        const auto& desc = descriptions[i];
+        assert(m_numVertices == desc.attributeCount);
+
+        VkVertexInputAttributeDescription& attribDesc = m_attributesDescriptions[i];
+        attribDesc.binding = 0;
+        attribDesc.location = desc.location;
+        attribDesc.format = getAttributeFormat(desc.componentCount);
+        attribDesc.offset = desc.interleavedOffset;
+
+        const auto attributeSize = desc.componentCount * 4;
+        vertexSize += attributeSize;
+        totalSize += desc.attributeCount * attributeSize;
+    }
+
+    m_bindingDescriptions.push_back({ 0, vertexSize, VK_VERTEX_INPUT_RATE_VERTEX });
+    m_bindingOffsets.push_back(0);
+    
+    auto memcpyFunc = [&](void *mappedMemory)
+    {
+        auto data = reinterpret_cast<float*>(mappedMemory);
+        std::memcpy(data, descriptions[0].attributeData, totalSize);
     };
 
     createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, totalSize, m_vertexBuffer, m_vertexBufferMemory, memcpyFunc);
@@ -138,11 +180,9 @@ void VertexBuffer::createIndexBuffer(const void *indices, uint32_t numIndices, V
 
 void VertexBuffer::draw(VkCommandBuffer commandBuffer) const
 {
-    const VkDeviceSize offset = 0;
-
     for (auto i = 0u; i < m_bindingDescriptions.size(); i++)
     {
-        vkCmdBindVertexBuffers(commandBuffer, i, 1, &m_vertexBuffer, &offset);
+        vkCmdBindVertexBuffers(commandBuffer, i, 1, &m_vertexBuffer, &m_bindingOffsets[i]);
     }
 
     if (m_indexBuffer != VK_NULL_HANDLE)

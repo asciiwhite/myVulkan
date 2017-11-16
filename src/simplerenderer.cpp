@@ -2,67 +2,40 @@
 #include "utils/timer.h"
 #include "vulkan/vulkanhelper.h"
 
+#pragma warning(push)
+#pragma warning(disable:4201)
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#pragma warning(pop)
+
 #include <cstring>
 #include <cmath>
+#include <array>
 
 bool SimpleRenderer::setup()
 {
-    m_shader.createFromFiles(m_device.getVkDevice(), "data/shaders/simple.vert.spv", "data/shaders/simple.frag.spv");
-    m_texture.loadFromFile(&m_device, "data/textures/vulkan.jpg");
+    m_shader.createFromFiles(m_device.getVkDevice(), "data/shaders/color.vert.spv", "data/shaders/color.frag.spv");
 
     m_device.createSampler(m_sampler);
 
-    const float scaling = 2.0f;
-    const uint32_t bufferSize = sizeof(scaling);
-
-    m_device.createBuffer(bufferSize,
+    m_device.createBuffer(sizeof(glm::mat4),
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_uniformBuffer, m_uniformBufferMemory);
 
-    void* data;
-    vkMapMemory(m_device.getVkDevice(), m_uniformBufferMemory, 0, bufferSize, 0, &data);
-    std::memcpy(data, &scaling, bufferSize);
-    vkUnmapMemory(m_device.getVkDevice(), m_uniformBufferMemory);
+    updateMVP();
 
-    m_descriptorSet.addSampler(m_texture.getImageView(), m_sampler);
     m_descriptorSet.addUniformBuffer(VK_SHADER_STAGE_VERTEX_BIT, m_uniformBuffer);
     m_descriptorSet.finalize(m_device.getVkDevice());
 
     m_pipelineLayout.init(m_device.getVkDevice(), { m_descriptorSet.getLayout() });
     
-    const float vertices[] = {
-       -0.5, -0.5,
-        0.5, -0.5,
-        0.5,  0.5,
-       -0.5,  0.5
-    };
-
-    const float texCoords[] = {
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0
-    };
-
-    const float colors[] = {
-        1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 0.0f
-    };
-
-    const std::vector<VertexBuffer::AttributeDescription> attribDesc =
-    {
-        { 0, 2, 4, vertices },
-        { 1, 2, 4, texCoords },
-        { 2, 3, 4, colors }
-    };
-
-    const uint16_t indices[] = { 0, 1, 2, 2, 3, 0 };
-
-    m_vertexBuffer.init(&m_device, attribDesc);
-    m_vertexBuffer.setIndices(indices, 6);
+    const std::string meshFilename = "data/meshes/bunny.obj";
+    const std::string materialBaseDir = meshFilename.substr(0, meshFilename.find_last_of("/\\") + 1);
+    if (!m_mesh.loadFromObj(m_device, meshFilename, materialBaseDir))
+        return false;
 
     PipelineSettings settings;
 
@@ -71,19 +44,19 @@ bool SimpleRenderer::setup()
         m_pipelineLayout.getVkPipelineLayout(),
         settings,
         m_shader.getShaderStages(),
-        &m_vertexBuffer);
+        &m_mesh.getVertexBuffer());
 
     return true;
 }
 
 void SimpleRenderer::shutdown()
 {
+    m_mesh.destroy();
+
     m_descriptorSet.destroy(m_device.getVkDevice());
     m_shader.destory();
-    m_vertexBuffer.destroy();
     m_pipeline.destroy();
     m_pipelineLayout.destroy();
-    m_texture.destroy();
     vkDestroySampler(m_device.getVkDevice(), m_sampler, nullptr);
 
     vkDestroyBuffer(m_device.getVkDevice(), m_uniformBuffer, nullptr);
@@ -108,9 +81,11 @@ void SimpleRenderer::fillCommandBuffers()
         renderPassInfo.framebuffer = m_framebuffers[i].getVkFramebuffer();
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = m_swapChain.getImageExtent();
-        VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
+        std::array<VkClearValue, 2> clearValues = {};
+        clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+        clearValues[1].depthStencil = { 1.0f, 0 };
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
 
         vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -124,7 +99,7 @@ void SimpleRenderer::fillCommandBuffers()
 
         m_descriptorSet.bind(m_commandBuffers[i], m_pipelineLayout.getVkPipelineLayout());
 
-        m_vertexBuffer.draw(m_commandBuffers[i]);
+        m_mesh.getVertexBuffer().draw(m_commandBuffers[i]);
 
         vkCmdEndRenderPass(m_commandBuffers[i]);
 
@@ -134,11 +109,22 @@ void SimpleRenderer::fillCommandBuffers()
 
 void SimpleRenderer::update()
 {
-    const auto time = static_cast<float>(Timer::getMicroseconds()) / 1000000;
-    const auto scaling = cos(time) + 2.0f;
-    const auto bufferSize(sizeof(scaling));
+}
+
+void SimpleRenderer::resized()
+{
+    updateMVP();
+}
+
+void SimpleRenderer::updateMVP()
+{
+    const glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_swapChain.getImageExtent().width / (float)m_swapChain.getImageExtent().height, 0.1f, 10.0f);
+    const glm::mat4 mvp = projection * view;
+    const uint32_t bufferSize = sizeof(mvp);
+
     void* data;
     vkMapMemory(m_device.getVkDevice(), m_uniformBufferMemory, 0, bufferSize, 0, &data);
-    std::memcpy(data, &scaling, bufferSize);
+    std::memcpy(data, &mvp, bufferSize);
     vkUnmapMemory(m_device.getVkDevice(), m_uniformBufferMemory);
 }

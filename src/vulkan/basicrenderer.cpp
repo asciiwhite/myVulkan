@@ -21,14 +21,21 @@ bool BasicRenderer::init(GLFWwindow* window)
 
     createDevice();
     createSwapChain();
-    m_renderPass.init(m_device.getVkDevice(), m_swapChain.getImageFormat());
+
+    m_swapChainDepthBufferFormat = m_device.findSupportedFormat(
+    { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+    m_swapChainDepthBuffer.createDepthBuffer(&m_device, m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
+
+    m_renderPass.init(&m_device, m_swapChain.getImageFormat(), m_swapChainDepthBufferFormat);
+    createSwapChainFramebuffers();
 
     if (!setup())
         return false;
 
     createCommandBuffers();
-    createSwapChainFramebuffers();
-
     fillCommandBuffers();
     
     return true;
@@ -109,12 +116,12 @@ bool BasicRenderer::createSwapChainFramebuffers()
 {
     m_framebuffers.resize(m_swapChain.getImageCount());
 
-    for (size_t i = 0; i < m_commandBuffers.size(); i++)
+    for (size_t i = 0; i < m_framebuffers.size(); i++)
     {
         m_framebuffers[i].init(
             m_device.getVkDevice(),
             m_renderPass.getVkRenderPass(),
-            m_swapChain.getImageView(static_cast<uint32_t>(i)),
+            { m_swapChain.getImageView(static_cast<uint32_t>(i)), m_swapChainDepthBuffer.getImageView() },
             m_swapChain.getImageExtent());
     }
 
@@ -126,6 +133,7 @@ void BasicRenderer::destroy()
     // wait to avoid destruction of still used resources
     vkDeviceWaitIdle(m_device.getVkDevice());
 
+    m_swapChainDepthBuffer.destroy();
     m_renderPass.destroy();
     destroyFramebuffers();
     destroyCommandBuffers();
@@ -149,12 +157,15 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
 
     if (m_swapChain.create())
     {
+        m_swapChainDepthBuffer.destroy();
         destroyFramebuffers();
         destroyCommandBuffers();
         createCommandBuffers();
+        m_swapChainDepthBuffer.createDepthBuffer(&m_device, m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
         createSwapChainFramebuffers();
 
         fillCommandBuffers();
+        resized();
         return true;
     }
     return false;
