@@ -18,8 +18,9 @@ std::shared_ptr<Shader> Shader::getShader(VkDevice device, const std::string& ve
         }
         else
         {
-            return newShader;
+            newShader.reset();
         }
+        return newShader;
     }
 
     return m_loadedShaders[combindedShaderFilenames];

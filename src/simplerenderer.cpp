@@ -23,7 +23,7 @@ bool SimpleRenderer::setup()
 
     updateMVP();
 
-    if (!m_mesh.loadFromObj(m_device, "data/meshes/conference.obj"))
+    if (!m_mesh.loadFromObj(m_device, "data/meshes/bunny.obj"))
         return false;
 
     m_mesh.addUniformBuffer(VK_SHADER_STAGE_VERTEX_BIT, m_uniformBuffer);

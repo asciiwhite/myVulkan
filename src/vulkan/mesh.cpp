@@ -54,7 +54,7 @@ bool Mesh::loadFromObj(Device& device, const std::string& filename)
         createSeparateVertexAttributes(attrib, shapes);
     }
 
-    m_shader = getShaderFromAttributes(attrib);
+    m_shader = selectShaderFromAttributes(attrib);
 
     return m_shader != nullptr;
 }
@@ -189,14 +189,27 @@ void Mesh::createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const
     std::cout << "Vertex count:\t " << attrib.vertices.size() / 3 << std::endl;
 }
 
-std::shared_ptr<Shader> Mesh::getShaderFromAttributes(const tinyobj::attrib_t& attrib)
+std::shared_ptr<Shader> Mesh::selectShaderFromAttributes(const tinyobj::attrib_t& attrib)
 {
     assert(!m_shader);
 
+    const std::string shaderPath = "data/shaders/";
+    std::string vertexShaderName = "color";
+    std::string fragmemtShaderName = vertexShaderName;
+    
     if (attrib.normals.size() > 0)
-        return Shader::getShader(m_device->getVkDevice(), "data/shaders/normal_color.vert.spv", "data/shaders/normal_color.frag.spv");
-    else
-        return Shader::getShader(m_device->getVkDevice(), "data/shaders/color.vert.spv", "data/shaders/color.frag.spv");
+        vertexShaderName += "_normal";
+    
+    if (attrib.texcoords.size() > 0)
+    {
+        vertexShaderName += "_texture";
+        fragmemtShaderName += "_texture";
+    }
+    
+    const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
+    const auto fragmentShaderFilename = shaderPath + fragmemtShaderName + ".frag.spv";
+
+    return Shader::getShader(m_device->getVkDevice(), vertexShaderFilename, fragmentShaderFilename);
 }
 
 void Mesh::addUniformBuffer(VkShaderStageFlags shaderStages, VkBuffer uniformBuffer)

@@ -24,7 +24,7 @@ public:
 private:
     void createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes);
     void createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes);
-    std::shared_ptr<Shader> getShaderFromAttributes(const tinyobj::attrib_t& attrib);
+    std::shared_ptr<Shader> selectShaderFromAttributes(const tinyobj::attrib_t& attrib);
     void createPipeline();
 
     Device* m_device = nullptr;
