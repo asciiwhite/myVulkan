@@ -244,7 +244,7 @@ void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer)
 void BasicRenderer::updateMVPUniform()
 {
     const glm::mat4 view = glm::lookAt(m_cameraPosition, m_cameraTarget, glm::vec3(0.0f, -1.0f, 0.0f));
-    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height), 0.1f, 100000.0f);
+    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height), 0.01f, 100000.0f);
     const glm::mat4 mvp = projection * view;
     const uint32_t bufferSize = sizeof(mvp);
 
@@ -283,8 +283,8 @@ void BasicRenderer::mouseMove(double x, double y)
         m_middleMouseButtonDown ||
         m_rightMouseButtonDown)
     {
-        const static auto rotationSize = 0.01f;
-        const auto stepSize = 0.01f * m_sceneBoundingBoxDiameter;
+        const static auto rotationSize = 0.0025f;
+        const auto stepSize = 0.0025f * m_sceneBoundingBoxDiameter;
         const auto deltaX = static_cast<float>(x - m_mousePositionX);
         const auto deltaY = static_cast<float>(y - m_mousePositionY);
 

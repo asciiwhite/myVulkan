@@ -21,6 +21,6 @@ out gl_PerVertex {
 void main()
 {
     gl_Position = ubo.mvp * vec4(positions, 1.0);
-    color = colors * dot(vec3(0,1,0), normals);
+    color = colors * dot(vec3(0,1,0), normals) + vec3(0.2);
     texCoord = texCoords;
 }
