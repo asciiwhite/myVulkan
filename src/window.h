@@ -14,6 +14,8 @@ public:
 
 private:
     void resize(int width, int height);
+    void mouseButton(int button, int action, int mods);
+    void mouseMove(double x, double y);
 
     BasicRenderer* m_renderer = nullptr;
     GLFWwindow* m_window = nullptr;

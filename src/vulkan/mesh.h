@@ -1,6 +1,7 @@
 #include "vertexbuffer.h"
 #include "pipeline.h"
 #include "descriptorset.h"
+#include "..\utils\glm.h"
 
 #include <tiny_obj_loader.h>
 #include <string>
@@ -20,12 +21,14 @@ public:
 
     void addUniformBuffer(VkShaderStageFlags shaderStages, VkBuffer uniformBuffer);
     bool finalize(const RenderPass& renderPass);
+    void getBoundingbox(glm::vec3& min, glm::vec3& max) const;
 
 private:
     void createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes);
     void createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes);
     std::shared_ptr<Shader> selectShaderFromAttributes(const tinyobj::attrib_t& attrib);
     void createPipeline();
+    void calculateBoundingBox(const std::vector<float>& vertices, uint32_t stride);
 
     Device* m_device = nullptr;
     std::shared_ptr<Shader> m_shader;
@@ -33,4 +36,7 @@ private:
     DescriptorSet m_descriptorSet;
     PipelineLayout m_pipelineLayout;
     Pipeline m_pipeline;
+
+    glm::vec3 m_minBB;
+    glm::vec3 m_maxBB;
 };

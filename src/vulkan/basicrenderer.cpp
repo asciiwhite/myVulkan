@@ -2,10 +2,13 @@
 #include "vulkanhelper.h"
 #include "debug.h"
 
+#include "../utils/glm.h"
+
 #include <GLFW/glfw3.h>
 
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -31,6 +34,11 @@ bool BasicRenderer::init(GLFWwindow* window)
 
     m_renderPass.init(&m_device, m_swapChain.getImageFormat(), m_swapChainDepthBufferFormat);
     createSwapChainFramebuffers();
+
+    m_device.createBuffer(sizeof(glm::mat4),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_uniformBuffer, m_uniformBufferMemory);
 
     if (!setup())
         return false;
@@ -133,6 +141,11 @@ void BasicRenderer::destroy()
     // wait to avoid destruction of still used resources
     vkDeviceWaitIdle(m_device.getVkDevice());
 
+    vkDestroyBuffer(m_device.getVkDevice(), m_uniformBuffer, nullptr);
+    m_uniformBuffer = VK_NULL_HANDLE;
+    vkFreeMemory(m_device.getVkDevice(), m_uniformBufferMemory, nullptr);
+    m_uniformBufferMemory = VK_NULL_HANDLE;
+
     m_swapChainDepthBuffer.destroy();
     m_renderPass.destroy();
     destroyFramebuffers();
@@ -165,7 +178,9 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
         createSwapChainFramebuffers();
 
         fillCommandBuffers();
-        resized();
+        
+        updateMVPUniform();
+
         return true;
     }
     return false;
@@ -224,4 +239,90 @@ void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer)
     submitInfo.pSignalSemaphores = m_swapChain.getRenderFinishedSemaphore();
 
     VK_CHECK_RESULT(vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
+}
+
+void BasicRenderer::updateMVPUniform()
+{
+    const glm::mat4 view = glm::lookAt(m_cameraPosition, m_cameraTarget, glm::vec3(0.0f, -1.0f, 0.0f));
+    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height), 0.1f, 100000.0f);
+    const glm::mat4 mvp = projection * view;
+    const uint32_t bufferSize = sizeof(mvp);
+
+    void* data;
+    vkMapMemory(m_device.getVkDevice(), m_uniformBufferMemory, 0, bufferSize, 0, &data);
+    std::memcpy(data, &mvp, bufferSize);
+    vkUnmapMemory(m_device.getVkDevice(), m_uniformBufferMemory);
+}
+
+void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max)
+{
+    const auto size = max - min;
+    const auto center = (min + max) / 2.f;
+    m_sceneBoundingBoxDiameter = std::max(std::max(size.x, size.y), size.z);
+    const auto cameraOffset = m_sceneBoundingBoxDiameter * 1.5f;
+
+    m_cameraPosition = glm::vec3(0.0f, cameraOffset, cameraOffset) - center;
+    m_cameraTarget = center;
+
+    updateMVPUniform();
+}
+
+void BasicRenderer::mouseButton(int button, int action, int /*mods*/)
+{
+    if (button == GLFW_MOUSE_BUTTON_1)
+        m_leftMouseButtonDown = action == GLFW_PRESS;
+    else if (button == GLFW_MOUSE_BUTTON_3)
+        m_middleMouseButtonDown = action == GLFW_PRESS;
+    else if (button == GLFW_MOUSE_BUTTON_2)
+        m_rightMouseButtonDown = action == GLFW_PRESS;
+}
+
+void BasicRenderer::mouseMove(double x, double y)
+{
+    if (m_leftMouseButtonDown ||
+        m_middleMouseButtonDown ||
+        m_rightMouseButtonDown)
+    {
+        const static auto rotationSize = 0.01f;
+        const auto stepSize = 0.01f * m_sceneBoundingBoxDiameter;
+        const auto deltaX = static_cast<float>(x - m_mousePositionX);
+        const auto deltaY = static_cast<float>(y - m_mousePositionY);
+
+        if (m_leftMouseButtonDown)
+        {
+            const auto cameraDirection = m_cameraTarget - m_cameraPosition;
+            auto newCameraDirection = glm::rotateY(cameraDirection, deltaX * rotationSize);
+            newCameraDirection = glm::rotateX(newCameraDirection, -deltaY * rotationSize);
+            if (m_observerCameraMode)
+            {
+                m_cameraTarget = m_cameraPosition + newCameraDirection;
+            }
+            else
+            {
+                m_cameraPosition = m_cameraTarget - newCameraDirection;
+            }
+            updateMVPUniform();
+        }
+        if (m_middleMouseButtonDown)
+        {
+            const auto cameraDirection = glm::normalize(m_cameraTarget - m_cameraPosition);
+            const auto offset = glm::vec3(deltaY * stepSize) * cameraDirection;
+            m_cameraPosition += offset;
+            m_cameraTarget += offset;
+            updateMVPUniform();
+        }
+        if (m_rightMouseButtonDown)
+        {
+            const auto cameraDirection = glm::normalize(m_cameraTarget - m_cameraPosition);
+            const auto cameraUp = glm::normalize(glm::cross(cameraDirection, glm::vec3(0, -1, 0)));
+            const auto cameraRight = glm::normalize(glm::cross(cameraDirection, cameraUp));
+            const auto cameraOffset = stepSize * ((cameraRight * deltaY) - (cameraUp * deltaX));
+            m_cameraPosition += cameraOffset;
+            m_cameraTarget += cameraOffset;
+            updateMVPUniform();
+        }
+    }
+
+    m_mousePositionX = x;
+    m_mousePositionY = y;
 }

@@ -14,7 +14,14 @@ bool Window::init()
         glfwSetWindowUserPointer(m_window, this);
         glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int w, int h) {
             static_cast<Window*>(glfwGetWindowUserPointer(window))->resize(w, h);
+        });        
+        glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods) {
+            static_cast<Window*>(glfwGetWindowUserPointer(window))->mouseButton(button, action, mods);
         });
+        glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x, double y) {
+            static_cast<Window*>(glfwGetWindowUserPointer(window))->mouseMove(x, y);
+        });
+        
         return true;
     }
 
@@ -55,6 +62,16 @@ void Window::resize(int width, int height)
     m_pause = (width * height == 0);
     if (m_renderer && !m_pause)
         m_renderer->resize(width, height);
+}
+
+void Window::mouseButton(int button, int action, int mods)
+{
+    m_renderer->mouseButton(button, action, mods);
+}
+
+void Window::mouseMove(double x, double y)
+{
+    m_renderer->mouseMove(x, y);
 }
 
 GLFWwindow* Window::getWindowHandle() const

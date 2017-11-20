@@ -2,29 +2,18 @@
 #include "utils/timer.h"
 #include "vulkan/vulkanhelper.h"
 
-#pragma warning(push)
-#pragma warning(disable:4201)
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#pragma warning(pop)
-
 #include <cstring>
 #include <cmath>
 #include <array>
 
 bool SimpleRenderer::setup()
 {
-    m_device.createBuffer(sizeof(glm::mat4),
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        m_uniformBuffer, m_uniformBufferMemory);
-
-    updateMVP();
-
-    if (!m_mesh.loadFromObj(m_device, "data/meshes/bunny.obj"))
+    if (!m_mesh.loadFromObj(m_device, "data/meshes/bump.obj"))
         return false;
+
+    glm::vec3 min, max;
+    m_mesh.getBoundingbox(min, max);    
+    setCameraFromBoundingBox(min, max);
 
     m_mesh.addUniformBuffer(VK_SHADER_STAGE_VERTEX_BIT, m_uniformBuffer);
     if (!m_mesh.finalize(m_renderPass))
@@ -38,11 +27,6 @@ void SimpleRenderer::shutdown()
     m_mesh.destroy();
 
 //    vkDestroySampler(m_device.getVkDevice(), m_sampler, nullptr);
-
-    vkDestroyBuffer(m_device.getVkDevice(), m_uniformBuffer, nullptr);
-    m_uniformBuffer = VK_NULL_HANDLE;
-    vkFreeMemory(m_device.getVkDevice(), m_uniformBufferMemory, nullptr);
-    m_uniformBufferMemory = VK_NULL_HANDLE;
 }
 
 void SimpleRenderer::fillCommandBuffers()
@@ -85,22 +69,4 @@ void SimpleRenderer::fillCommandBuffers()
 
 void SimpleRenderer::update()
 {
-}
-
-void SimpleRenderer::resized()
-{
-    updateMVP();
-}
-
-void SimpleRenderer::updateMVP()
-{
-    const glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_swapChain.getImageExtent().width / (float)m_swapChain.getImageExtent().height, 0.1f, 10.0f);
-    const glm::mat4 mvp = projection * view;
-    const uint32_t bufferSize = sizeof(mvp);
-
-    void* data;
-    vkMapMemory(m_device.getVkDevice(), m_uniformBufferMemory, 0, bufferSize, 0, &data);
-    std::memcpy(data, &mvp, bufferSize);
-    vkUnmapMemory(m_device.getVkDevice(), m_uniformBufferMemory);
 }

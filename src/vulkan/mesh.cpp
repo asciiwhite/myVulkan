@@ -145,6 +145,8 @@ void Mesh::createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, co
 
     m_vertexBuffer.setIndices(&indices.front(), static_cast<uint32_t>(indices.size()));
 
+    calculateBoundingBox(vertexData, vertexSize - 3);
+
     std::cout << "Triangle count:\t\t " << indices.size() / 3 << std::endl;
     std::cout << "Vertex count from file:\t " << attrib.vertices.size() / 3 << std::endl;
     std::cout << "Unique vertex count:\t " << uniqueVertexCount << std::endl;
@@ -185,6 +187,8 @@ void Mesh::createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const
     }
     m_vertexBuffer.setIndices(&indices.front(), static_cast<uint32_t>(indices.size()));
 
+    calculateBoundingBox(attrib.vertices, 0);
+
     std::cout << "Triangle count:\t " << indices.size() / 3 << std::endl;
     std::cout << "Vertex count:\t " << attrib.vertices.size() / 3 << std::endl;
 }
@@ -200,11 +204,11 @@ std::shared_ptr<Shader> Mesh::selectShaderFromAttributes(const tinyobj::attrib_t
     if (attrib.normals.size() > 0)
         vertexShaderName += "_normal";
     
-    if (attrib.texcoords.size() > 0)
-    {
-        vertexShaderName += "_texture";
-        fragmemtShaderName += "_texture";
-    }
+//     if (attrib.texcoords.size() > 0)
+//     {
+//         vertexShaderName += "_texture";
+//         fragmemtShaderName += "_texture";
+//     }
     
     const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
     const auto fragmentShaderFilename = shaderPath + fragmemtShaderName + ".frag.spv";
@@ -240,4 +244,27 @@ void Mesh::render(VkCommandBuffer commandBuffer) const
     m_descriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout());
 
     m_vertexBuffer.draw(commandBuffer);
+}
+
+void Mesh::calculateBoundingBox(const std::vector<float>& vertices, uint32_t stride)
+{
+    m_minBB.x = m_maxBB.x = vertices[0];
+    m_minBB.y = m_maxBB.y = vertices[1];
+    m_minBB.z = m_maxBB.z = vertices[2];
+
+    for (uint32_t i = 3 + stride; i < vertices.size(); i += 3 + stride)
+    {
+        m_minBB.x = std::min(m_minBB.x, vertices[i + 0]);
+        m_maxBB.x = std::max(m_maxBB.x, vertices[i + 0]);
+        m_minBB.y = std::min(m_minBB.y, vertices[i + 1]);
+        m_maxBB.y = std::max(m_maxBB.y, vertices[i + 1]);
+        m_minBB.z = std::min(m_minBB.z, vertices[i + 2]);
+        m_maxBB.z = std::max(m_maxBB.z, vertices[i + 2]);
+    }
+}
+
+void Mesh::getBoundingbox(glm::vec3& min, glm::vec3& max) const
+{
+    min = m_minBB;
+    max = m_maxBB;
 }

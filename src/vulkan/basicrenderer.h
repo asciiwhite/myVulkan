@@ -7,6 +7,7 @@
 #include "texture.h"
 
 #include "../utils/statistics.h"
+#include "../utils/glm.h"
 
 #include <vulkan/vulkan.h>
 
@@ -19,9 +20,14 @@ public:
     void destroy();
 
     bool resize(uint32_t width, uint32_t height);
+    void mouseButton(int button, int action, int mods);
+    void mouseMove(double x, double y);
 
     virtual void update() = 0;
     void draw();
+
+protected:
+    void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max);
 
 private:
     bool createInstance();
@@ -36,10 +42,11 @@ private:
     bool checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, uint32_t &graphicsQueueNodeIndex);
     void submitCommandBuffer(VkCommandBuffer commandBuffer);
 
+    void updateMVPUniform();
+
     virtual bool setup() = 0;
     virtual void shutdown() = 0;
     virtual void fillCommandBuffers() = 0;
-    virtual void resized() = 0;
 
     VkInstance m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
@@ -54,4 +61,19 @@ protected:
     std::vector<Framebuffer> m_framebuffers;
 
     Statistics m_stats;
+
+    VkBuffer m_uniformBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_uniformBufferMemory = VK_NULL_HANDLE;
+
+    float m_sceneBoundingBoxDiameter = 0.f;
+    bool m_observerCameraMode = false;
+
+    glm::vec3 m_cameraPosition;
+    glm::vec3 m_cameraTarget;
+
+    bool m_leftMouseButtonDown = false;
+    bool m_middleMouseButtonDown = false;
+    bool m_rightMouseButtonDown = false;
+    double m_mousePositionX = 0.0;
+    double m_mousePositionY = 0.0;
 };
