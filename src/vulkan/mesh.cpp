@@ -2,6 +2,8 @@
 #include "device.h"
 #include "shader.h"
 #include "renderpass.h"
+#include "texture.h"
+#include "../utils/scopedtimelog.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -17,6 +19,9 @@ void Mesh::destroy()
     m_pipelineLayout.destroy();
     m_vertexBuffer.destroy();
     Shader::release(m_shader);
+    m_texture->destroy();
+    vkDestroySampler(m_device->getVkDevice(), m_sampler, nullptr);
+    m_sampler = VK_NULL_HANDLE;
     m_device = nullptr;
 }
 
@@ -29,29 +34,37 @@ bool Mesh::loadFromObj(Device& device, const std::string& filename)
     std::vector<tinyobj::material_t> materials;
     std::string err;
 
-    std::cout << "Loading mesh: " << filename << std::endl;
+    {
+        ScopedTimeLog log(("Loading mesh ") + filename);
 
-    const auto materialBaseDir = filename.substr(0, filename.find_last_of("/\\") + 1);
-    const auto res = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename.c_str(), materialBaseDir.c_str());
-    if (!err.empty())
-    {
-        std::cerr << err << std::endl;
+        m_materialBaseDir = filename.substr(0, filename.find_last_of("/\\") + 1);
+        const auto res = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename.c_str(), m_materialBaseDir.c_str());
+        if (!err.empty())
+        {
+            std::cerr << err << std::endl;
+        }
+        if (!res)
+        {
+            std::cerr << "Failed to load " << filename;
+            return false;
+        }
     }
-    if (!res)
+
+    if (attrib.vertices.size() == 0)
     {
-        std::cerr << "Failed to load " << filename << std::endl;
+        std::cout << "No vertices to load " << filename << std::endl;
         return false;
     }
 
-    if ((attrib.normals.size()   > 0 && attrib.normals.size()   != attrib.vertices.size()) ||
-        (attrib.colors.size()    > 0 && attrib.colors.size()    != attrib.vertices.size()) ||
+    if ((attrib.normals.size() > 0 && attrib.normals.size() != attrib.vertices.size()) ||
+        (attrib.colors.size() > 0 && attrib.colors.size() != attrib.vertices.size()) ||
         (attrib.texcoords.size() > 0 && attrib.texcoords.size() != attrib.vertices.size()))
     {
-        createInterleavedVertexAttributes(attrib, shapes);
+        createInterleavedVertexAttributes(attrib, shapes, materials);
     }
     else
     {
-        createSeparateVertexAttributes(attrib, shapes);
+        createSeparateVertexAttributes(attrib, shapes, materials);
     }
 
     m_shader = selectShaderFromAttributes(attrib);
@@ -59,8 +72,10 @@ bool Mesh::loadFromObj(Device& device, const std::string& filename)
     return m_shader != nullptr;
 }
 
-void Mesh::createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes)
+void Mesh::createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes, const std::vector<tinyobj::material_t>& materials)
 {
+    ScopedTimeLog log("Creating interleaved vertex data");
+
     std::vector<uint32_t> indices;
     uint32_t numIndices = 0;
     std::for_each(shapes.begin(), shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
@@ -69,7 +84,7 @@ void Mesh::createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, co
     uint32_t vertexSize = 3;
     const uint32_t normalSize = attrib.normals.size() > 0 ? 3 : 0;
     const uint32_t colorSize = attrib.colors.size() == attrib.vertices.size() ? 3 : 0;
-    uint32_t texcoordSize = 0;// attrib.texcoords.size() > 0 ? 2 : 0;
+    uint32_t texcoordSize = attrib.texcoords.size() > 0 ? 2 : 0;
 
     vertexSize += normalSize;
     vertexSize += colorSize;
@@ -96,13 +111,26 @@ void Mesh::createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, co
             }
             if (colorSize > 0)
             {
+                auto current_material_id = shape.mesh.material_ids[0];
+
+                if ((current_material_id < 0) || (current_material_id >= static_cast<int>(materials.size())))
+                {                    // Invalid material ID. Use default material.
+                    current_material_id = static_cast<int>(materials.size() - 1); // Default material is added to the last item in `materials`.
+                }
+                assert(current_material_id < materials.size());
+
+                //                 float diffuse[3];
+                //                 for (size_t i = 0; i < 3; i++) {
+                //                     diffuse[i] = materials[current_material_id].diffuse[i];
+                //                 }
                 memcpy(&vertexData[vertexOffset + currentSize], &attrib.colors[3 * index.vertex_index], 3 * sizeof(float));
                 currentSize += colorSize;
             }
             if (texcoordSize > 0)
             {
                 assert(index.texcoord_index >= 0);
-                memcpy(&vertexData[vertexOffset + currentSize], &attrib.texcoords[2 * index.texcoord_index], 2 * sizeof(float));
+                vertexData[vertexOffset + currentSize] = attrib.texcoords[2 * index.texcoord_index];
+                vertexData[vertexOffset + currentSize + 1] = 1.0f - attrib.texcoords[2 * index.texcoord_index + 1];
                 currentSize += texcoordSize;
             }
 
@@ -147,13 +175,17 @@ void Mesh::createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, co
 
     calculateBoundingBox(vertexData, vertexSize - 3);
 
+    loadMaterials(shapes, materials);
+
     std::cout << "Triangle count:\t\t " << indices.size() / 3 << std::endl;
     std::cout << "Vertex count from file:\t " << attrib.vertices.size() / 3 << std::endl;
     std::cout << "Unique vertex count:\t " << uniqueVertexCount << std::endl;
 }
 
-void Mesh::createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes)
+void Mesh::createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes, const std::vector<tinyobj::material_t>& /*materials*/)
 {
+    ScopedTimeLog log("Creating separate vertex data");
+
     std::vector<uint32_t> indices;
     uint32_t numIndices = 0;
     std::for_each(shapes.begin(), shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
@@ -204,16 +236,39 @@ std::shared_ptr<Shader> Mesh::selectShaderFromAttributes(const tinyobj::attrib_t
     if (attrib.normals.size() > 0)
         vertexShaderName += "_normal";
     
-//     if (attrib.texcoords.size() > 0)
-//     {
-//         vertexShaderName += "_texture";
-//         fragmemtShaderName += "_texture";
-//     }
+    if (attrib.texcoords.size() > 0 && (m_texture && m_sampler != VK_NULL_HANDLE))
+    {
+        vertexShaderName += "_texture";
+        fragmemtShaderName += "_texture";
+    }
     
     const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
     const auto fragmentShaderFilename = shaderPath + fragmemtShaderName + ".frag.spv";
 
     return Shader::getShader(m_device->getVkDevice(), vertexShaderFilename, fragmentShaderFilename);
+}
+
+void Mesh::loadMaterials(const std::vector<tinyobj::shape_t>& shapes, const std::vector<tinyobj::material_t>& materials)
+{
+    if (shapes.empty() || materials.empty())
+        return;
+
+    ScopedTimeLog log("Loading materials");
+
+    assert(!shapes[0].mesh.material_ids.empty());
+    const auto materialId = shapes[0].mesh.material_ids[0];
+    const auto& diffuseTextureFilename = materials[materialId].diffuse_texname;
+
+    if (!diffuseTextureFilename.empty())
+    {
+        auto texture = std::make_shared<Texture>();
+        const auto textureFilename = m_materialBaseDir + diffuseTextureFilename;
+        if (texture->loadFromFile(m_device, textureFilename))
+        {
+            m_texture = texture;
+            m_device->createSampler(m_sampler); 
+        }
+    }
 }
 
 void Mesh::addUniformBuffer(VkShaderStageFlags shaderStages, VkBuffer uniformBuffer)
@@ -223,6 +278,10 @@ void Mesh::addUniformBuffer(VkShaderStageFlags shaderStages, VkBuffer uniformBuf
 
 bool Mesh::finalize(const RenderPass& renderPass)
 {
+    if (m_texture && m_sampler != VK_NULL_HANDLE)
+    {
+        m_descriptorSet.addSampler(m_texture->getImageView(), m_sampler);
+    }
     m_descriptorSet.finalize(m_device->getVkDevice());
 
     m_pipelineLayout.init(m_device->getVkDevice(), { m_descriptorSet.getLayout() });
