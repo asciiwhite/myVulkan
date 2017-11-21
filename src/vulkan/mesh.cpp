@@ -8,9 +8,8 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-#include <iostream>
-#include <unordered_map>
 #include <algorithm>
+#include <iostream>
 
 void Mesh::destroy()
 {
@@ -19,197 +18,234 @@ void Mesh::destroy()
     m_pipelineLayout.destroy();
     m_vertexBuffer.destroy();
     Shader::release(m_shader);
-    m_texture->destroy();
+    if (m_texture)
+        m_texture->destroy();
     vkDestroySampler(m_device->getVkDevice(), m_sampler, nullptr);
     m_sampler = VK_NULL_HANDLE;
     m_device = nullptr;
+
+    assert(m_indices.empty());
+    assert(m_vertexData.empty());
+}
+
+void Mesh::clearFileData()
+{
+    m_attrib.vertices.clear();
+    m_attrib.normals.clear();
+    m_attrib.colors.clear();
+    m_attrib.texcoords.clear();
+    m_shapes.clear();
+    m_materials.clear();
 }
 
 bool Mesh::loadFromObj(Device& device, const std::string& filename)
 {
     m_device = &device;
 
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
     std::string err;
-
+    bool result;
     {
         ScopedTimeLog log(("Loading mesh ") + filename);
-
         m_materialBaseDir = filename.substr(0, filename.find_last_of("/\\") + 1);
-        const auto res = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename.c_str(), m_materialBaseDir.c_str());
-        if (!err.empty())
-        {
-            std::cerr << err << std::endl;
-        }
-        if (!res)
-        {
-            std::cerr << "Failed to load " << filename;
-            return false;
-        }
+        result = tinyobj::LoadObj(&m_attrib, &m_shapes, &m_materials, &err, filename.c_str(), m_materialBaseDir.c_str());
     }
 
-    if (attrib.vertices.size() == 0)
+    if (!err.empty())
+    {
+        std::cerr << err << std::endl;
+    }
+    if (!result)
+    {
+        std::cerr << "Failed to load " << filename;
+        return false;
+    }
+
+    if (m_attrib.vertices.size() == 0)
     {
         std::cout << "No vertices to load " << filename << std::endl;
         return false;
     }
 
-    if ((attrib.normals.size() > 0 && attrib.normals.size() != attrib.vertices.size()) ||
-        (attrib.colors.size() > 0 && attrib.colors.size() != attrib.vertices.size()) ||
-        (attrib.texcoords.size() > 0 && attrib.texcoords.size() != attrib.vertices.size()))
+    calculateBoundingBox();
+
+    if (hasUniqueVertexAttributes())
     {
-        createInterleavedVertexAttributes(attrib, shapes, materials);
+        
+        createSeparateVertexAttributes();
     }
     else
     {
-        createSeparateVertexAttributes(attrib, shapes, materials);
+        createInterleavedVertexAttributes();
     }
 
-    m_shader = selectShaderFromAttributes(attrib);
+    loadMaterials();
+
+    m_shader = selectShaderFromAttributes();
+
+    clearFileData();
 
     return m_shader != nullptr;
 }
 
-void Mesh::createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes, const std::vector<tinyobj::material_t>& materials)
+bool Mesh::hasUniqueVertexAttributes() const
+{
+    return !(((m_attrib.normals.size() != m_attrib.vertices.size()) ||
+        (m_attrib.colors.size() > 0 && m_attrib.colors.size() != m_attrib.vertices.size()) ||
+        (m_attrib.texcoords.size() > 0 && m_attrib.texcoords.size() != m_attrib.vertices.size())));
+}
+
+void Mesh::createInterleavedVertexAttributes()
 {
     ScopedTimeLog log("Creating interleaved vertex data");
 
-    std::vector<uint32_t> indices;
     uint32_t numIndices = 0;
-    std::for_each(shapes.begin(), shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
-    indices.reserve(numIndices);
-
-    uint32_t vertexSize = 3;
-    const uint32_t normalSize = attrib.normals.size() > 0 ? 3 : 0;
-    const uint32_t colorSize = attrib.colors.size() == attrib.vertices.size() ? 3 : 0;
-    uint32_t texcoordSize = attrib.texcoords.size() > 0 ? 2 : 0;
-
-    vertexSize += normalSize;
-    vertexSize += colorSize;
-    vertexSize += texcoordSize;
+    std::for_each(m_shapes.begin(), m_shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
+    m_indices.reserve(numIndices);
 
     std::unordered_map<size_t, uint32_t> uniqueVertices;
 
-    uint32_t vertexOffset = 0;
-    std::vector<float> vertexData(vertexSize);
-
-    for (const auto& shape : shapes)
+    m_vertexSize = 9 + (m_attrib.texcoords.empty() ? 0 : 2);
+    m_vertexOffset = 0;
+    m_vertexData.resize(m_vertexSize);
+    for (const auto& shape : m_shapes)
     {
-        for (const auto& index : shape.mesh.indices)
+        for (size_t f = 0; f < shape.mesh.indices.size() / 3; f++)
         {
-            uint32_t currentSize = 0;
-            assert(index.vertex_index >= 0);
-            memcpy(&vertexData[vertexOffset + currentSize], &attrib.vertices[3 * index.vertex_index], 3 * sizeof(float));
-            currentSize += 3;
-            if (normalSize > 0)
-            {
-                assert(index.normal_index >= 0);
-                memcpy(&vertexData[vertexOffset + currentSize], &attrib.normals[3 * index.normal_index], 3 * sizeof(float));
-                currentSize += normalSize;
-            }
-            if (colorSize > 0)
-            {
-                auto current_material_id = shape.mesh.material_ids[0];
+            const auto idx0 = shape.mesh.indices[3 * f + 0];
+            const auto idx1 = shape.mesh.indices[3 * f + 1];
+            const auto idx2 = shape.mesh.indices[3 * f + 2];
 
-                if ((current_material_id < 0) || (current_material_id >= static_cast<int>(materials.size())))
-                {                    // Invalid material ID. Use default material.
-                    current_material_id = static_cast<int>(materials.size() - 1); // Default material is added to the last item in `materials`.
-                }
-                assert(current_material_id < materials.size());
-
-                //                 float diffuse[3];
-                //                 for (size_t i = 0; i < 3; i++) {
-                //                     diffuse[i] = materials[current_material_id].diffuse[i];
-                //                 }
-                memcpy(&vertexData[vertexOffset + currentSize], &attrib.colors[3 * index.vertex_index], 3 * sizeof(float));
-                currentSize += colorSize;
-            }
-            if (texcoordSize > 0)
+            glm::vec3 diffuseColor(1.0f);
+            auto current_material_id = shape.mesh.material_ids[f];
+            if (current_material_id >= 0)
             {
-                assert(index.texcoord_index >= 0);
-                vertexData[vertexOffset + currentSize] = attrib.texcoords[2 * index.texcoord_index];
-                vertexData[vertexOffset + currentSize + 1] = 1.0f - attrib.texcoords[2 * index.texcoord_index + 1];
-                currentSize += texcoordSize;
-            }
+                diffuseColor = glm::make_vec3(&m_materials[current_material_id].diffuse[0]);
+            };
 
-            assert(currentSize == vertexSize);
-            const auto vertexHash = std::_Hash_seq(reinterpret_cast<const unsigned char*>(&vertexData[vertexOffset]), vertexSize * sizeof(float));
-            if (uniqueVertices.count(vertexHash) == 0)
+            if (m_attrib.normals.empty())
             {
-                uniqueVertices[vertexHash] = static_cast<uint32_t>(uniqueVertices.size());
-                vertexData.resize(vertexData.size() + vertexSize);
-                vertexOffset += vertexSize;
+                const auto faceNormal = calculateFaceNormal(idx0, idx1, idx2);
+                addVertex(idx0, uniqueVertices, faceNormal, diffuseColor);
+                addVertex(idx1, uniqueVertices, faceNormal, diffuseColor);
+                addVertex(idx2, uniqueVertices, faceNormal, diffuseColor);
             }
-
-            indices.push_back(uniqueVertices[vertexHash]);
+            else
+            {
+                const auto vertexNormal0 = glm::make_vec3(&m_attrib.normals[3 * idx0.normal_index]);
+                const auto vertexNormal1 = glm::make_vec3(&m_attrib.normals[3 * idx1.normal_index]);
+                const auto vertexNormal2 = glm::make_vec3(&m_attrib.normals[3 * idx2.normal_index]);
+                addVertex(idx0, uniqueVertices, vertexNormal0, diffuseColor);
+                addVertex(idx1, uniqueVertices, vertexNormal1, diffuseColor);
+                addVertex(idx2, uniqueVertices, vertexNormal2, diffuseColor);
+            }
         }
     }
 
     const auto uniqueVertexCount = static_cast<uint32_t>(uniqueVertices.size());
 
     uint32_t interleavedOffset = 0;
-    std::vector<VertexBuffer::AttributeDescription> vertexDesc(1, { 0, 3, uniqueVertexCount, &vertexData.front() });
+    std::vector<VertexBuffer::AttributeDescription> vertexDesc;
+    vertexDesc.push_back({ 0, 3, uniqueVertexCount, &m_vertexData.front() });
     interleavedOffset += 3 * sizeof(float);
-    if (normalSize)
+
+    vertexDesc.push_back({ 1, 3, uniqueVertexCount, &m_vertexData.front(), interleavedOffset });
+    interleavedOffset += 3 * sizeof(float);
+
+    vertexDesc.push_back({ 2, 3, uniqueVertexCount, &m_vertexData.front(), interleavedOffset });
+    interleavedOffset += 3 * sizeof(float);
+
+    if (!m_attrib.texcoords.empty())
     {
-        vertexDesc.push_back({ 1, 3, uniqueVertexCount, &vertexData.front(), interleavedOffset });
-        interleavedOffset += 3 * sizeof(float);
-    }
-    if (colorSize)
-    {
-        vertexDesc.push_back({ 2, 3, uniqueVertexCount, &vertexData.front(), interleavedOffset });
-        interleavedOffset += 3 * sizeof(float);
-    }
-    if (texcoordSize)
-    {
-        vertexDesc.push_back({ 3, 2, uniqueVertexCount, &vertexData.front(), interleavedOffset });
+        vertexDesc.push_back({ 3, 2, uniqueVertexCount, &m_vertexData.front(), interleavedOffset });
         interleavedOffset += 2 * sizeof(float);
     }
-    assert(interleavedOffset == vertexSize * sizeof(float));
+    assert(interleavedOffset == m_vertexSize * sizeof(float));
 
     m_vertexBuffer.createFromInterleavedAttributes(m_device, vertexDesc);
+    m_vertexData.clear();
 
-    m_vertexBuffer.setIndices(&indices.front(), static_cast<uint32_t>(indices.size()));
+    m_vertexBuffer.setIndices(&m_indices.front(), static_cast<uint32_t>(m_indices.size()));
+    m_indices.clear();
 
-    calculateBoundingBox(vertexData, vertexSize - 3);
-
-    loadMaterials(shapes, materials);
-
-    std::cout << "Triangle count:\t\t " << indices.size() / 3 << std::endl;
-    std::cout << "Vertex count from file:\t " << attrib.vertices.size() / 3 << std::endl;
+    std::cout << "Triangle count:\t\t " << m_indices.size() / 3 << std::endl;
+    std::cout << "Vertex count from file:\t " << m_attrib.vertices.size() / 3 << std::endl;
     std::cout << "Unique vertex count:\t " << uniqueVertexCount << std::endl;
 }
 
-void Mesh::createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes, const std::vector<tinyobj::material_t>& /*materials*/)
+glm::vec3 Mesh::calculateFaceNormal(const tinyobj::index_t idx0, const tinyobj::index_t idx1, const tinyobj::index_t idx2) const
+{
+    const auto v0 = glm::make_vec3(&m_attrib.vertices[3 * idx0.vertex_index]);
+    const auto v1 = glm::make_vec3(&m_attrib.vertices[3 * idx1.vertex_index]);
+    const auto v2 = glm::make_vec3(&m_attrib.vertices[3 * idx2.vertex_index]);
+    const auto v10 = v1 - v0;
+    const auto v20 = v2 - v0;
+    return glm::normalize(glm::cross(v10, v20));
+}
+
+void Mesh::addVertex(const tinyobj::index_t index, UniqueVertexMap& uniqueVertices, const glm::vec3& normal, const glm::vec3& diffuseColor)
+{
+    assert(index.vertex_index >= 0);
+
+    uint32_t currentSize = 0;
+    memcpy(&m_vertexData[m_vertexOffset + currentSize], &m_attrib.vertices[3 * index.vertex_index], 3 * sizeof(float));
+    currentSize += 3;
+
+    memcpy(&m_vertexData[m_vertexOffset + currentSize], &normal.x, 3 * sizeof(float));
+    currentSize += 3;
+
+    m_vertexData[m_vertexOffset + currentSize + 0] = m_attrib.colors[3 * index.vertex_index + 0] * diffuseColor.r;
+    m_vertexData[m_vertexOffset + currentSize + 1] = m_attrib.colors[3 * index.vertex_index + 1] * diffuseColor.g;
+    m_vertexData[m_vertexOffset + currentSize + 2] = m_attrib.colors[3 * index.vertex_index + 2] * diffuseColor.b;
+    currentSize += 3;
+
+    if (m_attrib.texcoords.size() > 0)
+    {
+        assert(index.texcoord_index >= 0);
+        m_vertexData[m_vertexOffset + currentSize] = m_attrib.texcoords[2 * index.texcoord_index];
+        m_vertexData[m_vertexOffset + currentSize + 1] = 1.0f - m_attrib.texcoords[2 * index.texcoord_index + 1];
+        currentSize += 2;
+    }
+
+    assert(m_vertexSize == currentSize);
+    const auto vertexHash = std::_Hash_seq(reinterpret_cast<const unsigned char*>(&m_vertexData[m_vertexOffset]), currentSize * sizeof(float));
+    if (uniqueVertices.count(vertexHash) == 0)
+    {
+        uniqueVertices[vertexHash] = static_cast<uint32_t>(uniqueVertices.size());
+        m_vertexData.resize(m_vertexData.size() + currentSize);
+        m_vertexOffset += currentSize;
+    }
+
+    m_indices.push_back(uniqueVertices[vertexHash]);
+}
+
+void Mesh::createSeparateVertexAttributes()
 {
     ScopedTimeLog log("Creating separate vertex data");
 
     std::vector<uint32_t> indices;
     uint32_t numIndices = 0;
-    std::for_each(shapes.begin(), shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
+    std::for_each(m_shapes.begin(), m_shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
     indices.reserve(numIndices);
 
-    const auto vertexCount =  static_cast<uint32_t>(attrib.vertices.size() / 3);
+    const auto vertexCount =  static_cast<uint32_t>(m_attrib.vertices.size() / 3);
 
-    std::vector<VertexBuffer::AttributeDescription> vertexDesc(1, { 0, 3, vertexCount, &attrib.vertices.front() });
-    if (!attrib.normals.empty())
+    std::vector<VertexBuffer::AttributeDescription> vertexDesc(1, { 0, 3, vertexCount, &m_attrib.vertices.front() });
+    if (!m_attrib.normals.empty())
     {
-        vertexDesc.push_back({ 1, 3, vertexCount, &attrib.normals.front() });
+        vertexDesc.push_back({ 1, 3, vertexCount, &m_attrib.normals.front() });
     }
-    if (!attrib.colors.empty())
+    if (!m_attrib.colors.empty())
     {
-        vertexDesc.push_back({ 2, 3, vertexCount, &attrib.colors.front() });
+        vertexDesc.push_back({ 2, 3, vertexCount, &m_attrib.colors.front() });
     }
-    if (!attrib.texcoords.empty())
+    if (!m_attrib.texcoords.empty())
     {
-        vertexDesc.push_back({ 3, 2, vertexCount, &attrib.texcoords.front() });
+        vertexDesc.push_back({ 3, 2, vertexCount, &m_attrib.texcoords.front() });
     }
 
     m_vertexBuffer.createFromSeparateAttributes(m_device, vertexDesc);
 
-    for (const auto& shape : shapes)
+    for (const auto& shape : m_shapes)
     {
         for (const auto& index : shape.mesh.indices)
         {
@@ -218,28 +254,29 @@ void Mesh::createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const
         }
     }
     m_vertexBuffer.setIndices(&indices.front(), static_cast<uint32_t>(indices.size()));
-
-    calculateBoundingBox(attrib.vertices, 0);
+    m_indices.clear();
 
     std::cout << "Triangle count:\t " << indices.size() / 3 << std::endl;
-    std::cout << "Vertex count:\t " << attrib.vertices.size() / 3 << std::endl;
+    std::cout << "Vertex count:\t " << m_attrib.vertices.size() / 3 << std::endl;
 }
 
-std::shared_ptr<Shader> Mesh::selectShaderFromAttributes(const tinyobj::attrib_t& attrib)
+std::shared_ptr<Shader> Mesh::selectShaderFromAttributes()
 {
     assert(!m_shader);
 
     const std::string shaderPath = "data/shaders/";
-    std::string vertexShaderName = "color";
-    std::string fragmemtShaderName = vertexShaderName;
+    std::string vertexShaderName;
+    std::string fragmemtShaderName;
     
-    if (attrib.normals.size() > 0)
-        vertexShaderName += "_normal";
-    
-    if (attrib.texcoords.size() > 0 && (m_texture && m_sampler != VK_NULL_HANDLE))
+    if (m_attrib.texcoords.size() > 0 && (m_texture && m_sampler != VK_NULL_HANDLE))
     {
-        vertexShaderName += "_texture";
-        fragmemtShaderName += "_texture";
+        vertexShaderName = "color_normal_texture";
+        fragmemtShaderName = "color_texture";
+    }
+    else
+    {
+        vertexShaderName = "color_normal";
+        fragmemtShaderName = "color";
     }
     
     const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
@@ -248,16 +285,16 @@ std::shared_ptr<Shader> Mesh::selectShaderFromAttributes(const tinyobj::attrib_t
     return Shader::getShader(m_device->getVkDevice(), vertexShaderFilename, fragmentShaderFilename);
 }
 
-void Mesh::loadMaterials(const std::vector<tinyobj::shape_t>& shapes, const std::vector<tinyobj::material_t>& materials)
+void Mesh::loadMaterials()
 {
-    if (shapes.empty() || materials.empty())
+    if (m_shapes.empty() || m_materials.empty())
         return;
 
     ScopedTimeLog log("Loading materials");
 
-    assert(!shapes[0].mesh.material_ids.empty());
-    const auto materialId = shapes[0].mesh.material_ids[0];
-    const auto& diffuseTextureFilename = materials[materialId].diffuse_texname;
+    assert(!m_shapes[0].mesh.material_ids.empty());
+    const auto materialId = m_shapes[0].mesh.material_ids[0];
+    const auto& diffuseTextureFilename = m_materials[materialId].diffuse_texname;
 
     if (!diffuseTextureFilename.empty())
     {
@@ -305,20 +342,20 @@ void Mesh::render(VkCommandBuffer commandBuffer) const
     m_vertexBuffer.draw(commandBuffer);
 }
 
-void Mesh::calculateBoundingBox(const std::vector<float>& vertices, uint32_t stride)
+void Mesh::calculateBoundingBox()
 {
-    m_minBB.x = m_maxBB.x = vertices[0];
-    m_minBB.y = m_maxBB.y = vertices[1];
-    m_minBB.z = m_maxBB.z = vertices[2];
+    m_minBB.x = m_maxBB.x = m_attrib.vertices[0];
+    m_minBB.y = m_maxBB.y = m_attrib.vertices[1];
+    m_minBB.z = m_maxBB.z = m_attrib.vertices[2];
 
-    for (uint32_t i = 3 + stride; i < vertices.size(); i += 3 + stride)
+    for (uint32_t i = 3; i < m_attrib.vertices.size(); i += 3)
     {
-        m_minBB.x = std::min(m_minBB.x, vertices[i + 0]);
-        m_maxBB.x = std::max(m_maxBB.x, vertices[i + 0]);
-        m_minBB.y = std::min(m_minBB.y, vertices[i + 1]);
-        m_maxBB.y = std::max(m_maxBB.y, vertices[i + 1]);
-        m_minBB.z = std::min(m_minBB.z, vertices[i + 2]);
-        m_maxBB.z = std::max(m_maxBB.z, vertices[i + 2]);
+        m_minBB.x = std::min(m_minBB.x, m_attrib.vertices[i + 0]);
+        m_maxBB.x = std::max(m_maxBB.x, m_attrib.vertices[i + 0]);
+        m_minBB.y = std::min(m_minBB.y, m_attrib.vertices[i + 1]);
+        m_maxBB.y = std::max(m_maxBB.y, m_attrib.vertices[i + 1]);
+        m_minBB.z = std::min(m_minBB.z, m_attrib.vertices[i + 2]);
+        m_maxBB.z = std::max(m_maxBB.z, m_attrib.vertices[i + 2]);
     }
 }
 

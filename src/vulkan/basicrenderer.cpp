@@ -267,10 +267,13 @@ void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::ve
     updateMVPUniform();
 }
 
-void BasicRenderer::mouseButton(int button, int action, int /*mods*/)
+void BasicRenderer::mouseButton(int button, int action, int mods)
 {
     if (button == GLFW_MOUSE_BUTTON_1)
+    {
         m_leftMouseButtonDown = action == GLFW_PRESS;
+        m_observerCameraMode = (mods & GLFW_MOD_CONTROL) != 0;
+    }
     else if (button == GLFW_MOUSE_BUTTON_3)
         m_middleMouseButtonDown = action == GLFW_PRESS;
     else if (button == GLFW_MOUSE_BUTTON_2)
@@ -283,8 +286,8 @@ void BasicRenderer::mouseMove(double x, double y)
         m_middleMouseButtonDown ||
         m_rightMouseButtonDown)
     {
-        const static auto rotationSize = 0.0025f;
-        const auto stepSize = 0.0025f * m_sceneBoundingBoxDiameter;
+        const static auto rotationSize = 0.005f;
+        const auto stepSize = 0.005f * m_sceneBoundingBoxDiameter;
         const auto deltaX = static_cast<float>(x - m_mousePositionX);
         const auto deltaY = static_cast<float>(y - m_mousePositionY);
 

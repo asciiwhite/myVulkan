@@ -4,6 +4,7 @@
 #include "..\utils\glm.h"
 
 #include <tiny_obj_loader.h>
+#include <unordered_map>
 #include <string>
 #include <memory>
 
@@ -25,12 +26,18 @@ public:
     void getBoundingbox(glm::vec3& min, glm::vec3& max) const;
 
 private:
-    void createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes, const std::vector<tinyobj::material_t>& materials);
-    void createInterleavedVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes, const std::vector<tinyobj::material_t>& materials);
-    std::shared_ptr<Shader> selectShaderFromAttributes(const tinyobj::attrib_t& attrib);
+    bool hasUniqueVertexAttributes() const;
+    void createSeparateVertexAttributes();
+    void createInterleavedVertexAttributes();
+    std::shared_ptr<Shader> selectShaderFromAttributes();
     void createPipeline();
-    void calculateBoundingBox(const std::vector<float>& vertices, uint32_t stride);
-    void loadMaterials(const std::vector<tinyobj::shape_t>& shapes, const std::vector<tinyobj::material_t>& materials);
+    void calculateBoundingBox();
+    void loadMaterials();
+
+    using UniqueVertexMap = std::unordered_map<size_t, uint32_t>;
+    void addVertex(const tinyobj::index_t index, UniqueVertexMap& uniqueVertices, const glm::vec3& faceNormal, const glm::vec3& diffuseColor);
+    glm::vec3 calculateFaceNormal(const tinyobj::index_t idx0, const tinyobj::index_t idx1, const tinyobj::index_t idx2) const;
+    void clearFileData();
 
     Device* m_device = nullptr;
     std::shared_ptr<Shader> m_shader;
@@ -44,5 +51,15 @@ private:
     glm::vec3 m_minBB;
     glm::vec3 m_maxBB;
 
+    // data from file
     std::string m_materialBaseDir;
+    tinyobj::attrib_t m_attrib;
+    std::vector<tinyobj::shape_t> m_shapes;
+    std::vector<tinyobj::material_t> m_materials;
+
+    // data for backend
+    uint32_t m_vertexSize = 0;
+    uint32_t m_vertexOffset = 0;
+    std::vector<float> m_vertexData;
+    std::vector<uint32_t> m_indices;
 };
