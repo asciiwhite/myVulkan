@@ -101,6 +101,8 @@ bool Mesh::loadFromObj(Device& device, const std::string& filename)
 
     loadMaterials();
 
+    sortShapesByMaterialTransparency();
+
     clearFileData();
 
     return true;
@@ -399,6 +401,21 @@ void Mesh::mergeShapesByMaterial()
     m_shapeDescs = mergesShapes;
 }
 
+bool Mesh::isTransparentMaterial(uint32_t id) const
+{
+    assert(id < m_materialDescs.size());
+    return m_materialDescs[id].diffuseTexture && m_materialDescs[id].diffuseTexture->hasTranspareny();
+}
+
+void Mesh::sortShapesByMaterialTransparency()
+{
+    std::sort(m_shapeDescs.begin(), m_shapeDescs.end(), [=](const auto &a, const auto &b) {
+        auto transparencyPenaltyA = isTransparentMaterial(a.materialId) ? 10 : 1;
+        auto transparencyPenaltyB = isTransparentMaterial(b.materialId) ? 10 : 1;
+        return  (a.materialId * transparencyPenaltyA) <
+                (b.materialId * transparencyPenaltyB); });
+}
+
 void Mesh::addCameraUniformBuffer(VkBuffer uniformBuffer)
 {
     m_globalUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, VK_SHADER_STAGE_VERTEX_BIT, uniformBuffer);
@@ -415,12 +432,12 @@ bool Mesh::finalize(const RenderPass& renderPass)
 
         desc.pipelineLayout.init(m_device->getVkDevice(), { m_globalUniformDescriptorSet.getLayout(), desc.descriptorSet.getLayout() });
 
-        static const PipelineSettings defaultSettings;
+        const PipelineSettings settings(desc.diffuseTexture && desc.diffuseTexture->hasTranspareny());
 
         if (!desc.pipeline.init(m_device->getVkDevice(),
             renderPass.getVkRenderPass(),
             desc.pipelineLayout.getVkPipelineLayout(),
-            defaultSettings,
+            settings,
             desc.shader->getShaderStages(),
             &m_vertexBuffer))
         {

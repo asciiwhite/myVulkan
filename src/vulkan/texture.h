@@ -18,6 +18,7 @@ public:
     void destroy();
 
     VkImageView getImageView() const { return m_imageView; }
+    bool hasTranspareny() const;
 
     static std::shared_ptr<Texture> getTexture(Device& device, const std::string& textureFilename);
     static void release(std::shared_ptr<Texture>& texture);
@@ -30,6 +31,7 @@ private:
     VkImage m_image = VK_NULL_HANDLE;
     VkImageView m_imageView = VK_NULL_HANDLE;
     VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
+    int m_numChannels = 0;
 
     using TextureMap = std::unordered_map<std::string, std::shared_ptr<Texture>>;
     static TextureMap m_loadedTextures;    

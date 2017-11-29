@@ -19,7 +19,7 @@ private:
 struct PipelineSettings
 {
 public:
-    PipelineSettings();
+    PipelineSettings(bool alphaBlending);
 
     VkPipelineViewportStateCreateInfo viewportState = {};
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};

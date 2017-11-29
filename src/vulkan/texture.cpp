@@ -54,8 +54,8 @@ bool Texture::loadFromFile(Device* device, const std::string& filename)
 {
     m_device = device;
 
-    int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    int texWidth, texHeight;
+    stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &m_numChannels, STBI_rgb_alpha);
     if (!pixels)
     {
         printf("Error: could not load texture %s, reason: %s\n", filename.c_str(), stbi_failure_reason());
@@ -122,6 +122,11 @@ void Texture::createDepthBuffer(Device* device, const VkExtent2D& extend, VkForm
         format,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
+bool Texture::hasTranspareny() const
+{
+    return m_numChannels == 4;
 }
 
 void Texture::destroy()

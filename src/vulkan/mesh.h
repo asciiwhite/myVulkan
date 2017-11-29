@@ -35,6 +35,8 @@ private:
     void loadMaterials();
     void createDefaultMaterial();
     void mergeShapesByMaterial();
+    void sortShapesByMaterialTransparency();
+    bool isTransparentMaterial(uint32_t id) const;
 
     using UniqueVertexMap = std::unordered_map<size_t, uint32_t>;
     void addVertex(const tinyobj::index_t index, UniqueVertexMap& uniqueVertices, const glm::vec3& faceNormal);
