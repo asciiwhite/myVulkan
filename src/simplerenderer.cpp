@@ -8,16 +8,16 @@
 
 bool SimpleRenderer::setup()
 {
-    if (!m_mesh.loadFromObj(m_device, "data/meshes/bump.obj"))
+    if (!m_mesh.loadFromObj(m_device, "data/meshes/holodeck/holodeck.obj"))
+        return false;
+
+    m_mesh.addCameraUniformBuffer(m_uniformBuffer);
+    if (!m_mesh.finalize(m_renderPass))
         return false;
 
     glm::vec3 min, max;
-    m_mesh.getBoundingbox(min, max);    
+    m_mesh.getBoundingbox(min, max);
     setCameraFromBoundingBox(min, max);
-
-    m_mesh.addUniformBuffer(VK_SHADER_STAGE_VERTEX_BIT, m_uniformBuffer);
-    if (!m_mesh.finalize(m_renderPass))
-        return false;
 
     return true;
 }

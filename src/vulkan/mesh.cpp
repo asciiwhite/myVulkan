@@ -11,15 +11,34 @@
 #include <algorithm>
 #include <iostream>
 
+const uint32_t SET_ID_CAMERA = 0;
+const uint32_t BINDING_ID_CAMERA = 0;
+const uint32_t SET_ID_MATERIAL = 1;
+const uint32_t BINDING_ID_MATERIAL = 0;
+const uint32_t BINDING_ID_TEXTURE_DIFFUSE = 1;
+
 void Mesh::destroy()
 {
-    m_pipeline.destroy();
-    m_descriptorSet.destroy(m_device->getVkDevice());
-    m_pipelineLayout.destroy();
+    m_shapeDescs.clear();
+    
+    for (auto& desc : m_materialDescs)
+    {
+        vkDestroyBuffer(m_device->getVkDevice(), desc.materialUB, nullptr);
+        desc.materialUB = VK_NULL_HANDLE;
+        vkFreeMemory(m_device->getVkDevice(), desc.materialUBMemory, nullptr);
+        desc.materialUBMemory = VK_NULL_HANDLE;
+
+        desc.pipeline.destroy();
+        desc.descriptorSet.destroy(m_device->getVkDevice());
+        desc.pipelineLayout.destroy();
+        Shader::release(desc.shader);
+        if (desc.diffuseTexture)
+            Texture::release(desc.diffuseTexture);
+    }
+    m_materials.clear();
+    m_globalUniformDescriptorSet.destroy(m_device->getVkDevice());
+
     m_vertexBuffer.destroy();
-    Shader::release(m_shader);
-    if (m_texture)
-        m_texture->destroy();
     vkDestroySampler(m_device->getVkDevice(), m_sampler, nullptr);
     m_sampler = VK_NULL_HANDLE;
     m_device = nullptr;
@@ -60,9 +79,9 @@ bool Mesh::loadFromObj(Device& device, const std::string& filename)
         return false;
     }
 
-    if (m_attrib.vertices.size() == 0)
+    if (m_shapes.empty())
     {
-        std::cout << "No vertices to load " << filename << std::endl;
+        std::cout << "No shapes to load from" << filename << std::endl;
         return false;
     }
 
@@ -78,98 +97,106 @@ bool Mesh::loadFromObj(Device& device, const std::string& filename)
         createInterleavedVertexAttributes();
     }
 
-    loadMaterials();
+    std::cout << "Created " << m_shapeDescs.size() << " shapes" << std::endl;
 
-    m_shader = selectShaderFromAttributes();
+    loadMaterials();
 
     clearFileData();
 
-    return m_shader != nullptr;
+    return true;
 }
 
 bool Mesh::hasUniqueVertexAttributes() const
 {
     return !(((m_attrib.normals.size() != m_attrib.vertices.size()) ||
-        (m_attrib.colors.size() > 0 && m_attrib.colors.size() != m_attrib.vertices.size()) ||
         (m_attrib.texcoords.size() > 0 && m_attrib.texcoords.size() != m_attrib.vertices.size())));
 }
 
 void Mesh::createInterleavedVertexAttributes()
 {
-    ScopedTimeLog log("Creating interleaved vertex data");
-
-    uint32_t numIndices = 0;
-    std::for_each(m_shapes.begin(), m_shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
-    m_indices.reserve(numIndices);
-
-    std::unordered_map<size_t, uint32_t> uniqueVertices;
-
-    m_vertexSize = 9 + (m_attrib.texcoords.empty() ? 0 : 2);
-    m_vertexOffset = 0;
-    m_vertexData.resize(m_vertexSize);
-    for (const auto& shape : m_shapes)
     {
-        for (size_t f = 0; f < shape.mesh.indices.size() / 3; f++)
+        ScopedTimeLog log("Creating interleaved vertex data");
+
+        uint32_t numIndices = 0;
+        std::for_each(m_shapes.begin(), m_shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
+        m_indices.reserve(numIndices);
+
+        std::unordered_map<size_t, uint32_t> uniqueVertices;
+
+        uint32_t shapeStartIndex = 0;
+        assert(!m_shapes[0].mesh.material_ids.empty());
+        int currentMaterialId = m_shapes[0].mesh.material_ids.front();
+
+        m_vertexSize = 6 + (m_attrib.texcoords.empty() ? 0 : 2); // vertex + normals + texcoords
+        m_vertexOffset = 0;
+        m_vertexData.resize(m_vertexSize);
+        for (const auto& shape : m_shapes)
         {
-            const auto idx0 = shape.mesh.indices[3 * f + 0];
-            const auto idx1 = shape.mesh.indices[3 * f + 1];
-            const auto idx2 = shape.mesh.indices[3 * f + 2];
+            assert(!shape.mesh.material_ids.empty());
 
-            glm::vec3 diffuseColor(1.0f);
-            auto current_material_id = shape.mesh.material_ids[f];
-            if (current_material_id >= 0)
+            for (size_t f = 0; f < shape.mesh.indices.size() / 3; f++)
             {
-                diffuseColor = glm::make_vec3(&m_materials[current_material_id].diffuse[0]);
-            };
+                if (shape.mesh.material_ids[f] != currentMaterialId)
+                {
+                    shapeStartIndex = addShape(shapeStartIndex, currentMaterialId);
+                    currentMaterialId = shape.mesh.material_ids[f];
+                }
 
-            if (m_attrib.normals.empty())
-            {
-                const auto faceNormal = calculateFaceNormal(idx0, idx1, idx2);
-                addVertex(idx0, uniqueVertices, faceNormal, diffuseColor);
-                addVertex(idx1, uniqueVertices, faceNormal, diffuseColor);
-                addVertex(idx2, uniqueVertices, faceNormal, diffuseColor);
-            }
-            else
-            {
-                const auto vertexNormal0 = glm::make_vec3(&m_attrib.normals[3 * idx0.normal_index]);
-                const auto vertexNormal1 = glm::make_vec3(&m_attrib.normals[3 * idx1.normal_index]);
-                const auto vertexNormal2 = glm::make_vec3(&m_attrib.normals[3 * idx2.normal_index]);
-                addVertex(idx0, uniqueVertices, vertexNormal0, diffuseColor);
-                addVertex(idx1, uniqueVertices, vertexNormal1, diffuseColor);
-                addVertex(idx2, uniqueVertices, vertexNormal2, diffuseColor);
+                const auto idx0 = shape.mesh.indices[3 * f + 0];
+                const auto idx1 = shape.mesh.indices[3 * f + 1];
+                const auto idx2 = shape.mesh.indices[3 * f + 2];
+
+                if (m_attrib.normals.empty())
+                {
+                    const auto faceNormal = calculateFaceNormal(idx0, idx1, idx2);
+                    addVertex(idx0, uniqueVertices, faceNormal);
+                    addVertex(idx1, uniqueVertices, faceNormal);
+                    addVertex(idx2, uniqueVertices, faceNormal);
+                }
+                else
+                {
+                    const auto vertexNormal0 = glm::make_vec3(&m_attrib.normals[3 * idx0.normal_index]);
+                    const auto vertexNormal1 = glm::make_vec3(&m_attrib.normals[3 * idx1.normal_index]);
+                    const auto vertexNormal2 = glm::make_vec3(&m_attrib.normals[3 * idx2.normal_index]);
+                    addVertex(idx0, uniqueVertices, vertexNormal0);
+                    addVertex(idx1, uniqueVertices, vertexNormal1);
+                    addVertex(idx2, uniqueVertices, vertexNormal2);
+                }
             }
         }
+        addShape(shapeStartIndex, currentMaterialId);
+
+        const auto uniqueVertexCount = static_cast<uint32_t>(uniqueVertices.size());
+
+        std::vector<VertexBuffer::AttributeDescription> vertexDesc{
+            { 0, 3, uniqueVertexCount, &m_vertexData.front(), 0 }, // vertices
+            { 1, 3, uniqueVertexCount, &m_vertexData.front(), 3 * sizeof(float) } }; // normals
+
+        if (!m_attrib.texcoords.empty())
+        {
+            vertexDesc.push_back({ 2, 2, uniqueVertexCount, &m_vertexData.front(), 6 * sizeof(float) });
+        }
+
+        m_vertexBuffer.createFromInterleavedAttributes(m_device, vertexDesc);
+        m_vertexData.clear();
+
+        std::cout << "Triangle count:\t\t " << m_indices.size() / 3 << std::endl;
+        std::cout << "Vertex count from file:\t " << m_attrib.vertices.size() / 3 << std::endl;
+        std::cout << "Unique vertex count:\t " << uniqueVertexCount << std::endl;
     }
 
-    const auto uniqueVertexCount = static_cast<uint32_t>(uniqueVertices.size());
-
-    uint32_t interleavedOffset = 0;
-    std::vector<VertexBuffer::AttributeDescription> vertexDesc;
-    vertexDesc.push_back({ 0, 3, uniqueVertexCount, &m_vertexData.front() });
-    interleavedOffset += 3 * sizeof(float);
-
-    vertexDesc.push_back({ 1, 3, uniqueVertexCount, &m_vertexData.front(), interleavedOffset });
-    interleavedOffset += 3 * sizeof(float);
-
-    vertexDesc.push_back({ 2, 3, uniqueVertexCount, &m_vertexData.front(), interleavedOffset });
-    interleavedOffset += 3 * sizeof(float);
-
-    if (!m_attrib.texcoords.empty())
-    {
-        vertexDesc.push_back({ 3, 2, uniqueVertexCount, &m_vertexData.front(), interleavedOffset });
-        interleavedOffset += 2 * sizeof(float);
-    }
-    assert(interleavedOffset == m_vertexSize * sizeof(float));
-
-    m_vertexBuffer.createFromInterleavedAttributes(m_device, vertexDesc);
-    m_vertexData.clear();
+    mergeShapesByMaterial();
 
     m_vertexBuffer.setIndices(&m_indices.front(), static_cast<uint32_t>(m_indices.size()));
     m_indices.clear();
+}
 
-    std::cout << "Triangle count:\t\t " << m_indices.size() / 3 << std::endl;
-    std::cout << "Vertex count from file:\t " << m_attrib.vertices.size() / 3 << std::endl;
-    std::cout << "Unique vertex count:\t " << uniqueVertexCount << std::endl;
+uint32_t Mesh::addShape(uint32_t startIndex, int materialId)
+{
+    const auto stopIndex = static_cast<uint32_t>(m_indices.size());
+    const auto indexCount = stopIndex - startIndex;
+    m_shapeDescs.push_back({ startIndex, indexCount, materialId == -1 ? static_cast<uint32_t>(m_materials.size()) : static_cast<uint32_t>(materialId) });
+    return stopIndex;
 }
 
 glm::vec3 Mesh::calculateFaceNormal(const tinyobj::index_t idx0, const tinyobj::index_t idx1, const tinyobj::index_t idx2) const
@@ -182,27 +209,19 @@ glm::vec3 Mesh::calculateFaceNormal(const tinyobj::index_t idx0, const tinyobj::
     return glm::normalize(glm::cross(v10, v20));
 }
 
-void Mesh::addVertex(const tinyobj::index_t index, UniqueVertexMap& uniqueVertices, const glm::vec3& normal, const glm::vec3& diffuseColor)
+void Mesh::addVertex(const tinyobj::index_t index, UniqueVertexMap& uniqueVertices, const glm::vec3& normal)
 {
     assert(index.vertex_index >= 0);
 
-    uint32_t currentSize = 0;
-    memcpy(&m_vertexData[m_vertexOffset + currentSize], &m_attrib.vertices[3 * index.vertex_index], 3 * sizeof(float));
-    currentSize += 3;
+    memcpy(&m_vertexData[m_vertexOffset + 0], &m_attrib.vertices[3 * index.vertex_index], 3 * sizeof(float));
+    memcpy(&m_vertexData[m_vertexOffset + 3], &normal.x, 3 * sizeof(float));
 
-    memcpy(&m_vertexData[m_vertexOffset + currentSize], &normal.x, 3 * sizeof(float));
-    currentSize += 3;
-
-    m_vertexData[m_vertexOffset + currentSize + 0] = m_attrib.colors[3 * index.vertex_index + 0] * diffuseColor.r;
-    m_vertexData[m_vertexOffset + currentSize + 1] = m_attrib.colors[3 * index.vertex_index + 1] * diffuseColor.g;
-    m_vertexData[m_vertexOffset + currentSize + 2] = m_attrib.colors[3 * index.vertex_index + 2] * diffuseColor.b;
-    currentSize += 3;
-
+    uint32_t currentSize = 6;
     if (m_attrib.texcoords.size() > 0)
     {
         assert(index.texcoord_index >= 0);
-        m_vertexData[m_vertexOffset + currentSize] = m_attrib.texcoords[2 * index.texcoord_index];
-        m_vertexData[m_vertexOffset + currentSize + 1] = 1.0f - m_attrib.texcoords[2 * index.texcoord_index + 1];
+        m_vertexData[m_vertexOffset + 6] = m_attrib.texcoords[2 * index.texcoord_index + 0];
+        m_vertexData[m_vertexOffset + 7] = 1.0f - m_attrib.texcoords[2 * index.texcoord_index + 1];
         currentSize += 2;
     }
 
@@ -227,20 +246,19 @@ void Mesh::createSeparateVertexAttributes()
     std::for_each(m_shapes.begin(), m_shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
     indices.reserve(numIndices);
 
+    m_shapeDescs.push_back({ 0u, numIndices, 0u });
+
     const auto vertexCount =  static_cast<uint32_t>(m_attrib.vertices.size() / 3);
 
-    std::vector<VertexBuffer::AttributeDescription> vertexDesc(1, { 0, 3, vertexCount, &m_attrib.vertices.front() });
+    std::vector<VertexBuffer::AttributeDescription> vertexDesc{ { 0, 3, vertexCount, &m_attrib.vertices.front() } };
+
     if (!m_attrib.normals.empty())
     {
         vertexDesc.push_back({ 1, 3, vertexCount, &m_attrib.normals.front() });
     }
-    if (!m_attrib.colors.empty())
-    {
-        vertexDesc.push_back({ 2, 3, vertexCount, &m_attrib.colors.front() });
-    }
     if (!m_attrib.texcoords.empty())
     {
-        vertexDesc.push_back({ 3, 2, vertexCount, &m_attrib.texcoords.front() });
+        vertexDesc.push_back({ 2, 2, vertexCount, &m_attrib.texcoords.front() });
     }
 
     m_vertexBuffer.createFromSeparateAttributes(m_device, vertexDesc);
@@ -260,23 +278,16 @@ void Mesh::createSeparateVertexAttributes()
     std::cout << "Vertex count:\t " << m_attrib.vertices.size() / 3 << std::endl;
 }
 
-std::shared_ptr<Shader> Mesh::selectShaderFromAttributes()
+std::shared_ptr<Shader> Mesh::selectShaderFromAttributes(bool useTexture)
 {
-    assert(!m_shader);
-
     const std::string shaderPath = "data/shaders/";
-    std::string vertexShaderName;
-    std::string fragmemtShaderName;
+    std::string vertexShaderName = "color_normal";
+    std::string fragmemtShaderName = "color";
     
-    if (m_attrib.texcoords.size() > 0 && (m_texture && m_sampler != VK_NULL_HANDLE))
+    if (m_attrib.texcoords.size() > 0 && useTexture)
     {
-        vertexShaderName = "color_normal_texture";
-        fragmemtShaderName = "color_texture";
-    }
-    else
-    {
-        vertexShaderName = "color_normal";
-        fragmemtShaderName = "color";
+        vertexShaderName += "_texture";
+        fragmemtShaderName += "_texture";
     }
     
     const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
@@ -287,59 +298,153 @@ std::shared_ptr<Shader> Mesh::selectShaderFromAttributes()
 
 void Mesh::loadMaterials()
 {
-    if (m_shapes.empty() || m_materials.empty())
+    if (m_shapes.empty())
         return;
+
+    std::cout << "Found " << m_materials.size() << " materials" << std::endl;
 
     ScopedTimeLog log("Loading materials");
 
-    assert(!m_shapes[0].mesh.material_ids.empty());
-    const auto materialId = m_shapes[0].mesh.material_ids[0];
-    const auto& diffuseTextureFilename = m_materials[materialId].diffuse_texname;
+    createDefaultMaterial();
 
-    if (!diffuseTextureFilename.empty())
+    m_device->createSampler(m_sampler);
+
+    // TODO: only load used materials
+    m_materialDescs.resize(m_materials.size());
+    auto materialDescIter = m_materialDescs.begin();
+
+    for (auto& material : m_materials)
     {
-        auto texture = std::make_shared<Texture>();
-        const auto textureFilename = m_materialBaseDir + diffuseTextureFilename;
-        if (texture->loadFromFile(m_device, textureFilename))
+        std::string textureFilename;
+        if (!material.diffuse_texname.empty())
         {
-            m_texture = texture;
-            m_device->createSampler(m_sampler); 
+            textureFilename = material.diffuse_texname;
         }
+        else if (!material.emissive_texname.empty())
+        {
+            textureFilename = material.emissive_texname;
+        }
+
+        auto& desc = *materialDescIter++;
+
+        const uint32_t uboSize = sizeof(glm::vec4) + sizeof(glm::vec4) + sizeof(glm::vec4);
+        m_device->createBuffer(uboSize,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            desc.materialUB, desc.materialUBMemory);
+
+        void* data;
+        vkMapMemory(m_device->getVkDevice(), desc.materialUBMemory, 0, uboSize, 0, &data);
+        std::memcpy(data, &material.ambient, 3 * sizeof(float));
+        std::memcpy((char*)data + 4 * sizeof(float), &material.diffuse, 3 * sizeof(float));
+        std::memcpy((char*)data + 8 * sizeof(float), &material.emission, 3 * sizeof(float));
+        vkUnmapMemory(m_device->getVkDevice(), desc.materialUBMemory);
+
+        if (!textureFilename.empty())
+        {
+            const auto textureFullname = m_materialBaseDir + textureFilename;
+            auto texture = Texture::getTexture(*m_device, textureFullname);
+            if (texture)
+            {
+                desc.diffuseTexture = texture;
+                desc.descriptorSet.addSampler(BINDING_ID_TEXTURE_DIFFUSE, texture->getImageView(), m_sampler);
+            }
+        }
+
+        desc.shader = selectShaderFromAttributes(desc.diffuseTexture != nullptr);
     }
 }
 
-void Mesh::addUniformBuffer(VkShaderStageFlags shaderStages, VkBuffer uniformBuffer)
+void Mesh::createDefaultMaterial()
 {
-    m_descriptorSet.addUniformBuffer(shaderStages, uniformBuffer);
+    tinyobj::material_t defaultMaterial;
+    defaultMaterial.name = "default";
+    defaultMaterial.ambient[0] = defaultMaterial.ambient[1] = defaultMaterial.ambient[2] = 0.1f;
+    defaultMaterial.diffuse[0] = defaultMaterial.diffuse[1] = defaultMaterial.diffuse[2] = 1.0f;
+    defaultMaterial.emission[0] = defaultMaterial.emission[1] = defaultMaterial.emission[2] = 0.0f;
+    m_materials.push_back(defaultMaterial);
+}
+
+void Mesh::mergeShapesByMaterial()
+{
+    ScopedTimeLog log("Merging shapes by material");
+
+    std::vector<uint32_t> mergesIndicies(m_indices.size());
+    std::vector<ShapeDesc> mergesShapes;
+
+    std::sort(m_shapeDescs.begin(), m_shapeDescs.end(), [](const auto &a, const auto &b) { return a.materialId < b.materialId; });
+
+    auto currentMaterialId = m_shapeDescs.front().materialId;
+    mergesShapes.push_back({ 0, 0, currentMaterialId });
+    uint32_t mergedShapeIndex = 0;
+    for (uint32_t i = 0; i < m_shapeDescs.size(); i++)
+    {
+        const auto startId = mergesShapes[mergedShapeIndex].startIndex + mergesShapes[mergedShapeIndex].indexCount;
+
+        const auto& shapeDesc = m_shapeDescs[i];
+        if (currentMaterialId != shapeDesc.materialId)
+        {
+            currentMaterialId = shapeDesc.materialId;
+            mergesShapes.push_back({ startId, 0, currentMaterialId });
+            mergedShapeIndex++;
+        }
+
+        std::memcpy(&mergesIndicies[startId], &m_indices[shapeDesc.startIndex], shapeDesc.indexCount * sizeof(uint32_t));
+        mergesShapes[mergedShapeIndex].indexCount += shapeDesc.indexCount;
+    }
+
+    std::cout << "Merged " << m_shapeDescs.size() << " shapes into " << mergesShapes.size() << " shapes" << std::endl;
+
+    m_indices = mergesIndicies;
+    m_shapeDescs = mergesShapes;
+}
+
+void Mesh::addCameraUniformBuffer(VkBuffer uniformBuffer)
+{
+    m_globalUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, VK_SHADER_STAGE_VERTEX_BIT, uniformBuffer);
+    m_globalUniformDescriptorSet.finalize(m_device->getVkDevice());
 }
 
 bool Mesh::finalize(const RenderPass& renderPass)
 {
-    if (m_texture && m_sampler != VK_NULL_HANDLE)
+    for (auto& desc : m_materialDescs)
     {
-        m_descriptorSet.addSampler(m_texture->getImageView(), m_sampler);
+        desc.descriptorSet.addUniformBuffer(BINDING_ID_MATERIAL, VK_SHADER_STAGE_VERTEX_BIT, desc.materialUB);
+
+        desc.descriptorSet.finalize(m_device->getVkDevice());
+
+        desc.pipelineLayout.init(m_device->getVkDevice(), { m_globalUniformDescriptorSet.getLayout(), desc.descriptorSet.getLayout() });
+
+        static const PipelineSettings defaultSettings;
+
+        if (!desc.pipeline.init(m_device->getVkDevice(),
+            renderPass.getVkRenderPass(),
+            desc.pipelineLayout.getVkPipelineLayout(),
+            defaultSettings,
+            desc.shader->getShaderStages(),
+            &m_vertexBuffer))
+        {
+            return false;
+        }
     }
-    m_descriptorSet.finalize(m_device->getVkDevice());
 
-    m_pipelineLayout.init(m_device->getVkDevice(), { m_descriptorSet.getLayout() });
-
-    static const PipelineSettings defaultSettings;
-
-    return m_pipeline.init(m_device->getVkDevice(),
-        renderPass.getVkRenderPass(),
-        m_pipelineLayout.getVkPipelineLayout(),
-        defaultSettings,
-        m_shader->getShaderStages(),
-        &m_vertexBuffer);
+    return true;
 }
 
 void Mesh::render(VkCommandBuffer commandBuffer) const
 {
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipeline());
+    for (const auto& shapeDesc : m_shapeDescs)
+    {
+        assert(shapeDesc.materialId <= m_materialDescs.size());
+        const auto& materialDesc = m_materialDescs[shapeDesc.materialId];
 
-    m_descriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout());
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, materialDesc.pipeline.getVkPipeline());
 
-    m_vertexBuffer.draw(commandBuffer);
+        DescriptorSet::bind(commandBuffer, materialDesc.pipelineLayout.getVkPipelineLayout(), SET_ID_CAMERA,
+            { m_globalUniformDescriptorSet.getDescriptorSet(), materialDesc.descriptorSet.getDescriptorSet() });
+
+        m_vertexBuffer.draw(commandBuffer, shapeDesc.startIndex, shapeDesc.indexCount);
+    }
 }
 
 void Mesh::calculateBoundingBox()
