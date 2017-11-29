@@ -16,6 +16,8 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
+const glm::vec3 CameraUpVector(0.f, -1.f, 0.f);
+
 bool BasicRenderer::init(GLFWwindow* window)
 {
     createInstance();
@@ -243,8 +245,8 @@ void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer)
 
 void BasicRenderer::updateMVPUniform()
 {
-    const glm::mat4 view = glm::lookAt(m_cameraPosition, m_cameraTarget, glm::vec3(0.0f, -1.0f, 0.0f));
-    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height), 0.01f, 100000.0f);
+    const glm::mat4 view = glm::lookAt(m_cameraPosition, m_cameraTarget, CameraUpVector);
+    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height), 0.01f, m_sceneBoundingBoxDiameter * 20.f);
     const glm::mat4 mvp = projection * view;
     const uint32_t bufferSize = sizeof(mvp);
 
@@ -259,9 +261,9 @@ void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::ve
     const auto size = max - min;
     const auto center = (min + max) / 2.f;
     m_sceneBoundingBoxDiameter = std::max(std::max(size.x, size.y), size.z);
-    const auto cameraOffset = m_sceneBoundingBoxDiameter * 1.5f;
+    const auto cameraDistance = m_sceneBoundingBoxDiameter * 1.5f;
 
-    m_cameraPosition = glm::vec3(0.0f, cameraOffset, cameraOffset) - center;
+    m_cameraPosition = glm::vec3(0, 2.f * center.y, cameraDistance) - center;
     m_cameraTarget = center;
 
     updateMVPUniform();
@@ -294,8 +296,8 @@ void BasicRenderer::mouseMove(double x, double y)
         if (m_leftMouseButtonDown)
         {
             const auto cameraDirection = m_cameraTarget - m_cameraPosition;
-            auto newCameraDirection = glm::rotateY(cameraDirection, deltaX * rotationSize);
-            newCameraDirection = glm::rotateX(newCameraDirection, -deltaY * rotationSize);
+            auto newCameraDirection = glm::rotate(cameraDirection, deltaX * rotationSize, glm::vec3(0.0f, 1.0f, 0.0f));
+            newCameraDirection = glm::rotate(newCameraDirection, deltaY * rotationSize, glm::vec3(-1.0f, 0.0f, 0.0f));
             if (m_observerCameraMode)
             {
                 m_cameraTarget = m_cameraPosition + newCameraDirection;
@@ -317,9 +319,9 @@ void BasicRenderer::mouseMove(double x, double y)
         if (m_rightMouseButtonDown)
         {
             const auto cameraDirection = glm::normalize(m_cameraTarget - m_cameraPosition);
-            const auto cameraUp = glm::normalize(glm::cross(cameraDirection, glm::vec3(0, -1, 0)));
+            const auto cameraUp = glm::normalize(glm::cross(cameraDirection, CameraUpVector));
             const auto cameraRight = glm::normalize(glm::cross(cameraDirection, cameraUp));
-            const auto cameraOffset = stepSize * ((cameraRight * deltaY) - (cameraUp * deltaX));
+            const auto cameraOffset = stepSize * ((cameraRight * deltaY) + (cameraUp * -deltaX));
             m_cameraPosition += cameraOffset;
             m_cameraTarget += cameraOffset;
             updateMVPUniform();
