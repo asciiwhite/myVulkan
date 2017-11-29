@@ -1,11 +1,9 @@
 #include "descriptorset.h"
 #include "vulkanhelper.h"
 
-void DescriptorSet::addSampler(VkImageView textureImageView, VkSampler sampler)
+void DescriptorSet::addSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler)
 {
-    const uint32_t bindingId = static_cast<uint32_t>(m_descriptorWrites.size());
-
-    m_poolSizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , 1 });
+    m_poolSizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 });
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
     samplerLayoutBinding.binding = bindingId;
@@ -32,11 +30,9 @@ void DescriptorSet::addSampler(VkImageView textureImageView, VkSampler sampler)
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
-void DescriptorSet::addUniformBuffer(VkShaderStageFlags shaderStage, VkBuffer uniformBuffer)
+void DescriptorSet::addUniformBuffer(uint32_t bindingId, VkShaderStageFlags shaderStage, VkBuffer uniformBuffer)
 {
-    const uint32_t bindingId = static_cast<uint32_t>(m_descriptorWrites.size());
-
-    m_poolSizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 });
+    m_poolSizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 });
 
     VkDescriptorSetLayoutBinding layoutBinding = {};
     layoutBinding.binding = bindingId;
@@ -97,9 +93,14 @@ void DescriptorSet::finalize(VkDevice device)
     m_bindings.clear();
 }
 
-void DescriptorSet::bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout) const
+void DescriptorSet::bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t setId) const
 {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_descriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setId, 1, &m_descriptorSet, 0, nullptr);
+}
+
+void DescriptorSet::bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t firstSet, const std::vector<VkDescriptorSet>& descriptorSets)
+{
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, firstSet, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
 }
 
 void DescriptorSet::destroy(VkDevice device)
