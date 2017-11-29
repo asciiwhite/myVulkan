@@ -6,6 +6,49 @@
 #include "stb_image.h"
 
 #include <cstring>
+#include <algorithm>
+
+Texture::TextureMap Texture::m_loadedTextures;
+
+std::shared_ptr<Texture> Texture::getTexture(Device& device, const std::string& textureFilename)
+{
+    if (m_loadedTextures.count(textureFilename) == 0)
+    {
+        auto newTexture = std::make_shared<Texture>();
+        if (newTexture->loadFromFile(&device, textureFilename))
+        {
+            m_loadedTextures[textureFilename] = newTexture;
+        }
+        else
+        {
+            newTexture.reset();
+        }
+        return newTexture;
+    }
+
+    return m_loadedTextures[textureFilename];
+}
+
+void Texture::release(std::shared_ptr<Texture>& texture)
+{
+    auto iter = std::find_if(m_loadedTextures.begin(), m_loadedTextures.end(), [=](const auto& texturePair) { return texturePair.second == texture; });
+    assert(iter != m_loadedTextures.end());
+
+    texture.reset();
+
+    if (iter->second.unique())
+    {
+        m_loadedTextures.erase(iter);
+    }
+}
+
+Texture::~Texture()
+{
+    if (m_imageMemory != VK_NULL_HANDLE)
+    {
+        destroy();
+    }
+}
 
 bool Texture::loadFromFile(Device* device, const std::string& filename)
 {
