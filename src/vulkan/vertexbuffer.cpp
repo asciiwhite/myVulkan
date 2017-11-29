@@ -178,7 +178,7 @@ void VertexBuffer::createIndexBuffer(const void *indices, uint32_t numIndices, V
     createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, size, m_indexBuffer, m_indexBufferMemory, memcpyFunc);
 }
 
-void VertexBuffer::draw(VkCommandBuffer commandBuffer) const
+void VertexBuffer::draw(VkCommandBuffer commandBuffer, uint32_t firstIndex, uint32_t indexCount) const
 {
     for (auto i = 0u; i < m_bindingDescriptions.size(); i++)
     {
@@ -188,7 +188,7 @@ void VertexBuffer::draw(VkCommandBuffer commandBuffer) const
     if (m_indexBuffer != VK_NULL_HANDLE)
     {
         vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, m_indexType);
-        vkCmdDrawIndexed(commandBuffer, m_numIndices, 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, indexCount == 0 ? m_numIndices : indexCount, 1, firstIndex, 0, 0);
     }
     else
     {
