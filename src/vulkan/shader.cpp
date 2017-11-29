@@ -30,8 +30,13 @@ void Shader::release(std::shared_ptr<Shader>& shader)
 {
     auto iter = std::find_if(m_loadedShaders.begin(), m_loadedShaders.end(), [=](const auto& shaderPair) { return shaderPair.second == shader; });
     assert(iter != m_loadedShaders.end());
-    m_loadedShaders.erase(iter);
+
     shader.reset();
+
+    if (iter->second.unique())
+    {
+        m_loadedShaders.erase(iter);
+    }
 }
 
 Shader::Shader()
