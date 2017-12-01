@@ -39,10 +39,6 @@ void Shader::release(std::shared_ptr<Shader>& shader)
     }
 }
 
-Shader::Shader()
-{
-}
-
 Shader::~Shader()
 {
     for (auto shaderModule : m_shaderModules)

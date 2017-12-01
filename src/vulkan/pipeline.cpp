@@ -2,6 +2,8 @@
 #include "vulkanhelper.h"
 #include "vertexbuffer.h"
 
+#include <algorithm>
+
 void PipelineLayout::init(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts)
 {
     m_device = device;
@@ -96,7 +98,7 @@ PipelineSettings::PipelineSettings(bool isTransparent)
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.flags = 0;
     depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = isTransparent ? VK_FALSE : VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE; // isTransparent ? VK_FALSE : VK_TRUE;
     depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.f;
@@ -112,6 +114,83 @@ PipelineSettings::PipelineSettings(bool isTransparent)
 }
 
 //////////////////////////////////////////////////////////////////////////
+
+namespace std
+{
+    template<typename T> struct hash<vector<T>>
+    {
+        std::size_t operator()(vector<T> const& in) const
+        {
+            size_t size = in.size();
+            size_t seed = 0;
+            for (size_t i = 0; i < size; i++)
+                //Combine the hash of the current vector with the hashes of the previous ones
+                hash_combine(seed, in[i]);
+            return seed;
+        }
+    };
+
+    template<> struct hash<PipelineSettings>
+        : public _Bitwise_hash<PipelineSettings>
+    {};
+
+    template<> struct hash<VkPipelineShaderStageCreateInfo>
+        : public _Bitwise_hash<VkPipelineShaderStageCreateInfo>
+    {};
+}
+
+//using boost::hash_combine
+template <class T>
+inline void hash_combine(std::size_t& seed, T const& v)
+{
+    seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+Pipeline::PipelineMap Pipeline::m_createdPipelines;
+
+std::shared_ptr<Pipeline> Pipeline::getPipeline(VkDevice device,
+    VkRenderPass renderPass,
+    VkPipelineLayout layout,
+    const PipelineSettings& settings,
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+    const VertexBuffer* vertexbuffer)
+{
+    std::size_t pipelineHash = 0;
+    hash_combine(pipelineHash, renderPass);
+    hash_combine(pipelineHash, layout);
+    hash_combine(pipelineHash, settings);
+    hash_combine(pipelineHash, shaderStages);
+    hash_combine(pipelineHash, vertexbuffer);
+
+    if (m_createdPipelines.count(pipelineHash) == 0)
+    {
+        auto newPipeline = std::make_shared<Pipeline>();
+        if (newPipeline->init(device, renderPass, layout, settings, shaderStages, vertexbuffer))
+        {
+            m_createdPipelines[pipelineHash] = newPipeline;
+        }
+        else
+        {
+            newPipeline.reset();
+        }
+        return newPipeline;
+    }
+
+    return m_createdPipelines[pipelineHash];
+}
+
+void Pipeline::release(std::shared_ptr<Pipeline>& pipeline)
+{
+    auto iter = std::find_if(m_createdPipelines.begin(), m_createdPipelines.end(), [=](const auto& pipelinePair) { return pipelinePair.second == pipeline; });
+    assert(iter != m_createdPipelines.end());
+
+    pipeline.reset();
+
+    if (iter->second.unique())
+    {
+        m_createdPipelines.erase(iter);
+    }
+}
 
 bool Pipeline::init(VkDevice device,
     VkRenderPass renderPass,
@@ -152,6 +231,11 @@ bool Pipeline::init(VkDevice device,
     VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline));
 
     return true;
+}
+
+Pipeline::~Pipeline()
+{
+    destroy();
 }
 
 void Pipeline::destroy()

@@ -28,15 +28,17 @@ void Mesh::destroy()
         vkFreeMemory(m_device->getVkDevice(), desc.materialUBMemory, nullptr);
         desc.materialUBMemory = VK_NULL_HANDLE;
 
-        desc.pipeline.destroy();
-        desc.descriptorSet.destroy(m_device->getVkDevice());
-        desc.pipelineLayout.destroy();
+        Pipeline::release(desc.pipeline);
         Shader::release(desc.shader);
         if (desc.diffuseTexture)
             Texture::release(desc.diffuseTexture);
     }
     m_materials.clear();
-    m_globalUniformDescriptorSet.destroy(m_device->getVkDevice());
+    m_cameraDescriptorSetLayout.destroy(m_device->getVkDevice());
+    m_materialDescriptorSetLayout.destroy(m_device->getVkDevice());
+    m_pipelineLayout.destroy();
+    m_materialDescriptorPool.destroy(m_device->getVkDevice());
+    m_cameraDescriptorPool.destroy(m_device->getVkDevice());
 
     m_vertexBuffer.destroy();
     vkDestroySampler(m_device->getVkDevice(), m_sampler, nullptr);
@@ -342,6 +344,8 @@ void Mesh::loadMaterials()
         std::memcpy((char*)data + 8 * sizeof(float), &material.emission, 3 * sizeof(float));
         vkUnmapMemory(m_device->getVkDevice(), desc.materialUBMemory);
 
+        desc.descriptorSet.addUniformBuffer(BINDING_ID_MATERIAL, desc.materialUB);
+
         if (!textureFilename.empty())
         {
             const auto textureFullname = m_materialBaseDir + textureFilename;
@@ -418,28 +422,47 @@ void Mesh::sortShapesByMaterialTransparency()
 
 void Mesh::addCameraUniformBuffer(VkBuffer uniformBuffer)
 {
-    m_globalUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, VK_SHADER_STAGE_VERTEX_BIT, uniformBuffer);
-    m_globalUniformDescriptorSet.finalize(m_device->getVkDevice());
+    m_cameraUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, uniformBuffer);
 }
 
 bool Mesh::finalize(const RenderPass& renderPass)
 {
+    m_cameraDescriptorPool.init(m_device->getVkDevice(), 1,
+    { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 } });
+
+    m_cameraDescriptorSetLayout.init(m_device->getVkDevice(),
+    { { BINDING_ID_CAMERA, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
+
+    m_cameraUniformDescriptorSet.finalize(m_device->getVkDevice(), m_cameraDescriptorSetLayout, m_cameraDescriptorPool);
+
+
+    const auto materialDescriptorCount = static_cast<uint32_t>(m_materialDescs.size());
+
+    // TODO: why materialDescriptorCount at maxSets and descriptorCount?
+    m_materialDescriptorPool.init(m_device->getVkDevice(), materialDescriptorCount,
+        { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, materialDescriptorCount },
+          { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, materialDescriptorCount } });
+
+    m_materialDescriptorSetLayout.init(m_device->getVkDevice(),
+        { { BINDING_ID_MATERIAL, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT },
+          { BINDING_ID_TEXTURE_DIFFUSE, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT } });
+
+    m_pipelineLayout.init(m_device->getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout(), m_materialDescriptorSetLayout.getVkLayout() });
+
     for (auto& desc : m_materialDescs)
     {
-        desc.descriptorSet.addUniformBuffer(BINDING_ID_MATERIAL, VK_SHADER_STAGE_VERTEX_BIT, desc.materialUB);
-
-        desc.descriptorSet.finalize(m_device->getVkDevice());
-
-        desc.pipelineLayout.init(m_device->getVkDevice(), { m_globalUniformDescriptorSet.getLayout(), desc.descriptorSet.getLayout() });
+        desc.descriptorSet.finalize(m_device->getVkDevice(), m_materialDescriptorSetLayout, m_materialDescriptorPool);
 
         const PipelineSettings settings(desc.diffuseTexture && desc.diffuseTexture->hasTranspareny());
 
-        if (!desc.pipeline.init(m_device->getVkDevice(),
+        desc.pipeline = Pipeline::getPipeline(m_device->getVkDevice(),
             renderPass.getVkRenderPass(),
-            desc.pipelineLayout.getVkPipelineLayout(),
+            m_pipelineLayout.getVkPipelineLayout(),
             settings,
             desc.shader->getShaderStages(),
-            &m_vertexBuffer))
+            &m_vertexBuffer);
+
+        if (!desc.pipeline)
         {
             return false;
         }
@@ -450,15 +473,22 @@ bool Mesh::finalize(const RenderPass& renderPass)
 
 void Mesh::render(VkCommandBuffer commandBuffer) const
 {
+    std::shared_ptr<Pipeline> currentPipeline;
+
+    m_cameraUniformDescriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout(), SET_ID_CAMERA);
+
     for (const auto& shapeDesc : m_shapeDescs)
     {
         assert(shapeDesc.materialId <= m_materialDescs.size());
         const auto& materialDesc = m_materialDescs[shapeDesc.materialId];
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, materialDesc.pipeline.getVkPipeline());
+        if (currentPipeline != materialDesc.pipeline)
+        {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, materialDesc.pipeline->getVkPipeline());
+            currentPipeline = materialDesc.pipeline;
+        }
 
-        DescriptorSet::bind(commandBuffer, materialDesc.pipelineLayout.getVkPipelineLayout(), SET_ID_CAMERA,
-            { m_globalUniformDescriptorSet.getDescriptorSet(), materialDesc.descriptorSet.getDescriptorSet() });
+        materialDesc.descriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout(), SET_ID_MATERIAL);
 
         m_vertexBuffer.draw(commandBuffer, shapeDesc.startIndex, shapeDesc.indexCount);
     }

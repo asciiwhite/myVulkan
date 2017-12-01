@@ -2,6 +2,8 @@
 
 #include <vulkan/vulkan.h>
 #include <vector>
+#include <unordered_map>
+#include <memory>
 
 class PipelineLayout
 {
@@ -38,6 +40,21 @@ class VertexBuffer;
 class Pipeline
 {
 public:
+    ~Pipeline();
+
+    VkPipeline getVkPipeline() const { return m_pipeline; }
+
+    static std::shared_ptr<Pipeline> getPipeline(
+        VkDevice device,
+        VkRenderPass renderPass,
+        VkPipelineLayout layout,
+        const PipelineSettings& settings,
+        std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+        const VertexBuffer* vertexbuffer = nullptr);
+
+    static void release(std::shared_ptr<Pipeline>& pipeline);
+
+private:
     bool init(VkDevice device,
         VkRenderPass renderPass,
         VkPipelineLayout layout,
@@ -47,9 +64,9 @@ public:
 
     void destroy();
 
-    VkPipeline getVkPipeline() const { return m_pipeline; }
-
-private:
     VkDevice m_device = VK_NULL_HANDLE;
     VkPipeline m_pipeline = VK_NULL_HANDLE;
+
+    using PipelineMap = std::unordered_map<size_t, std::shared_ptr<Pipeline>>;
+    static PipelineMap m_createdPipelines;
 };

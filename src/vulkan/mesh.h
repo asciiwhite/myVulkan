@@ -63,18 +63,23 @@ private:
     std::vector<float> m_vertexData;
     std::vector<uint32_t> m_indices;
 
+    DescriptorSetLayout m_cameraDescriptorSetLayout;
+    DescriptorPool m_cameraDescriptorPool;
+    DescriptorSet m_cameraUniformDescriptorSet;
+    DescriptorSetLayout m_materialDescriptorSetLayout;
+    DescriptorPool m_materialDescriptorPool;   
+    PipelineLayout m_pipelineLayout;
+
     struct MaterialDesc
     {
         VkBuffer materialUB = VK_NULL_HANDLE;
         VkDeviceMemory materialUBMemory = VK_NULL_HANDLE;
         std::shared_ptr<Shader> shader;
         std::shared_ptr<Texture> diffuseTexture;
+        std::shared_ptr<Pipeline> pipeline;
         DescriptorSet descriptorSet;
-        PipelineLayout pipelineLayout;
-        Pipeline pipeline;
     };
     std::vector<MaterialDesc> m_materialDescs;
-    DescriptorSet m_globalUniformDescriptorSet;
 
     struct ShapeDesc
     {

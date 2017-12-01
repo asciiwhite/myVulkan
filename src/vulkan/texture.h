@@ -10,10 +10,8 @@ class Device;
 class Texture
 {
 public:
-    Texture() {};
     ~Texture();
 
-    bool loadFromFile(Device* device, const std::string& filename);
     void createDepthBuffer(Device* device, const VkExtent2D& extend, VkFormat format);
     void destroy();
 
@@ -24,6 +22,7 @@ public:
     static void release(std::shared_ptr<Texture>& texture);
 
 private:
+    bool loadFromFile(Device* device, const std::string& filename);
     void createImageView();
 
     Device* m_device = nullptr;

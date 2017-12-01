@@ -9,7 +9,6 @@
 class Shader
 {
 public:
-    Shader(); // remove from public
     ~Shader();
 
     std::vector<VkPipelineShaderStageCreateInfo> getShaderStages() const { return m_shaderStages; }
