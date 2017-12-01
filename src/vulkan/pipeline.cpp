@@ -118,7 +118,7 @@ PipelineSettings::PipelineSettings(bool isTransparent)
 
 Pipeline::PipelineMap Pipeline::m_createdPipelines;
 
-std::shared_ptr<Pipeline> Pipeline::getPipeline(VkDevice device,
+PipelineHandle Pipeline::getPipeline(VkDevice device,
     VkRenderPass renderPass,
     VkPipelineLayout layout,
     const PipelineSettings& settings,
@@ -150,7 +150,7 @@ std::shared_ptr<Pipeline> Pipeline::getPipeline(VkDevice device,
     return m_createdPipelines[pipelineHash];
 }
 
-void Pipeline::release(std::shared_ptr<Pipeline>& pipeline)
+void Pipeline::release(PipelineHandle& pipeline)
 {
     auto iter = std::find_if(m_createdPipelines.begin(), m_createdPipelines.end(), [=](const auto& pipelinePair) { return pipelinePair.second == pipeline; });
     assert(iter != m_createdPipelines.end());

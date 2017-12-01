@@ -285,7 +285,7 @@ void Mesh::createSeparateVertexAttributes()
     std::cout << "Vertex count:\t " << m_attrib.vertices.size() / 3 << std::endl;
 }
 
-std::shared_ptr<Shader> Mesh::selectShaderFromAttributes(bool useTexture)
+ShaderHandle Mesh::selectShaderFromAttributes(bool useTexture)
 {
     const std::string shaderPath = "data/shaders/";
     std::string vertexShaderName = "color_normal";
@@ -476,7 +476,7 @@ bool Mesh::finalize(const RenderPass& renderPass)
 
 void Mesh::render(VkCommandBuffer commandBuffer) const
 {
-    std::shared_ptr<Pipeline> currentPipeline;
+    PipelineHandle currentPipeline;
 
     m_cameraUniformDescriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout(), SET_ID_CAMERA);
 

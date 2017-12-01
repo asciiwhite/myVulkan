@@ -47,6 +47,7 @@ set(VULKAN_SOURCES
     src/vulkan/texture.cpp
     src/vulkan/mesh.h
     src/vulkan/mesh.cpp
+    src/vulkan/handles.h
 )
 
 set(SOURCES

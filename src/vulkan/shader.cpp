@@ -6,7 +6,7 @@
 
 Shader::ShaderMap Shader::m_loadedShaders;
 
-std::shared_ptr<Shader> Shader::getShader(VkDevice device, const std::string& vertexFilename, const std::string& fragmentFilename)
+ShaderHandle Shader::getShader(VkDevice device, const std::string& vertexFilename, const std::string& fragmentFilename)
 {
     const auto combindedShaderFilenames = vertexFilename + fragmentFilename;
     if (m_loadedShaders.count(combindedShaderFilenames) == 0)
@@ -26,7 +26,7 @@ std::shared_ptr<Shader> Shader::getShader(VkDevice device, const std::string& ve
     return m_loadedShaders[combindedShaderFilenames];
 }
 
-void Shader::release(std::shared_ptr<Shader>& shader)
+void Shader::release(ShaderHandle& shader)
 {
     auto iter = std::find_if(m_loadedShaders.begin(), m_loadedShaders.end(), [=](const auto& shaderPair) { return shaderPair.second == shader; });
     assert(iter != m_loadedShaders.end());

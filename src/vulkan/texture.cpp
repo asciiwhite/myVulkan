@@ -10,7 +10,7 @@
 
 Texture::TextureMap Texture::m_loadedTextures;
 
-std::shared_ptr<Texture> Texture::getTexture(Device& device, const std::string& textureFilename)
+TextureHandle Texture::getTexture(Device& device, const std::string& textureFilename)
 {
     if (m_loadedTextures.count(textureFilename) == 0)
     {
@@ -29,7 +29,7 @@ std::shared_ptr<Texture> Texture::getTexture(Device& device, const std::string& 
     return m_loadedTextures[textureFilename];
 }
 
-void Texture::release(std::shared_ptr<Texture>& texture)
+void Texture::release(TextureHandle& texture)
 {
     auto iter = std::find_if(m_loadedTextures.begin(), m_loadedTextures.end(), [=](const auto& texturePair) { return texturePair.second == texture; });
     assert(iter != m_loadedTextures.end());

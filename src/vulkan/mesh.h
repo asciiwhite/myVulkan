@@ -1,6 +1,7 @@
 #include "vertexbuffer.h"
 #include "pipeline.h"
 #include "descriptorset.h"
+#include "handles.h"
 #include "..\utils\glm.h"
 
 #include <tiny_obj_loader.h>
@@ -9,8 +10,6 @@
 #include <memory>
 
 class Device;
-class Shader;
-class Texture;
 class RenderPass;
 
 class Mesh
@@ -29,7 +28,7 @@ private:
     bool hasUniqueVertexAttributes() const;
     void createSeparateVertexAttributes();
     void createInterleavedVertexAttributes();
-    std::shared_ptr<Shader> selectShaderFromAttributes(bool useTexture);
+    ShaderHandle selectShaderFromAttributes(bool useTexture);
     void createPipeline();
     void calculateBoundingBox();
     void loadMaterials();
@@ -74,9 +73,9 @@ private:
     {
         VkBuffer materialUB = VK_NULL_HANDLE;
         VkDeviceMemory materialUBMemory = VK_NULL_HANDLE;
-        std::shared_ptr<Shader> shader;
-        std::shared_ptr<Texture> diffuseTexture;
-        std::shared_ptr<Pipeline> pipeline;
+        ShaderHandle shader;
+        TextureHandle diffuseTexture;
+        PipelineHandle pipeline;
         DescriptorSet descriptorSet;
     };
     std::vector<MaterialDesc> m_materialDescs;

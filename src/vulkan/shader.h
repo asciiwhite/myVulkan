@@ -1,10 +1,11 @@
 #pragma once
 
+#include "handles.h"
+
 #include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <memory>
 
 class Shader
 {
@@ -13,8 +14,8 @@ public:
 
     std::vector<VkPipelineShaderStageCreateInfo> getShaderStages() const { return m_shaderStages; }
 
-    static std::shared_ptr<Shader> getShader(VkDevice device, const std::string& vertexFilename, const std::string& fragmentFilename);
-    static void release(std::shared_ptr<Shader>& shader);
+    static ShaderHandle getShader(VkDevice device, const std::string& vertexFilename, const std::string& fragmentFilename);
+    static void release(ShaderHandle& shader);
 private:
     bool createFromFiles(VkDevice device, const std::string& vertexFilename, const std::string& fragmentFilename);
 
@@ -24,6 +25,6 @@ private:
     std::vector<VkShaderModule> m_shaderModules;
     std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
 
-    using ShaderMap = std::unordered_map<std::string, std::shared_ptr<Shader>>;
+    using ShaderMap = std::unordered_map<std::string, ShaderHandle>;
     static ShaderMap m_loadedShaders;
 };
