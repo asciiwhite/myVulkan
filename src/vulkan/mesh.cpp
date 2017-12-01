@@ -4,6 +4,7 @@
 #include "renderpass.h"
 #include "texture.h"
 #include "../utils/scopedtimelog.h"
+#include "../utils/hasher.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -230,7 +231,9 @@ void Mesh::addVertex(const tinyobj::index_t index, UniqueVertexMap& uniqueVertic
     }
 
     assert(m_vertexSize == currentSize);
-    const auto vertexHash = std::_Hash_seq(reinterpret_cast<const unsigned char*>(&m_vertexData[m_vertexOffset]), currentSize * sizeof(float));
+    Hasher hasher;
+    hasher.add(reinterpret_cast<const unsigned char*>(&m_vertexData[m_vertexOffset]), currentSize * sizeof(float));
+    const auto vertexHash = hasher.get();
     if (uniqueVertices.count(vertexHash) == 0)
     {
         uniqueVertices[vertexHash] = static_cast<uint32_t>(uniqueVertices.size());

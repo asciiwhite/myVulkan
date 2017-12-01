@@ -53,6 +53,7 @@ set(SOURCES
     src/main.cpp
     src/utils/glm.h
     src/utils/timer.h
+    src/utils/hasher.h
     src/utils/scopedtimelog.h
     src/utils/scopedtimelog.cpp
     src/utils/statistics.h

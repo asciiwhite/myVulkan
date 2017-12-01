@@ -1,6 +1,7 @@
 #include "pipeline.h"
 #include "vulkanhelper.h"
 #include "vertexbuffer.h"
+#include "../utils/hasher.h"
 
 #include <algorithm>
 
@@ -115,37 +116,6 @@ PipelineSettings::PipelineSettings(bool isTransparent)
 
 //////////////////////////////////////////////////////////////////////////
 
-namespace std
-{
-    template<typename T> struct hash<vector<T>>
-    {
-        std::size_t operator()(vector<T> const& in) const
-        {
-            size_t size = in.size();
-            size_t seed = 0;
-            for (size_t i = 0; i < size; i++)
-                //Combine the hash of the current vector with the hashes of the previous ones
-                hash_combine(seed, in[i]);
-            return seed;
-        }
-    };
-
-    template<> struct hash<PipelineSettings>
-        : public _Bitwise_hash<PipelineSettings>
-    {};
-
-    template<> struct hash<VkPipelineShaderStageCreateInfo>
-        : public _Bitwise_hash<VkPipelineShaderStageCreateInfo>
-    {};
-}
-
-//using boost::hash_combine
-template <class T>
-inline void hash_combine(std::size_t& seed, T const& v)
-{
-    seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
 Pipeline::PipelineMap Pipeline::m_createdPipelines;
 
 std::shared_ptr<Pipeline> Pipeline::getPipeline(VkDevice device,
@@ -155,12 +125,13 @@ std::shared_ptr<Pipeline> Pipeline::getPipeline(VkDevice device,
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
     const VertexBuffer* vertexbuffer)
 {
-    std::size_t pipelineHash = 0;
-    hash_combine(pipelineHash, renderPass);
-    hash_combine(pipelineHash, layout);
-    hash_combine(pipelineHash, settings);
-    hash_combine(pipelineHash, shaderStages);
-    hash_combine(pipelineHash, vertexbuffer);
+    Hasher hasher;
+    hasher.add(renderPass);
+    hasher.add(layout);
+    hasher.add(settings);
+    hasher.add(shaderStages);
+    hasher.add(vertexbuffer);
+    const auto pipelineHash = hasher.get();
 
     if (m_createdPipelines.count(pipelineHash) == 0)
     {
