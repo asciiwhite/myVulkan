@@ -2,6 +2,21 @@
 
 using Hash = std::size_t;
 
+inline size_t fnv1a_hash_bytes(const unsigned char * first, size_t count)
+{
+    static_assert(sizeof(size_t) == 8, "This code is for 64-bit size_t.");
+    const size_t fnv_offset_basis = 14695981039346656037ULL;
+    const size_t fnv_prime = 1099511628211ULL;
+    
+    size_t result = fnv_offset_basis;
+    for (size_t next = 0; next < count; ++next)
+    {	// fold in another byte
+        result ^= (size_t)first[next];
+        result *= fnv_prime;
+    }
+    return (result);
+}
+
 //using boost::hash_combine
 template <class T>
 inline void hash_combine(std::size_t& seed, T const& v)
@@ -24,12 +39,19 @@ namespace std
         }
     };
 
+    template<typename T> struct BitwiseHash
+    {
+        std::size_t operator()(T const& in) const
+        {
+            return fnv1a_hash_bytes(reinterpret_cast<const unsigned char*>(&in), sizeof(T));        }
+    };
+
     template<>
-    struct hash<PipelineSettings> : public _Bitwise_hash<PipelineSettings>
+    struct hash<PipelineSettings> : public BitwiseHash<PipelineSettings>
     {};
 
     template<>
-    struct hash<VkPipelineShaderStageCreateInfo> : public _Bitwise_hash<VkPipelineShaderStageCreateInfo>
+    struct hash<VkPipelineShaderStageCreateInfo> : public BitwiseHash<VkPipelineShaderStageCreateInfo>
     {};
 }
 
@@ -44,7 +66,7 @@ public:
 
     void add(const unsigned char* data, size_t size)
     {
-        const auto dataHash = std::_Hash_seq(data, size);
+        const auto dataHash = fnv1a_hash_bytes(data, size);
         hash_combine(m_seed, dataHash);
     }
 

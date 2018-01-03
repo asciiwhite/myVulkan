@@ -416,7 +416,7 @@ bool Mesh::isTransparentMaterial(uint32_t id) const
 
 void Mesh::sortShapesByMaterialTransparency()
 {
-    std::sort(m_shapeDescs.begin(), m_shapeDescs.end(), [=](const auto &a, const auto &b) {
+    std::sort(m_shapeDescs.begin(), m_shapeDescs.end(), [=](const ShapeDesc& a, const ShapeDesc& b) {
         auto transparencyPenaltyA = isTransparentMaterial(a.materialId) ? 10 : 1;
         auto transparencyPenaltyB = isTransparentMaterial(b.materialId) ? 10 : 1;
         return  (a.materialId * transparencyPenaltyA) <

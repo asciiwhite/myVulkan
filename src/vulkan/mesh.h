@@ -2,7 +2,7 @@
 #include "pipeline.h"
 #include "descriptorset.h"
 #include "handles.h"
-#include "..\utils\glm.h"
+#include "../utils/glm.h"
 
 #include <tiny_obj_loader.h>
 #include <unordered_map>

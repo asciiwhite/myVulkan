@@ -152,7 +152,7 @@ PipelineHandle Pipeline::getPipeline(VkDevice device,
 
 void Pipeline::release(PipelineHandle& pipeline)
 {
-    auto iter = std::find_if(m_createdPipelines.begin(), m_createdPipelines.end(), [=](const auto& pipelinePair) { return pipelinePair.second == pipeline; });
+    auto iter = std::find_if(m_createdPipelines.begin(), m_createdPipelines.end(), [=](const PipelineMap::value_type& pipelinePair) { return pipelinePair.second == pipeline; });
     assert(iter != m_createdPipelines.end());
 
     pipeline.reset();
