@@ -123,7 +123,7 @@ void Mesh::createInterleavedVertexAttributes()
         ScopedTimeLog log("Creating interleaved vertex data");
 
         uint32_t numIndices = 0;
-        std::for_each(m_shapes.begin(), m_shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
+        std::for_each(m_shapes.begin(), m_shapes.end(), [&](const tinyobj::shape_t& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
         m_indices.reserve(numIndices);
 
         std::unordered_map<size_t, uint32_t> uniqueVertices;
@@ -250,7 +250,7 @@ void Mesh::createSeparateVertexAttributes()
 
     std::vector<uint32_t> indices;
     uint32_t numIndices = 0;
-    std::for_each(m_shapes.begin(), m_shapes.end(), [&](const auto& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
+    std::for_each(m_shapes.begin(), m_shapes.end(), [&](const tinyobj::shape_t& shape) { numIndices += static_cast<uint32_t>(shape.mesh.indices.size()); });
     indices.reserve(numIndices);
 
     m_shapeDescs.push_back({ 0u, numIndices, 0u });
@@ -381,7 +381,7 @@ void Mesh::mergeShapesByMaterial()
     std::vector<uint32_t> mergesIndicies(m_indices.size());
     std::vector<ShapeDesc> mergesShapes;
 
-    std::sort(m_shapeDescs.begin(), m_shapeDescs.end(), [](const auto &a, const auto &b) { return a.materialId < b.materialId; });
+    std::sort(m_shapeDescs.begin(), m_shapeDescs.end(), [](const ShapeDesc& a, const ShapeDesc& b) { return a.materialId < b.materialId; });
 
     auto currentMaterialId = m_shapeDescs.front().materialId;
     mergesShapes.push_back({ 0, 0, currentMaterialId });

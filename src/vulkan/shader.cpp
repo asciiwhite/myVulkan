@@ -28,7 +28,7 @@ ShaderHandle Shader::getShader(VkDevice device, const std::string& vertexFilenam
 
 void Shader::release(ShaderHandle& shader)
 {
-    auto iter = std::find_if(m_loadedShaders.begin(), m_loadedShaders.end(), [=](const auto& shaderPair) { return shaderPair.second == shader; });
+    auto iter = std::find_if(m_loadedShaders.begin(), m_loadedShaders.end(), [=](const ShaderMap::value_type& shaderPair) { return shaderPair.second == shader; });
     assert(iter != m_loadedShaders.end());
 
     shader.reset();

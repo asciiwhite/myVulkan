@@ -31,7 +31,7 @@ TextureHandle Texture::getTexture(Device& device, const std::string& textureFile
 
 void Texture::release(TextureHandle& texture)
 {
-    auto iter = std::find_if(m_loadedTextures.begin(), m_loadedTextures.end(), [=](const auto& texturePair) { return texturePair.second == texture; });
+    auto iter = std::find_if(m_loadedTextures.begin(), m_loadedTextures.end(), [=](const TextureMap::value_type& texturePair) { return texturePair.second == texture; });
     assert(iter != m_loadedTextures.end());
 
     texture.reset();

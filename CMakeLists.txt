@@ -15,8 +15,7 @@ include_directories(externals/glfw/include)
 include_directories(externals/stb)
 include_directories(externals/tiny_obj_loader)
 
-find_package(GLM REQUIRED)
-include_directories(${GLM_INCLUDE_DIRS})
+add_subdirectory(externals/glm)
 
 find_package(Vulkan REQUIRED)
 
@@ -84,6 +83,7 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
     glfw
+    glm
     Vulkan::Vulkan
 )
 
