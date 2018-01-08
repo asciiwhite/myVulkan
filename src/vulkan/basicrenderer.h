@@ -23,7 +23,7 @@ public:
     void mouseButton(int button, int action, int mods);
     void mouseMove(double x, double y);
 
-    virtual void update() = 0;
+    virtual void update();
     void draw();
 
 protected:
@@ -70,10 +70,14 @@ protected:
 
     glm::vec3 m_cameraPosition;
     glm::vec3 m_cameraTarget;
+    glm::vec3 m_cameraLook;
+    glm::vec3 m_cameraUp;
 
     bool m_leftMouseButtonDown = false;
     bool m_middleMouseButtonDown = false;
     bool m_rightMouseButtonDown = false;
     double m_mousePositionX = 0.0;
     double m_mousePositionY = 0.0;
+    double m_lastMousePositionX = 0.0;
+    double m_lastMousePositionY = 0.0;
 };

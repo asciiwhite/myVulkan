@@ -58,6 +58,10 @@ set(SOURCES
     src/utils/scopedtimelog.cpp
     src/utils/statistics.h
     src/utils/statistics.cpp
+    src/utils/arcball_camera.h
+    src/utils/arcball_camera.cpp
+    src/utils/flythrough_camera.h
+    src/utils/flythrough_camera.cpp
     src/simplerenderer.h
     src/simplerenderer.cpp
     src/window.h

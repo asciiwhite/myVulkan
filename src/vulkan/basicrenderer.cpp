@@ -3,6 +3,8 @@
 #include "debug.h"
 
 #include "../utils/glm.h"
+#include "../utils/arcball_camera.h"
+#include "../utils/flythrough_camera.h"
 
 #include <GLFW/glfw3.h>
 
@@ -15,8 +17,6 @@ const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
 #endif
-
-const glm::vec3 CameraUpVector(0.f, -1.f, 0.f);
 
 bool BasicRenderer::init(GLFWwindow* window)
 {
@@ -245,7 +245,9 @@ void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer)
 
 void BasicRenderer::updateMVPUniform()
 {
-    const glm::mat4 view = glm::lookAt(m_cameraPosition, m_cameraTarget, CameraUpVector);
+    const auto lookVec = m_observerCameraMode ? m_cameraTarget : m_cameraPosition + m_cameraLook;
+
+    const glm::mat4 view = glm::lookAt(m_cameraPosition, lookVec, m_cameraUp);
     const glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height), 0.01f, m_sceneBoundingBoxDiameter * 20.f);
     const glm::mat4 mvp = projection * view;
     const uint32_t bufferSize = sizeof(mvp);
@@ -265,17 +267,55 @@ void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::ve
 
     m_cameraPosition = glm::vec3(0, 2.f * center.y, cameraDistance) - center;
     m_cameraTarget = center;
+    m_cameraLook = glm::normalize(m_cameraTarget - m_cameraPosition);
+    m_cameraUp = glm::vec3(0, -1, 0);
 
     updateMVPUniform();
 }
 
+void BasicRenderer::update()
+{
+    if ((m_leftMouseButtonDown ||
+        m_middleMouseButtonDown ||
+        m_rightMouseButtonDown) && 
+        !m_observerCameraMode)
+    {
+        const auto stepSize = 0.05f * m_sceneBoundingBoxDiameter;
+
+        const auto deltaX = static_cast<int>(m_mousePositionX - m_lastMousePositionX);
+        const auto deltaY = static_cast<int>(m_mousePositionY - m_lastMousePositionY);
+
+        flythrough_camera_update(
+            glm::value_ptr(m_cameraPosition),
+            glm::value_ptr(m_cameraLook),
+            glm::value_ptr(m_cameraUp),
+            nullptr,
+            0.01f,
+            stepSize,
+            0.5f,
+            80.0f,
+            deltaX, deltaY,
+            m_rightMouseButtonDown,
+            m_middleMouseButtonDown,
+            0,
+            0,
+            0, 0, 0);
+
+        m_cameraTarget += m_cameraLook;
+        
+        updateMVPUniform();
+
+        m_lastMousePositionX = m_mousePositionX;
+        m_lastMousePositionY = m_mousePositionY;
+    }
+}
+
 void BasicRenderer::mouseButton(int button, int action, int mods)
 {
+    m_observerCameraMode = (mods & GLFW_MOD_CONTROL) != 0;
+
     if (button == GLFW_MOUSE_BUTTON_1)
-    {
         m_leftMouseButtonDown = action == GLFW_PRESS;
-        m_observerCameraMode = (mods & GLFW_MOD_CONTROL) != 0;
-    }
     else if (button == GLFW_MOUSE_BUTTON_3)
         m_middleMouseButtonDown = action == GLFW_PRESS;
     else if (button == GLFW_MOUSE_BUTTON_2)
@@ -284,50 +324,35 @@ void BasicRenderer::mouseButton(int button, int action, int mods)
 
 void BasicRenderer::mouseMove(double x, double y)
 {
-    if (m_leftMouseButtonDown ||
-        m_middleMouseButtonDown ||
-        m_rightMouseButtonDown)
-    {
-        const static auto rotationSize = 0.005f;
-        const auto stepSize = 0.005f * m_sceneBoundingBoxDiameter;
-        const auto deltaX = static_cast<float>(x - m_mousePositionX);
-        const auto deltaY = static_cast<float>(y - m_mousePositionY);
-
-        if (m_leftMouseButtonDown)
-        {
-            const auto cameraDirection = m_cameraTarget - m_cameraPosition;
-            auto newCameraDirection = glm::rotate(cameraDirection, deltaX * rotationSize, glm::vec3(0.0f, 1.0f, 0.0f));
-            newCameraDirection = glm::rotate(newCameraDirection, deltaY * rotationSize, glm::vec3(-1.0f, 0.0f, 0.0f));
-            if (m_observerCameraMode)
-            {
-                m_cameraTarget = m_cameraPosition + newCameraDirection;
-            }
-            else
-            {
-                m_cameraPosition = m_cameraTarget - newCameraDirection;
-            }
-            updateMVPUniform();
-        }
-        if (m_middleMouseButtonDown)
-        {
-            const auto cameraDirection = glm::normalize(m_cameraTarget - m_cameraPosition);
-            const auto offset = glm::vec3(deltaY * stepSize) * cameraDirection;
-            m_cameraPosition += offset;
-            m_cameraTarget += offset;
-            updateMVPUniform();
-        }
-        if (m_rightMouseButtonDown)
-        {
-            const auto cameraDirection = glm::normalize(m_cameraTarget - m_cameraPosition);
-            const auto cameraUp = glm::normalize(glm::cross(cameraDirection, CameraUpVector));
-            const auto cameraRight = glm::normalize(glm::cross(cameraDirection, cameraUp));
-            const auto cameraOffset = stepSize * ((cameraRight * deltaY) + (cameraUp * -deltaX));
-            m_cameraPosition += cameraOffset;
-            m_cameraTarget += cameraOffset;
-            updateMVPUniform();
-        }
-    }
-
+    m_lastMousePositionX = m_mousePositionX;
+    m_lastMousePositionY = m_mousePositionY;
     m_mousePositionX = x;
     m_mousePositionY = y;
+
+    if ((m_leftMouseButtonDown ||
+        m_middleMouseButtonDown ||
+        m_rightMouseButtonDown) && 
+        m_observerCameraMode)
+    {
+            const auto stepSize = 0.005f * m_sceneBoundingBoxDiameter;
+
+            arcball_camera_update(
+                glm::value_ptr(m_cameraPosition),
+                glm::value_ptr(m_cameraTarget),
+                glm::value_ptr(m_cameraUp),
+                nullptr,
+                0.01f,
+                stepSize, 100.0f, 5.0f,
+                m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height,
+                static_cast<int>(m_lastMousePositionX), static_cast<int>(m_mousePositionX),
+                static_cast<int>(m_mousePositionY), static_cast<int>(m_lastMousePositionY),  // inverse axis for correct rotation direction
+                m_rightMouseButtonDown,
+                m_leftMouseButtonDown,
+                m_middleMouseButtonDown ? static_cast<int>(m_mousePositionY - m_lastMousePositionY) : 0,
+                0);
+
+            m_cameraLook = glm::normalize(m_cameraTarget - m_cameraPosition);
+            
+            updateMVPUniform();
+    }    
 }

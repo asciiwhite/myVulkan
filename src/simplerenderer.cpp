@@ -64,7 +64,3 @@ void SimpleRenderer::fillCommandBuffers()
         VK_CHECK_RESULT(vkEndCommandBuffer(m_commandBuffers[i]));
     }
 }
-
-void SimpleRenderer::update()
-{
-}
