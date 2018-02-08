@@ -8,7 +8,7 @@ bool SimpleRenderer::setup()
     if (!m_mesh.loadFromObj(m_device, "data/meshes/bunny.obj"))
         return false;
 
-    m_mesh.addCameraUniformBuffer(m_uniformBuffer);
+    m_mesh.addCameraUniformBuffer(m_cameraUniformBuffer.getVkBuffer());
     if (!m_mesh.finalize(m_renderPass))
         return false;
 

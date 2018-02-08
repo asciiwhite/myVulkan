@@ -5,6 +5,7 @@
 #include "framebuffer.h"
 #include "renderpass.h"
 #include "texture.h"
+#include "buffer.h"
 
 #include "../utils/statistics.h"
 #include "../utils/glm.h"
@@ -62,8 +63,7 @@ protected:
 
     Statistics m_stats;
 
-    VkBuffer m_uniformBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_uniformBufferMemory = VK_NULL_HANDLE;
+    Buffer m_cameraUniformBuffer;
 
     float m_sceneBoundingBoxDiameter = 0.f;
     bool m_observerCameraMode = false;
