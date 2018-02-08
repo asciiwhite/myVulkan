@@ -3,99 +3,21 @@ set(CMAKE_CXX_STANDARD 11)
 
 project(myVulkan LANGUAGES CXX)
 
-if (MSVC)
-    add_compile_options(/MP)
-endif()
-
-set(GLFW_BUILD_TESTS False)
-set(GLFW_BUILD_EXAMPLES False)
-set(GLFW_BUILD_DOCS False)
-add_subdirectory(externals/glfw)
-include_directories(externals/glfw/include)
-include_directories(externals/stb)
-include_directories(externals/tiny_obj_loader)
-
-add_subdirectory(externals/glm)
-
-find_package(Vulkan REQUIRED)
-
-set(VULKAN_SOURCES
-    src/vulkan/basicrenderer.h
-    src/vulkan/basicrenderer.cpp
-    src/vulkan/swapchain.h
-    src/vulkan/swapchain.cpp
-    src/vulkan/vulkanhelper.h
-    src/vulkan/vulkanhelper.cpp
-    src/vulkan/debug.h
-    src/vulkan/debug.cpp
-    src/vulkan/device.h
-    src/vulkan/device.cpp
-    src/vulkan/shader.h
-    src/vulkan/shader.cpp
-    src/vulkan/descriptorset.h
-    src/vulkan/descriptorset.cpp
-    src/vulkan/pipeline.h
-    src/vulkan/pipeline.cpp
-    src/vulkan/renderpass.h
-    src/vulkan/renderpass.cpp
-    src/vulkan/framebuffer.h
-    src/vulkan/framebuffer.cpp
-    src/vulkan/vertexbuffer.h
-    src/vulkan/vertexbuffer.cpp
-    src/vulkan/texture.h
-    src/vulkan/texture.cpp
-    src/vulkan/mesh.h
-    src/vulkan/mesh.cpp
-    src/vulkan/handles.h
+SET(CMAKE_MODULE_PATH
+    ${CMAKE_MODULE_PATH}
+    ${CMAKE_SOURCE_DIR}/cmake
 )
 
-set(SOURCES
-    src/main.cpp
-    src/utils/glm.h
-    src/utils/timer.h
-    src/utils/hasher.h
-    src/utils/scopedtimelog.h
-    src/utils/scopedtimelog.cpp
-    src/utils/statistics.h
-    src/utils/statistics.cpp
-    src/utils/arcball_camera.h
-    src/utils/arcball_camera.cpp
-    src/utils/flythrough_camera.h
-    src/utils/flythrough_camera.cpp
-    src/simplerenderer.h
-    src/simplerenderer.cpp
-    src/window.h
-    src/window.cpp
-)
+include(GNUInstallDirs)
 
-source_group("source" FILES ${SOURCES})
-source_group("vulkan" FILES ${VULKAN_SOURCES})
-
-set(RESOURCE_DIR data)
-set(TEXTURE_DIR ${RESOURCE_DIR}/textures)
-set(MESH_DIR ${RESOURCE_DIR}/meshes)
-
-include(CompileShaders.cmake)
-
-
-add_executable(${PROJECT_NAME}
-    ${VULKAN_SOURCES}
-    ${SOURCES}
-    ${SHADERS}
-    ${BINARY_SHADERS}
-)
-
-target_link_libraries(${PROJECT_NAME}
-    glfw
-    glm
-    Vulkan::Vulkan
-)
+add_subdirectory(externals)
 
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX)
+    add_compile_options( /W4 /WX /MP )
 elseif()
-    target_compile_options(${PROJECT_NAME} PRIVATE -W -Wall -Werror)
+    add_compile_options( -W -Wall -Werror )
 endif()
 
-file(COPY ${TEXTURE_DIR} DESTINATION ${CMAKE_BINARY_DIR}/${RESOURCE_DIR})
-file(COPY ${MESH_DIR} DESTINATION ${CMAKE_BINARY_DIR}/${RESOURCE_DIR})
+add_subdirectory(vulkan)
+add_subdirectory(model_loader)
+add_subdirectory(game)
