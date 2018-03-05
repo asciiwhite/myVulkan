@@ -141,7 +141,7 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
 
     // If this device doesn't support queues with graphics and present capabilities don't use it
     if ((m_graphicsQueueFamilyIndex == UINT32_MAX) ||
-        (m_graphicsQueueFamilyIndex == UINT32_MAX))
+        (m_presentQueueFamilyIndex  == UINT32_MAX))
     {
         std::cout << "Could not find queue family with required properties on physical device " << physicalDevice << "!" << std::endl;
         return false;
