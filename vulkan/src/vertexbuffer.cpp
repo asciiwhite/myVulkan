@@ -37,7 +37,7 @@ void VertexBuffer::createFromSeparateAttributes(Device* device, const std::vecto
     for (auto i = 0u; i < descriptions.size(); i++)
     {
         const auto& desc = descriptions[i];
-        assert(m_numVertices == desc.attributeCount);
+        assert(desc.perInstance || m_numVertices == desc.attributeCount);
 
         VkVertexInputAttributeDescription& attribDesc = m_attributesDescriptions[i];
         attribDesc.binding = i;
