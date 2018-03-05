@@ -23,11 +23,6 @@ private:
     PipelineHandle m_pipeline;
     PipelineLayout m_pipelineLayout;
 
-    Buffer m_groundUniformBuffer;
-
-    DescriptorSetLayout m_groundDescriptorSetLayout;
-    DescriptorSet m_groundUniformDescriptorSet;
-
     DescriptorSetLayout m_cameraDescriptorSetLayout;
     DescriptorSet m_cameraUniformDescriptorSet;
 

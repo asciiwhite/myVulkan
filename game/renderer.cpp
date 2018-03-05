@@ -10,7 +10,7 @@ const uint32_t BINDING_ID_CAMERA = 0;
 const uint32_t SET_ID_GROUND = 1;
 const uint32_t BINDING_ID_GROUND = 0;
 
-const uint32_t TILES_PER_DIM = 10;
+const uint32_t TILES_PER_DIM = 80;
 const uint32_t NUM_TILES = TILES_PER_DIM * TILES_PER_DIM;
 
 bool Renderer::setup()
@@ -22,7 +22,6 @@ bool Renderer::setup()
     m_descriptorPool.init(m_device.getVkDevice(), 2, { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 } });
 
     setupCamera();
-    setupGroundHeightUniform();
 
     const std::vector<float> vertices{
         -1.f, 0.f, -1.f,
@@ -33,14 +32,26 @@ bool Renderer::setup()
 
     const std::vector<uint16_t> indices { 0, 1, 2, 3 };
 
+    std::vector<float> groundHeight(NUM_TILES);
+    for (uint32_t i = 0; i < NUM_TILES; i++)
+    {
+        auto x = static_cast<float>(i) / TILES_PER_DIM;
+        auto y = static_cast<float>(i % TILES_PER_DIM);
+        auto dx = abs(x - (TILES_PER_DIM / 2));
+        auto dy = abs(y - (TILES_PER_DIM / 2));
+        auto d = sqrt(dx * dx + dy * dy);
+        groundHeight[i] = static_cast<float>(d*0.5f);    
+    }
+
     const std::vector<VertexBuffer::AttributeDescription> vertexDesc{
-        { 0, 3, 4, &vertices.front(), 0 }
+        { 0, 3, 4, &vertices.front(), 0 },
+        { 1, 1, NUM_TILES, &groundHeight.front(), 0, true }
     };
 
     m_vertexBuffer.createFromSeparateAttributes(&m_device, vertexDesc);
     m_vertexBuffer.setIndices(indices.data(), static_cast<uint32_t>(indices.size()));
 
-    m_pipelineLayout.init(m_device.getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout(), m_groundDescriptorSetLayout.getVkLayout() });
+    m_pipelineLayout.init(m_device.getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout() });
 
     PipelineSettings settings;
     settings.setCullMode(VK_CULL_MODE_NONE).setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
@@ -52,8 +63,9 @@ bool Renderer::setup()
         m_shader->getShaderStages(),
         &m_vertexBuffer);
 
-    glm::vec3 min(-10.f, 0.f, -10.f);
-    glm::vec3 max( 10.f, 0.f,  10.f);
+    const auto size = static_cast<float>(TILES_PER_DIM / 2);
+    glm::vec3 min(-size, 0.f, -size);
+    glm::vec3 max( size, 0.f,  size);
     setCameraFromBoundingBox(min, max);
 
     return true;
@@ -68,41 +80,11 @@ void Renderer::setupCamera()
     m_cameraUniformDescriptorSet.finalize(m_device.getVkDevice(), m_cameraDescriptorSetLayout, m_descriptorPool);
 }
 
-void Renderer::setupGroundHeightUniform()
-{
-    const uint32_t bufferSize = NUM_TILES * 4 * 4;
-
-    m_groundUniformBuffer.create(m_device,
-        bufferSize,
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    void* data = m_groundUniformBuffer.map(m_device);
-    auto height = static_cast<float*>(data);
-    for (uint32_t i = 0; i < NUM_TILES; i++)
-    {
-        auto x = static_cast<float>(i) / TILES_PER_DIM;
-        auto y = static_cast<float>(i % TILES_PER_DIM);
-        auto d = abs(x - (TILES_PER_DIM / 2)) + abs(y - (TILES_PER_DIM / 2));
-        *height = static_cast<float>(d*0.15f);
-        height += 4;
-    }
-    m_groundUniformBuffer.unmap(m_device);
-
-    m_groundDescriptorSetLayout.init(m_device.getVkDevice(),
-        { { BINDING_ID_GROUND, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
-
-    m_groundUniformDescriptorSet.addUniformBuffer(BINDING_ID_GROUND, m_groundUniformBuffer.getVkBuffer());
-    m_groundUniformDescriptorSet.finalize(m_device.getVkDevice(), m_groundDescriptorSetLayout, m_descriptorPool);
-}
-
 void Renderer::shutdown()
 {
     m_vertexBuffer.destroy();
     m_pipelineLayout.destroy();
 
-    m_groundUniformBuffer.destroy(m_device);
-    m_groundDescriptorSetLayout.destroy(m_device.getVkDevice());
     m_cameraDescriptorSetLayout.destroy(m_device.getVkDevice());
     m_descriptorPool.destroy(m_device.getVkDevice());
 
@@ -113,7 +95,6 @@ void Renderer::shutdown()
 void Renderer::renderGround(VkCommandBuffer commandBuffer) const
 {
     m_cameraUniformDescriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout(), SET_ID_CAMERA);
-    m_groundUniformDescriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout(), SET_ID_GROUND);
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->getVkPipeline());
 
