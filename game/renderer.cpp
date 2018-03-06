@@ -102,7 +102,7 @@ void Renderer::setupPipeline()
     m_pipelineLayout.init(m_device.getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout() });
 
     PipelineSettings settings;
-    settings.setCullMode(VK_CULL_MODE_NONE).setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    settings.setCullMode(VK_CULL_MODE_BACK_BIT).setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
     m_pipeline = Pipeline::getPipeline(m_device.getVkDevice(),
         m_renderPass.getVkRenderPass(),
