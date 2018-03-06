@@ -21,47 +21,9 @@ bool Renderer::setup()
 
     m_descriptorPool.init(m_device.getVkDevice(), 2, { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 } });
 
-    setupCamera();
-
-    const std::vector<float> vertices{
-        -1.f, 0.f, -1.f,
-         1.f, 0.f, -1.f,
-        -1.f, 0.f,  1.f,
-         1.f, 0.f,  1.f,
-    };
-
-    const std::vector<uint16_t> indices { 0, 1, 2, 3 };
-
-    std::vector<float> groundHeight(NUM_TILES);
-    for (uint32_t i = 0; i < NUM_TILES; i++)
-    {
-        auto x = static_cast<float>(i) / TILES_PER_DIM;
-        auto y = static_cast<float>(i % TILES_PER_DIM);
-        auto dx = abs(x - (TILES_PER_DIM / 2));
-        auto dy = abs(y - (TILES_PER_DIM / 2));
-        auto d = sqrt(dx * dx + dy * dy);
-        groundHeight[i] = static_cast<float>(d*0.5f);    
-    }
-
-    const std::vector<VertexBuffer::AttributeDescription> vertexDesc{
-        { 0, 3, 4, &vertices.front(), 0 },
-        { 1, 1, NUM_TILES, &groundHeight.front(), 0, true }
-    };
-
-    m_vertexBuffer.createFromSeparateAttributes(&m_device, vertexDesc);
-    m_vertexBuffer.setIndices(indices.data(), static_cast<uint32_t>(indices.size()));
-
-    m_pipelineLayout.init(m_device.getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout() });
-
-    PipelineSettings settings;
-    settings.setCullMode(VK_CULL_MODE_NONE).setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
-
-    m_pipeline = Pipeline::getPipeline(m_device.getVkDevice(),
-        m_renderPass.getVkRenderPass(),
-        m_pipelineLayout.getVkPipelineLayout(),
-        settings,
-        m_shader->getShaderStages(),
-        &m_vertexBuffer);
+    setupCameraDescriptorSet();
+    setupCubeVertexBuffer();
+    setupPipeline();
 
     const auto size = static_cast<float>(TILES_PER_DIM / 2);
     glm::vec3 min(-size, 0.f, -size);
@@ -71,13 +33,83 @@ bool Renderer::setup()
     return true;
 }
 
-void Renderer::setupCamera()
+void Renderer::setupCameraDescriptorSet()
 {
     m_cameraDescriptorSetLayout.init(m_device.getVkDevice(),
         { { BINDING_ID_CAMERA, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
 
     m_cameraUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, m_cameraUniformBuffer.getVkBuffer());
     m_cameraUniformDescriptorSet.finalize(m_device.getVkDevice(), m_cameraDescriptorSetLayout, m_descriptorPool);
+}
+
+void Renderer::setupCubeVertexBuffer()
+{
+    const std::array<float, 24> vertices{
+        // front
+        -1.0, -1.0,  1.0,
+        1.0, -1.0,  1.0,
+        1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,
+        // back
+        -1.0, -1.0, -1.0,
+        1.0, -1.0, -1.0,
+        1.0,  1.0, -1.0,
+        -1.0,  1.0, -1.0
+    };
+
+    const std::array<uint16_t, 36> indices{
+        0, 1, 2,
+        2, 3, 0,
+        // top
+        1, 5, 6,
+        6, 2, 1,
+        // back
+        7, 6, 5,
+        5, 4, 7,
+        // bottom
+        4, 0, 3,
+        3, 7, 4,
+        // left
+        4, 5, 1,
+        1, 0, 4,
+        // right
+        3, 2, 6,
+        6, 7, 3
+    };
+
+    std::vector<float> groundHeight(NUM_TILES);
+    for (uint32_t i = 0; i < NUM_TILES; i++)
+    {
+        auto x = static_cast<float>(i) / TILES_PER_DIM;
+        auto y = static_cast<float>(i % TILES_PER_DIM);
+        auto dx = x - (TILES_PER_DIM / 2);
+        auto dy = y - (TILES_PER_DIM / 2);
+        auto d = sqrt(dx * dx + dy * dy);
+        groundHeight[i] = sin(d * 0.25f) / (d * 0.005f);
+    }
+
+    const std::vector<VertexBuffer::AttributeDescription> vertexDesc{
+        { 0, 3, 8, &vertices.front(), 0 },
+        { 1, 1, NUM_TILES, &groundHeight.front(), 0, true }
+    };
+
+    m_vertexBuffer.createFromSeparateAttributes(&m_device, vertexDesc);
+    m_vertexBuffer.setIndices(indices.data(), static_cast<uint32_t>(indices.size()));
+}
+
+void Renderer::setupPipeline()
+{
+    m_pipelineLayout.init(m_device.getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout() });
+
+    PipelineSettings settings;
+    settings.setCullMode(VK_CULL_MODE_NONE).setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+    m_pipeline = Pipeline::getPipeline(m_device.getVkDevice(),
+        m_renderPass.getVkRenderPass(),
+        m_pipelineLayout.getVkPipelineLayout(),
+        settings,
+        m_shader->getShaderStages(),
+        &m_vertexBuffer);
 }
 
 void Renderer::shutdown()

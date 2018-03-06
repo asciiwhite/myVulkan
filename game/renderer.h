@@ -14,8 +14,9 @@ private:
     void shutdown() override;
     void fillCommandBuffers() override;
 
-    void setupCamera();
-    void setupGroundHeightUniform();
+    void setupCameraDescriptorSet();
+    void setupCubeVertexBuffer();
+    void setupPipeline();
     void renderGround(VkCommandBuffer commandBuffer) const;
 
     VertexBuffer m_vertexBuffer;

@@ -26,7 +26,7 @@ void main()
 
     vec3 instancePos;
     instancePos.xz = -0.5f * groundSize + positions.xz + (elementSize + elementDistance) * vec2(row, column);
-    instancePos.y = groundHeight;
+    instancePos.y = positions.y * groundHeight;
 
     int channelId = gl_InstanceIndex % 3;
     float colorValue = float(gl_InstanceIndex) / (numElementsPerDimension * numElementsPerDimension);
