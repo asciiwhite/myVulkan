@@ -1,5 +1,7 @@
 #pragma once
 
+#include "buffer.h"
+
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <functional>
@@ -43,16 +45,13 @@ public:
 
 private:
     using MemcpyFunc = std::function<void(void*)>;
-    void createBuffer(VkBufferUsageFlags usage, uint32_t size, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const MemcpyFunc& memcpyFunc);
+    void createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer& buffer, const MemcpyFunc& memcpyFunc);
     void createIndexBuffer(const void *indices, uint32_t numIndices, VkIndexType indexType);
-    void mapMemory(VkDeviceMemory bufferMemory, const MemcpyFunc& memcpyFunc);
+    void mapMemory(Buffer& buffer, const MemcpyFunc& memcpyFunc);
 
     Device* m_device = nullptr;
-    VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
-
-    VkBuffer m_indexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
+    Buffer m_vertexBuffer;
+    Buffer m_indexBuffer;
     VkIndexType m_indexType = VK_INDEX_TYPE_UINT16;
 
     uint32_t m_numVertices = 0;

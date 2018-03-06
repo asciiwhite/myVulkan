@@ -18,6 +18,11 @@ public:
         return m_buffer;
     }
 
+    bool isValid() const
+    {
+        return m_buffer != VK_NULL_HANDLE;
+    }
+
 private:
     VkBuffer m_buffer = VK_NULL_HANDLE;
     VkDeviceMemory m_memory = VK_NULL_HANDLE;

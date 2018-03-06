@@ -68,7 +68,7 @@ void VertexBuffer::createFromSeparateAttributes(Device* device, const std::vecto
         }
     };
 
-    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, totalSize, m_vertexBuffer, m_vertexBufferMemory, memcpyFunc);
+    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, totalSize, m_vertexBuffer, memcpyFunc);
 }
 
 void VertexBuffer::createFromInterleavedAttributes(Device* device, const std::vector<AttributeDescription>& descriptions)
@@ -107,51 +107,44 @@ void VertexBuffer::createFromInterleavedAttributes(Device* device, const std::ve
         std::memcpy(data, descriptions[0].attributeData, totalSize);
     };
 
-    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, totalSize, m_vertexBuffer, m_vertexBufferMemory, memcpyFunc);
+    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, totalSize, m_vertexBuffer, memcpyFunc);
 }
 
-void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const MemcpyFunc& memcpyFunc)
+void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer& buffer, const MemcpyFunc& memcpyFunc)
 {
     if (useStaging)
     {
         // TODO: use single persistent staging buffer?
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-
-        m_device->createBuffer(size,
+        Buffer stagingBuffer;
+        stagingBuffer.create(*m_device, size,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            stagingBuffer, stagingBufferMemory);
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        mapMemory(stagingBufferMemory, memcpyFunc);
+        mapMemory(stagingBuffer, memcpyFunc);
 
-        m_device->createBuffer(size,
+        buffer.create(*m_device, size,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            buffer, bufferMemory);
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        m_device->copyBuffer(stagingBuffer, buffer, size);
+        m_device->copyBuffer(stagingBuffer.getVkBuffer(), buffer.getVkBuffer(), size);
 
-        vkDestroyBuffer(m_device->getVkDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(m_device->getVkDevice(), stagingBufferMemory, nullptr);
+        stagingBuffer.destroy(*m_device);
     }
     else
     {
-        m_device->createBuffer(size,
+        buffer.create(*m_device, size,
             usage,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            buffer, bufferMemory);
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        mapMemory(bufferMemory, memcpyFunc);
+        mapMemory(buffer, memcpyFunc);
     }
 }
 
-void VertexBuffer::mapMemory(VkDeviceMemory bufferMemory, const MemcpyFunc& memcpyFunc)
+void VertexBuffer::mapMemory(Buffer& buffer, const MemcpyFunc& memcpyFunc)
 {
-    void* mappedMemory;
-    VK_CHECK_RESULT(vkMapMemory(m_device->getVkDevice(), bufferMemory, 0, VK_WHOLE_SIZE, 0, &mappedMemory));
+    void* mappedMemory = buffer.map(*m_device);
     memcpyFunc(mappedMemory);
-    vkUnmapMemory(m_device->getVkDevice(), bufferMemory);
+    buffer.unmap(*m_device);
 }
 
 void VertexBuffer::setIndices(const uint16_t *indices, uint32_t numIndices)
@@ -175,19 +168,20 @@ void VertexBuffer::createIndexBuffer(const void *indices, uint32_t numIndices, V
         std::memcpy(mappedMemory, indices, size);
     };
 
-    createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, size, m_indexBuffer, m_indexBufferMemory, memcpyFunc);
+    createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, size, m_indexBuffer, memcpyFunc);
 }
 
 void VertexBuffer::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstIndex, uint32_t indexCount) const
 {
     for (auto i = 0u; i < m_bindingDescriptions.size(); i++)
     {
-        vkCmdBindVertexBuffers(commandBuffer, i, 1, &m_vertexBuffer, &m_bindingOffsets[i]);
+        VkBuffer buffer{ m_vertexBuffer.getVkBuffer() };
+        vkCmdBindVertexBuffers(commandBuffer, i, 1, &buffer, &m_bindingOffsets[i]);
     }
 
-    if (m_indexBuffer != VK_NULL_HANDLE)
+    if (m_indexBuffer.isValid())
     {
-        vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, m_indexType);
+        vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer.getVkBuffer(), 0, m_indexType);
         vkCmdDrawIndexed(commandBuffer, indexCount == 0 ? m_numIndices : indexCount, instanceCount, firstIndex, 0, 0);
     }
     else
@@ -208,16 +202,10 @@ const std::vector<VkVertexInputBindingDescription>& VertexBuffer::getBindingDesc
 
 void VertexBuffer::destroy()
 {
-    vkDestroyBuffer(m_device->getVkDevice(), m_vertexBuffer, nullptr);
-    m_vertexBuffer = VK_NULL_HANDLE;
-    vkFreeMemory(m_device->getVkDevice(), m_vertexBufferMemory, nullptr);
-    m_vertexBufferMemory = VK_NULL_HANDLE;
+    m_vertexBuffer.destroy(*m_device);
 
-    if (m_indexBuffer != VK_NULL_HANDLE)
+    if (m_indexBuffer.isValid())
     {
-        vkDestroyBuffer(m_device->getVkDevice(), m_indexBuffer, nullptr);
-        m_indexBuffer = VK_NULL_HANDLE;
-        vkFreeMemory(m_device->getVkDevice(), m_indexBufferMemory, nullptr);
-        m_indexBufferMemory = VK_NULL_HANDLE;
+        m_indexBuffer.destroy(*m_device);
     }
 }
