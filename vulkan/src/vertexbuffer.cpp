@@ -22,7 +22,7 @@ namespace
     }
 }
 
-void VertexBuffer::createFromSeparateAttributes(Device* device, const std::vector<AttributeDescription>& descriptions)
+void VertexBuffer::createFromSeparateAttributes(Device* device, const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
 {
     if (descriptions.empty())
         return;
@@ -68,10 +68,10 @@ void VertexBuffer::createFromSeparateAttributes(Device* device, const std::vecto
         }
     };
 
-    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, totalSize, m_vertexBuffer, memcpyFunc);
+    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | additionalUsageFlags, totalSize, m_vertexBuffer, memcpyFunc);
 }
 
-void VertexBuffer::createFromInterleavedAttributes(Device* device, const std::vector<AttributeDescription>& descriptions)
+void VertexBuffer::createFromInterleavedAttributes(Device* device, const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
 {
     if (descriptions.empty())
         return;
@@ -107,7 +107,7 @@ void VertexBuffer::createFromInterleavedAttributes(Device* device, const std::ve
         std::memcpy(data, descriptions[0].attributeData, totalSize);
     };
 
-    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, totalSize, m_vertexBuffer, memcpyFunc);
+    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | additionalUsageFlags, totalSize, m_vertexBuffer, memcpyFunc);
 }
 
 void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer& buffer, const MemcpyFunc& memcpyFunc)

@@ -31,8 +31,8 @@ public:
         bool perInstance = false;
     };
 
-    void createFromSeparateAttributes(Device* device, const std::vector<AttributeDescription>& descriptions);
-    void createFromInterleavedAttributes(Device* device, const std::vector<AttributeDescription>& descriptions);
+    void createFromSeparateAttributes(Device* device, const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
+    void createFromInterleavedAttributes(Device* device, const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
     void destroy();
 
     void setIndices(const uint16_t *indices, uint32_t numIndices);
