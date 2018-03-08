@@ -43,6 +43,11 @@ public:
     const std::vector<VkVertexInputBindingDescription>& getBindingDescriptions() const;
     const std::vector<VkVertexInputAttributeDescription>& getAttributeDescriptions() const;
 
+    VkBuffer getVkBuffer() const
+    {
+        return m_vertexBuffer.getVkBuffer();
+    }
+
 private:
     using MemcpyFunc = std::function<void(void*)>;
     void createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer& buffer, const MemcpyFunc& memcpyFunc);

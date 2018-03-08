@@ -15,6 +15,11 @@ out gl_PerVertex {
     vec4 gl_Position;
 };
 
+float normalizeToColor(float value, float scale)
+{
+    return fract(abs(value * scale));
+}
+
 void main()
 {
     const float elementSize = 2.0f;
@@ -28,10 +33,9 @@ void main()
     instancePos.xz = -0.5f * groundSize + positions.xz + (elementSize + elementDistance) * vec2(row, column);
     instancePos.y = positions.y * groundHeight;
 
-    int channelId = gl_InstanceIndex % 3;
-    float colorValue = float(gl_InstanceIndex) / (numElementsPerDimension * numElementsPerDimension);
-    color = vec3(0);
-    color[channelId] = colorValue;
+    color.x = normalizeToColor(groundHeight, 0.03);
+    color.y = normalizeToColor(groundHeight, 0.04);
+    color.z = normalizeToColor(groundHeight, 0.06);
 
     gl_Position = camera.mvp * vec4(instancePos, 1.0);
 }

@@ -112,7 +112,7 @@ bool BasicRenderer::createCommandBuffers()
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_device.getCommandPool();
+    allocInfo.commandPool = m_device.getComputeCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
@@ -193,7 +193,7 @@ void BasicRenderer::destroyFramebuffers()
 
 void BasicRenderer::destroyCommandBuffers()
 {
-    vkFreeCommandBuffers(m_device.getVkDevice(), m_device.getCommandPool(), static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
+    vkFreeCommandBuffers(m_device.getVkDevice(), m_device.getGraphicsCommandPool(), static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 }
 
 void BasicRenderer::draw()

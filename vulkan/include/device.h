@@ -25,11 +25,17 @@ public:
     VkPhysicalDevice getVkPysicalDevice() const { return m_physicalDevice; };
     VkQueue getPresentationQueue() const { return m_presentQueue; };
     VkQueue getGraphicsQueue() const { return m_graphicsQueue; };
-    VkCommandPool getCommandPool() const { return m_commandPool; };
+    VkQueue getComputeQueue() const { return m_computeQueue; };
+
+    uint32_t getGraphicsQueueFamilyId() const { return m_graphicsQueueFamilyIndex; };
+    uint32_t getComputeQueueFamilyId() const { return m_computeQueueFamilyIndex; };
+
+    VkCommandPool getGraphicsCommandPool() const { return m_graphicsCommandPool; };
+    VkCommandPool getComputeCommandPool() const { return m_computeCommandPool; };
 
 private:
     bool checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-    void createCommandPool();
+    void createCommandPools();
 
     VkCommandBuffer beginSingleTimeCommands() const;
     void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
@@ -41,7 +47,10 @@ private:
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     uint32_t m_presentQueueFamilyIndex = UINT32_MAX;
     uint32_t m_graphicsQueueFamilyIndex = UINT32_MAX;
+    uint32_t m_computeQueueFamilyIndex = UINT32_MAX;
     VkQueue m_presentQueue = VK_NULL_HANDLE;
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-    VkCommandPool m_commandPool = VK_NULL_HANDLE;
+    VkQueue m_computeQueue = VK_NULL_HANDLE;
+    VkCommandPool m_graphicsCommandPool = VK_NULL_HANDLE;
+    VkCommandPool m_computeCommandPool = VK_NULL_HANDLE;
 };

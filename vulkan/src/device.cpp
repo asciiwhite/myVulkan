@@ -68,8 +68,9 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
 
     vkGetDeviceQueue(m_device, m_presentQueueFamilyIndex, 0, &m_presentQueue);
     vkGetDeviceQueue(m_device, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
+    vkGetDeviceQueue(m_device, m_computeQueueFamilyIndex, 0, &m_computeQueue);
 
-    createCommandPool();
+    createCommandPools();
 
     return true;
 }
@@ -105,6 +106,19 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
 
     m_graphicsQueueFamilyIndex = UINT32_MAX;
     m_presentQueueFamilyIndex = UINT32_MAX;
+    m_computeQueueFamilyIndex = UINT32_MAX;
+
+    // Some devices have dedicated compute queues, so we first try to find a queue that supports compute and not graphics
+    bool computeQueueFound = false;
+    for (uint32_t i = 0; i < queueCount; i++)
+    {
+        if ((queueProps[i].queueFlags & VK_QUEUE_COMPUTE_BIT) && ((queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
+        {
+            m_computeQueueFamilyIndex = i;
+            computeQueueFound = true;
+            break;
+        }
+    }
 
     for (uint32_t i = 0; i < queueCount; ++i)
     {
@@ -118,14 +132,25 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
             {
                 m_graphicsQueueFamilyIndex = i;
             }
+        }
 
-            // If there is queue that supports both graphics and present - prefer it
-            if (supportsPresent[i])
+        if ((queueProps[i].queueCount > 0) &&
+            (queueProps[i].queueFlags & VK_QUEUE_COMPUTE_BIT))
+        {
+            // Select first queue that supports compute
+            if (m_computeQueueFamilyIndex == UINT32_MAX)
             {
-                m_graphicsQueueFamilyIndex = i;
-                m_presentQueueFamilyIndex = i;
-                return true;
+                m_computeQueueFamilyIndex = i;
             }
+        }
+
+        // If there is queue that supports both graphics and present - prefer it
+        if (supportsPresent[i])
+        {
+            m_graphicsQueueFamilyIndex = i;
+            m_presentQueueFamilyIndex = i;
+            m_computeQueueFamilyIndex = i;
+            return true;
         }
     }
 
@@ -141,7 +166,8 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
 
     // If this device doesn't support queues with graphics and present capabilities don't use it
     if ((m_graphicsQueueFamilyIndex == UINT32_MAX) ||
-        (m_presentQueueFamilyIndex  == UINT32_MAX))
+        (m_presentQueueFamilyIndex  == UINT32_MAX) ||
+        (m_computeQueueFamilyIndex  == UINT32_MAX))
     {
         std::cout << "Could not find queue family with required properties on physical device " << physicalDevice << "!" << std::endl;
         return false;
@@ -150,13 +176,26 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
     return true;
 }
 
-void Device::createCommandPool()
+void Device::createCommandPools()
 {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = m_graphicsQueueFamilyIndex;
 
-    VK_CHECK_RESULT(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool));
+    VK_CHECK_RESULT(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_graphicsCommandPool));
+
+    if (m_graphicsQueueFamilyIndex != m_computeQueueFamilyIndex)
+    {
+        VkCommandPoolCreateInfo cmdPoolInfo = {};
+        cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmdPoolInfo.queueFamilyIndex = m_computeQueueFamilyIndex;
+        cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        VK_CHECK_RESULT(vkCreateCommandPool(m_device, &cmdPoolInfo, nullptr, &m_computeCommandPool));
+    }
+    else
+    {
+        m_computeCommandPool = m_graphicsCommandPool;
+    }
 }
 
 void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const
@@ -259,6 +298,7 @@ uint32_t Device::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFi
         }
     }
 
+    assert(!"Could not find requested memory type");
     return ~0u;
 }
 
@@ -418,7 +458,7 @@ VkCommandBuffer Device::beginSingleTimeCommands() const
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = m_commandPool;
+    allocInfo.commandPool = m_graphicsCommandPool;
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
@@ -445,7 +485,7 @@ void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
     VK_CHECK_RESULT(vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
     VK_CHECK_RESULT(vkQueueWaitIdle(m_graphicsQueue));
 
-    vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(m_device, m_graphicsCommandPool, 1, &commandBuffer);
 }
 
 void Device::createImageView(VkImage image, VkFormat format, VkImageView& imageView, VkImageAspectFlags aspectFlags) const
@@ -474,8 +514,14 @@ void Device::createImageView(VkImage image, VkFormat format, VkImageView& imageV
 
 void Device::destroy()
 {
-    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-    m_commandPool = VK_NULL_HANDLE;
+    if (m_computeCommandPool != m_graphicsCommandPool)
+    {
+        vkDestroyCommandPool(m_device, m_computeCommandPool, nullptr);
+        m_computeCommandPool = VK_NULL_HANDLE;
+    }
+
+    vkDestroyCommandPool(m_device, m_graphicsCommandPool, nullptr);
+    m_graphicsCommandPool = VK_NULL_HANDLE;
 
     vkDestroyDevice(m_device, nullptr);
     m_device = VK_NULL_HANDLE;

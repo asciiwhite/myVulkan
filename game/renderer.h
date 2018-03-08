@@ -18,6 +18,8 @@ private:
     void setupCameraDescriptorSet();
     void setupCubeVertexBuffer();
     void setupGraphicsPipeline();
+    void setupComputePipeline();
+    void buildComputeCommandBuffer();
     void renderGround(VkCommandBuffer commandBuffer) const;
 
     VertexBuffer m_vertexBuffer;
@@ -27,5 +29,21 @@ private:
     DescriptorSetLayout m_cameraDescriptorSetLayout;
     DescriptorSet m_cameraUniformDescriptorSet;
 
+    VkCommandPool m_computeCommandPool = VK_NULL_HANDLE;
+    std::vector<VkCommandBuffer> m_computeCommandBuffers;
+    VkPipeline m_computePipeline;
+    PipelineLayout m_computePipelineLayout;
+    DescriptorSetLayout m_computeDescriptorSetLayout;
+    DescriptorSet m_computeDescriptorSet;
+    ShaderHandle m_computeShader;
+    Buffer m_computeInputBuffer;
+    struct ComputeInput
+    {
+        int tilesPerDim;
+        float time;
+    };
+    ComputeInput* m_computeMappedInputBuffer = nullptr;
+
+    VkFence m_computeFence = VK_NULL_HANDLE;
     DescriptorPool m_descriptorPool;
 };

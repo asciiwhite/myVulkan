@@ -1,6 +1,6 @@
 set(SHADER_DIR ${RESOURCE_DIR}/shaders)
 
-file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag")
+file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.comp")
 source_group("shaders" FILES ${SHADERS})
 
 find_program(GLSLANGVALIDATOR glslangValidator)
