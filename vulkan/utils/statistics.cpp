@@ -14,7 +14,8 @@ void Statistics::reset()
     m_maxFrameTime = 0u;
     m_avgFrameTime = 0u;
     m_totalTime = 0u;
-    m_frameCount = 0;
+    m_lastFrameTime = 0u;
+    m_frameCount = 0u;
 }
 
 void Statistics::startFrame()
@@ -24,12 +25,12 @@ void Statistics::startFrame()
 
 bool Statistics::endFrame()
 {
-    const auto totalFrameTime = Timer::getMicroseconds() - m_frameStartTime;
+    m_lastFrameTime = Timer::getMicroseconds() - m_frameStartTime;
 
     m_frameCount++;
-    m_minFrameTime = std::min(m_minFrameTime, totalFrameTime);
-    m_maxFrameTime = std::max(m_maxFrameTime, totalFrameTime);
-    m_totalTime += totalFrameTime;
+    m_minFrameTime = std::min(m_minFrameTime, m_lastFrameTime);
+    m_maxFrameTime = std::max(m_maxFrameTime, m_lastFrameTime);
+    m_totalTime += m_lastFrameTime;
 
     if (m_totalTime >= static_cast<uint64_t>(std::chrono::duration_cast<Timer::TimeUnit>(std::chrono::seconds(1)).count()))
     {
@@ -53,4 +54,9 @@ uint64_t Statistics::getMax() const
 uint64_t Statistics::getAvg() const
 {
     return m_avgFrameTime;
+}
+
+uint64_t Statistics::getLastFrameTime() const
+{
+    return m_lastFrameTime;
 }

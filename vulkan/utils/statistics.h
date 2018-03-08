@@ -12,6 +12,7 @@ public:
     uint64_t getMin() const;
     uint64_t getMax() const;
     uint64_t getAvg() const;
+    uint64_t getLastFrameTime() const;
 
 private:
     uint64_t m_frameStartTime;
@@ -19,5 +20,6 @@ private:
     uint64_t m_maxFrameTime;
     uint64_t m_avgFrameTime;
     uint64_t m_totalTime;
+    uint64_t m_lastFrameTime;
     uint32_t m_frameCount;
 };
