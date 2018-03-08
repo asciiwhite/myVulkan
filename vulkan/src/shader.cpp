@@ -6,13 +6,17 @@
 
 Shader::ShaderMap Shader::m_loadedShaders;
 
-ShaderHandle Shader::getShader(VkDevice device, const std::string& vertexFilename, const std::string& fragmentFilename)
+ShaderHandle Shader::getShader(VkDevice device, const std::vector<ModuleDesc>& modules)
 {
-    const auto combindedShaderFilenames = vertexFilename + fragmentFilename;
+    std::string combindedShaderFilenames;
+
+    for (const auto& desc : modules)
+        combindedShaderFilenames += desc.filename;
+
     if (m_loadedShaders.count(combindedShaderFilenames) == 0)
     {
         auto newShader = std::make_shared<Shader>();
-        if (newShader->createFromFiles(device, vertexFilename, fragmentFilename))
+        if (newShader->createFromFiles(device, modules))
         {
             m_loadedShaders[combindedShaderFilenames] = newShader;
         }
@@ -47,29 +51,26 @@ Shader::~Shader()
     }
 }
 
-bool Shader::createFromFiles(VkDevice device, const std::string& vertexFilename, const std::string& fragmentFilename)
+bool Shader::createFromFiles(VkDevice device, const std::vector<ModuleDesc>& modules)
 {
     m_device = device;
 
-    m_shaderModules.resize(2);
-    m_shaderModules[0] = CreateShaderModule(device, vertexFilename);
-    if (m_shaderModules[0] == VK_NULL_HANDLE)
-        return false;
+    for (const auto& moduleDesc : modules)
+    {
+        auto shaderModule = CreateShaderModule(device, moduleDesc.filename);
+        if (shaderModule == VK_NULL_HANDLE)
+            return false;
 
-    m_shaderModules[1] = CreateShaderModule(device, fragmentFilename);
-    if (m_shaderModules[1] == VK_NULL_HANDLE)
-        return false;
+        m_shaderModules.push_back(shaderModule);
 
-    m_shaderStages.resize(2);
-    m_shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    m_shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-    m_shaderStages[0].module = m_shaderModules[0];
-    m_shaderStages[0].pName = "main";
+        VkPipelineShaderStageCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        info.stage = moduleDesc.stage;
+        info.module = shaderModule;
+        info.pName = "main";
 
-    m_shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    m_shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    m_shaderStages[1].module = m_shaderModules[1];
-    m_shaderStages[1].pName = "main";
+        m_shaderStageCreateInfo.push_back(info);
+    }
 
     return true;
 }

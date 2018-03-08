@@ -300,7 +300,8 @@ ShaderHandle Mesh::selectShaderFromAttributes(bool useTexture)
     const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
     const auto fragmentShaderFilename = shaderPath + fragmemtShaderName + ".frag.spv";
 
-    return Shader::getShader(m_device->getVkDevice(), vertexShaderFilename, fragmentShaderFilename);
+    return Shader::getShader(m_device->getVkDevice(), { { VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFilename },
+                                                        { VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderFilename} });
 }
 
 void Mesh::loadMaterials()

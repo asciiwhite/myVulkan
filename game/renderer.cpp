@@ -15,7 +15,8 @@ const uint32_t NUM_TILES = TILES_PER_DIM * TILES_PER_DIM;
 
 bool Renderer::setup()
 {
-    m_shader = Shader::getShader(m_device.getVkDevice(), "data/shaders/base.vert.spv", "data/shaders/color.frag.spv");
+    m_shader = Shader::getShader(m_device.getVkDevice(), { { VK_SHADER_STAGE_VERTEX_BIT, "data/shaders/base.vert.spv"} ,
+                                                           { VK_SHADER_STAGE_FRAGMENT_BIT, "data/shaders/color.frag.spv"} });
     if (m_shader == nullptr)
         return false;
 
