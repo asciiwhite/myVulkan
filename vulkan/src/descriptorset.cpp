@@ -86,6 +86,25 @@ void DescriptorSet::addUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer)
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
+void DescriptorSet::addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, uint32_t offset, uint32_t size)
+{
+    VkDescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = storageBuffer;
+    bufferInfo.offset = offset;
+    bufferInfo.range = size;
+    m_bufferInfos.push_back(bufferInfo);
+
+    VkWriteDescriptorSet descriptorWrite = {};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //    descriptorWrite.dstSet = m_descriptorSet; // filled in finalize
+    descriptorWrite.dstBinding = bindingId;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &m_bufferInfos.back();
+    m_descriptorWrites.push_back(descriptorWrite);
+}
+
 void DescriptorSet::finalize(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool)
 {
     VkDescriptorSetAllocateInfo allocInfo = {};
