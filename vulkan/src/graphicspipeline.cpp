@@ -1,4 +1,4 @@
-#include "pipeline.h"
+#include "graphicspipeline.h"
 #include "vulkanhelper.h"
 #include "vertexbuffer.h"
 #include "../utils/hasher.h"
@@ -135,9 +135,9 @@ PipelineSettings& PipelineSettings::setCullMode(VkCullModeFlags mode)
 
 //////////////////////////////////////////////////////////////////////////
 
-Pipeline::PipelineMap Pipeline::m_createdPipelines;
+GraphicsPipeline::PipelineMap GraphicsPipeline::m_createdPipelines;
 
-PipelineHandle Pipeline::getPipeline(VkDevice device,
+PipelineHandle GraphicsPipeline::getPipeline(VkDevice device,
     VkRenderPass renderPass,
     VkPipelineLayout layout,
     const PipelineSettings& settings,
@@ -155,7 +155,7 @@ PipelineHandle Pipeline::getPipeline(VkDevice device,
 
     if (m_createdPipelines.count(pipelineHash) == 0)
     {
-        auto newPipeline = std::make_shared<Pipeline>();
+        auto newPipeline = std::make_shared<GraphicsPipeline>();
         if (newPipeline->init(device, renderPass, layout, settings, shaderStages, vertexbuffer))
         {
             m_createdPipelines[pipelineHash] = newPipeline;
@@ -170,7 +170,7 @@ PipelineHandle Pipeline::getPipeline(VkDevice device,
     return m_createdPipelines[pipelineHash];
 }
 
-void Pipeline::release(PipelineHandle& pipeline)
+void GraphicsPipeline::release(PipelineHandle& pipeline)
 {
     auto iter = std::find_if(m_createdPipelines.begin(), m_createdPipelines.end(), [=](const PipelineMap::value_type& pipelinePair) { return pipelinePair.second == pipeline; });
     assert(iter != m_createdPipelines.end());
@@ -183,7 +183,7 @@ void Pipeline::release(PipelineHandle& pipeline)
     }
 }
 
-bool Pipeline::init(VkDevice device,
+bool GraphicsPipeline::init(VkDevice device,
     VkRenderPass renderPass,
     VkPipelineLayout layout,
     const PipelineSettings& settings,
@@ -224,12 +224,12 @@ bool Pipeline::init(VkDevice device,
     return true;
 }
 
-Pipeline::~Pipeline()
+GraphicsPipeline::~GraphicsPipeline()
 {
     destroy();
 }
 
-void Pipeline::destroy()
+void GraphicsPipeline::destroy()
 {
     vkDestroyPipeline(m_device, m_pipeline, nullptr);
     m_pipeline = VK_NULL_HANDLE;

@@ -24,7 +24,7 @@ bool Renderer::setup()
 
     setupCameraDescriptorSet();
     setupCubeVertexBuffer();
-    setupPipeline();
+    setupGraphicsPipeline();
 
     const auto size = static_cast<float>(TILES_PER_DIM / 2);
     glm::vec3 min(-size, 0.f, -size);
@@ -98,16 +98,16 @@ void Renderer::setupCubeVertexBuffer()
     m_vertexBuffer.setIndices(indices.data(), static_cast<uint32_t>(indices.size()));
 }
 
-void Renderer::setupPipeline()
+void Renderer::setupGraphicsPipeline()
 {
-    m_pipelineLayout.init(m_device.getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout() });
+    m_graphicsPipelineLayout.init(m_device.getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout() });
 
     PipelineSettings settings;
     settings.setCullMode(VK_CULL_MODE_BACK_BIT).setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-    m_pipeline = Pipeline::getPipeline(m_device.getVkDevice(),
+    m_graphicsPipeline = GraphicsPipeline::getPipeline(m_device.getVkDevice(),
         m_renderPass.getVkRenderPass(),
-        m_pipelineLayout.getVkPipelineLayout(),
+        m_graphicsPipelineLayout.getVkPipelineLayout(),
         settings,
         m_shader->getShaderStages(),
         &m_vertexBuffer);
@@ -116,12 +116,12 @@ void Renderer::setupPipeline()
 void Renderer::shutdown()
 {
     m_vertexBuffer.destroy();
-    m_pipelineLayout.destroy();
+    m_graphicsPipelineLayout.destroy();
 
     m_cameraDescriptorSetLayout.destroy(m_device.getVkDevice());
     m_descriptorPool.destroy(m_device.getVkDevice());
 
-    Pipeline::release(m_pipeline);
+    GraphicsPipeline::release(m_graphicsPipeline);
     Shader::release(m_shader);
 }
 

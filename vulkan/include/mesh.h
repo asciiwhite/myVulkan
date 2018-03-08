@@ -1,5 +1,5 @@
 #include "vertexbuffer.h"
-#include "pipeline.h"
+#include "graphicspipeline.h"
 #include "descriptorset.h"
 #include "handles.h"
 #include "../utils/glm.h"

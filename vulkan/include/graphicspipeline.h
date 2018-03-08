@@ -41,14 +41,14 @@ public:
 };
 
 class VertexBuffer;
-class Pipeline;
+class GraphicsPipeline;
 
-using PipelineHandle = std::shared_ptr<Pipeline>;
+using PipelineHandle = std::shared_ptr<GraphicsPipeline>;
 
-class Pipeline
+class GraphicsPipeline
 {
 public:
-    ~Pipeline();
+    ~GraphicsPipeline();
 
     VkPipeline getVkPipeline() const { return m_pipeline; }
 

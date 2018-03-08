@@ -29,7 +29,7 @@ void Mesh::destroy()
         vkFreeMemory(m_device->getVkDevice(), desc.materialUBMemory, nullptr);
         desc.materialUBMemory = VK_NULL_HANDLE;
 
-        Pipeline::release(desc.pipeline);
+        GraphicsPipeline::release(desc.pipeline);
         Shader::release(desc.shader);
         if (desc.diffuseTexture)
             Texture::release(desc.diffuseTexture);
@@ -461,7 +461,7 @@ bool Mesh::finalize(const RenderPass& renderPass)
         PipelineSettings settings;
         settings.setAlphaBlending(isTransparent).setCullMode(isTransparent ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT);
 
-        desc.pipeline = Pipeline::getPipeline(m_device->getVkDevice(),
+        desc.pipeline = GraphicsPipeline::getPipeline(m_device->getVkDevice(),
             renderPass.getVkRenderPass(),
             m_pipelineLayout.getVkPipelineLayout(),
             settings,
