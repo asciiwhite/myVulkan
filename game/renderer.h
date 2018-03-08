@@ -11,6 +11,7 @@ class Renderer : public BasicRenderer
 {
 private:
     bool setup() override;
+    void render(uint32_t frameId) override;
     void shutdown() override;
     void fillCommandBuffers() override;
 

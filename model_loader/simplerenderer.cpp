@@ -61,3 +61,8 @@ void SimpleRenderer::fillCommandBuffers()
         VK_CHECK_RESULT(vkEndCommandBuffer(m_commandBuffers[i]));
     }
 }
+
+void SimpleRenderer::render(uint32_t imageId)
+{
+    submitCommandBuffer(m_commandBuffers[imageId]);
+}

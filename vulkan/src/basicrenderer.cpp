@@ -210,7 +210,7 @@ void BasicRenderer::draw()
     if (!m_swapChain.acquireNextImage(imageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
 
-    submitCommandBuffer(m_commandBuffers[imageId]);
+    render(imageId);
 
     if (!m_swapChain.present(imageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);

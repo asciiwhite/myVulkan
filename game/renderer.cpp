@@ -171,3 +171,9 @@ void Renderer::fillCommandBuffers()
         VK_CHECK_RESULT(vkEndCommandBuffer(m_commandBuffers[i]));
     }
 }
+
+void Renderer::render(uint32_t imageId)
+{
+    // Submit graphics commands
+    submitCommandBuffer(m_commandBuffers[imageId]);
+}
