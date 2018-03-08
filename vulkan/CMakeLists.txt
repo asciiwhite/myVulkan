@@ -8,7 +8,7 @@ set(VULKAN_SOURCES
     include/device.h
     include/shader.h
     include/descriptorset.h
-    include/pipeline.h
+    include/graphicspipeline.h
     include/renderpass.h
     include/framebuffer.h
     include/vertexbuffer.h
@@ -24,7 +24,7 @@ set(VULKAN_SOURCES
     src/device.cpp
     src/shader.cpp    
     src/descriptorset.cpp    
-    src/pipeline.cpp
+    src/graphicspipeline.cpp
     src/renderpass.cpp    
     src/framebuffer.cpp
     src/vertexbuffer.cpp
