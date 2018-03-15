@@ -8,13 +8,13 @@ set(RESOURCE_DIR data)
 
 include(CompileShaders)
 
-add_executable(game
+add_executable(particles
     ${SOURCES}
     ${SHADERS}
     ${BINARY_SHADERS}
 )
 
-target_link_libraries(game
+target_link_libraries(particles
     PRIVATE
         glfw
         glm
@@ -22,7 +22,7 @@ target_link_libraries(game
 )
 
 install(
-  TARGETS game
+  TARGETS particles
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 )
 

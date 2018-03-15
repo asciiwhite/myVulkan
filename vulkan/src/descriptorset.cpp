@@ -86,7 +86,7 @@ void DescriptorSet::addUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer)
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
-void DescriptorSet::addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, uint32_t offset, uint32_t size)
+void DescriptorSet::addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, VkDeviceSize offset, VkDeviceSize size)
 {
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = storageBuffer;

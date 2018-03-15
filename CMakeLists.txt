@@ -20,4 +20,4 @@ endif()
 
 add_subdirectory(vulkan)
 add_subdirectory(model_loader)
-add_subdirectory(game)
+add_subdirectory(particles)

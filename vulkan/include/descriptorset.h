@@ -48,7 +48,7 @@ class DescriptorSet
 public:
     void addSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler);
     void addUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer);
-    void addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, uint32_t offset, uint32_t size);
+    void addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
 
     void finalize(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool);
 

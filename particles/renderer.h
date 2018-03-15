@@ -16,11 +16,11 @@ private:
     void fillCommandBuffers() override;
 
     void setupCameraDescriptorSet();
-    void setupCubeVertexBuffer();
+    void setupParticleVertexBuffer();
     void setupGraphicsPipeline();
     void setupComputePipeline();
     void buildComputeCommandBuffer();
-    void renderGround(VkCommandBuffer commandBuffer) const;
+    void renderParticles(VkCommandBuffer commandBuffer) const;
 
     VertexBuffer m_vertexBuffer;
     ShaderHandle m_shader;
@@ -39,8 +39,8 @@ private:
     Buffer m_computeInputBuffer;
     struct ComputeInput
     {
-        int tilesPerDim;
-        float time;
+        int particleCount;
+        float timeDelta;
     };
     ComputeInput* m_computeMappedInputBuffer = nullptr;
 

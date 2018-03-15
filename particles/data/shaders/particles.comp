@@ -1,0 +1,141 @@
+#version 450
+
+#extension GL_ARB_separate_shader_objects : enable
+
+struct ParticleData
+{
+    vec2 pos;
+    vec2 vel;
+    vec4 age;
+};
+
+layout(std430, binding = 0) buffer Particles
+{
+   ParticleData particles[];
+};
+
+layout(std140, binding = 1) buffer Input
+{
+   int particleCount;
+   float timeDelta;
+};
+
+#define WORKGROUP_SIZE 512
+
+layout (local_size_x = WORKGROUP_SIZE) in;
+
+vec2 emitterPos = vec2(0.0, 8.0);
+vec2 gravity = vec2(0.0, -0.0002);
+float speed = 10.0;
+float lifeTime = 0.1;
+float collisionDamping = 0.7;
+
+struct Box
+{ 
+    vec2 pos;
+    vec2 halfSize;
+};
+
+Box boxes[] = { { {0, 0}, { 12, 10} }, { {0, -5}, { 5, 1} }, { {5, 5}, { 2, 2} }, { {-5, 5}, { 2, 1} }, { {0, 0}, { 1, 1} } };
+
+float rand(float x, float start, float end)
+{
+    return fract(sin(x) * 43758.5453) * (end - start) + start;
+}
+
+bool intersectPointFromInside(vec2 point, Box box, out vec2 normal)
+{
+    float dx = point.x - box.pos.x;
+    float px = box.halfSize.x - abs(dx);
+    if (px <= 0.0)
+    {
+        float sx = sign(dx);
+        normal = vec2(sx, 0);
+        return true;
+    }
+
+    float dy = point.y - box.pos.y;
+    float py = box.halfSize.y - abs(dy);
+    if (py <= 0.0)
+    {
+        float sy = sign(dy);
+        normal = vec2(0, sy);
+        return true;
+    }
+
+    return false;
+}
+
+bool intersectPointFromOutside(vec2 point, Box box, out vec2 normal)
+{
+    float dx = point.x - box.pos.x;
+    float px = box.halfSize.x - abs(dx);
+    if (px <= 0.0)
+    {
+        return false;
+    }
+
+    float dy = point.y - box.pos.y;
+    float py = box.halfSize.y - abs(dy);
+    if (py <= 0.0)
+    {
+        return false;
+    }
+
+    if (px < py)
+    {
+      float sx = sign(dx);
+      normal = vec2(sx, 0);
+    }
+    else
+    {
+      float sy = sign(dy);
+      normal = vec2(0, sy);
+    }
+    return true;
+}
+
+void main() 
+{
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= particleCount)
+        return;
+
+    float age = particles[index].age.x;
+    age -= lifeTime * timeDelta;
+    if (age <= 0.0)
+    {
+        float x = rand(index, -1.0, 1.0);
+        float y = rand(particleCount - index, -1.0, 1.0);
+        particles[index].pos = emitterPos;
+        particles[index].vel = vec2(x, y);
+        particles[index].age.x = rand(2.2*index, 0.5, 1.0);
+    }
+    else
+    {
+        particles[index].age.x = age;
+        vec2 vPos = particles[index].pos;
+        vec2 vVel = particles[index].vel;
+
+        vPos += vVel * speed * timeDelta;
+
+        vec2 normal;
+        bool hasCollision = intersectPointFromInside(vPos, boxes[0], normal);
+
+        for (uint i = 1; i < boxes.length() && !hasCollision; i++)
+        {
+           hasCollision = intersectPointFromOutside(vPos, boxes[i], normal);
+        }
+
+        if (hasCollision)
+        {
+            vVel = reflect(vVel, normal) * collisionDamping;
+        }
+        else
+        {
+            particles[index].pos = vPos;
+        }
+
+        particles[index].vel = vVel + gravity;
+    }
+}
