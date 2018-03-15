@@ -29,7 +29,7 @@ public:
 
 protected:
     void submitCommandBuffer(VkCommandBuffer commandBuffer);
-    void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max);
+    void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir);
 
 private:
     bool createInstance();
@@ -67,7 +67,7 @@ protected:
     Buffer m_cameraUniformBuffer;
 
     float m_sceneBoundingBoxDiameter = 0.f;
-    bool m_observerCameraMode = false;
+    bool m_observerCameraMode = true;
 
     glm::vec3 m_cameraPosition;
     glm::vec3 m_cameraTarget;

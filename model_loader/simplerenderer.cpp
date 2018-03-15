@@ -14,7 +14,7 @@ bool SimpleRenderer::setup()
 
     glm::vec3 min, max;
     m_mesh.getBoundingbox(min, max);
-    setCameraFromBoundingBox(min, max);
+    setCameraFromBoundingBox(min, max, glm::vec3(0,1,1));
 
     return true;
 }

@@ -252,14 +252,14 @@ void BasicRenderer::updateMVPUniform()
     m_cameraUniformBuffer.unmap(m_device);
 }
 
-void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max)
+void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir)
 {
     const auto size = max - min;
     const auto center = (min + max) / 2.f;
     m_sceneBoundingBoxDiameter = std::max(std::max(size.x, size.y), size.z);
     const auto cameraDistance = m_sceneBoundingBoxDiameter * 1.5f;
 
-    m_cameraPosition = glm::vec3(0, cameraDistance, cameraDistance) - center;
+    m_cameraPosition = glm::vec3(cameraDistance) * glm::normalize(lookDir) - center;
     m_cameraTarget = center;
     m_cameraLook = glm::normalize(m_cameraTarget - m_cameraPosition);
     m_cameraUp = glm::vec3(0, -1, 0);
@@ -306,7 +306,7 @@ void BasicRenderer::update()
 
 void BasicRenderer::mouseButton(int button, int action, int mods)
 {
-    m_observerCameraMode = (mods & GLFW_MOD_CONTROL) != 0;
+    m_observerCameraMode = (mods & GLFW_MOD_CONTROL) == 0;
 
     if (button == GLFW_MOUSE_BUTTON_1)
         m_leftMouseButtonDown = action == GLFW_PRESS;
