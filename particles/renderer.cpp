@@ -16,7 +16,7 @@ const uint32_t BINDING_ID_COMPUTE_INPUT = 1;
 const uint32_t NUM_PARTICLES = 4000;
 
 const uint32_t WORKGROUP_SIZE = 512;
-const uint32_t GROUP_COUNT = std::max(1u, (NUM_PARTICLES % WORKGROUP_SIZE + NUM_PARTICLES) / WORKGROUP_SIZE);
+const uint32_t GROUP_COUNT = static_cast<uint32_t>(std::ceil(static_cast<float>(NUM_PARTICLES) / WORKGROUP_SIZE));
 
 bool Renderer::setup()
 {
