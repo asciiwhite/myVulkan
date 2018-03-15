@@ -15,8 +15,9 @@ namespace
         case 1: return VK_FORMAT_R32_SFLOAT;
         case 2: return VK_FORMAT_R32G32_SFLOAT;
         case 3: return VK_FORMAT_R32G32B32_SFLOAT;
+        case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
         default:
-            assert(!"Unknown number of vertices");
+            assert(!"Unknown vertex attribute format");
             return VK_FORMAT_UNDEFINED;
         }
     }
@@ -71,31 +72,25 @@ void VertexBuffer::createFromSeparateAttributes(Device* device, const std::vecto
     createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | additionalUsageFlags, totalSize, m_vertexBuffer, memcpyFunc);
 }
 
-void VertexBuffer::createFromInterleavedAttributes(Device* device, const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
+void VertexBuffer::createFromInterleavedAttributes(Device* device, uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
 {
-    if (descriptions.empty())
+    if (vertexCount == 0 || descriptions.empty() || attributeData == nullptr)
         return;
 
     m_device = device;
-    m_numVertices = descriptions[0].attributeCount;
+    m_numVertices = vertexCount;
 
-    uint32_t totalSize = 0;
-    uint32_t vertexSize = 0;
+    const auto totalSize = vertexCount * vertexSize;
     m_attributesDescriptions.resize(descriptions.size());
     for (auto i = 0u; i < descriptions.size(); i++)
     {
         const auto& desc = descriptions[i];
-        assert(m_numVertices == desc.attributeCount);
 
         VkVertexInputAttributeDescription& attribDesc = m_attributesDescriptions[i];
         attribDesc.binding = 0;
         attribDesc.location = desc.location;
         attribDesc.format = getAttributeFormat(desc.componentCount);
         attribDesc.offset = desc.interleavedOffset;
-
-        const auto attributeSize = desc.componentCount * 4;
-        vertexSize += attributeSize;
-        totalSize += desc.attributeCount * attributeSize;
     }
 
     m_bindingDescriptions.push_back({ 0, vertexSize, VK_VERTEX_INPUT_RATE_VERTEX });
@@ -104,7 +99,7 @@ void VertexBuffer::createFromInterleavedAttributes(Device* device, const std::ve
     auto memcpyFunc = [&](void *mappedMemory)
     {
         auto data = reinterpret_cast<float*>(mappedMemory);
-        std::memcpy(data, descriptions[0].attributeData, totalSize);
+        std::memcpy(data, attributeData, totalSize);
     };
 
     createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | additionalUsageFlags, totalSize, m_vertexBuffer, memcpyFunc);

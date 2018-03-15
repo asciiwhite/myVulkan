@@ -31,8 +31,22 @@ public:
         bool perInstance = false;
     };
 
+    struct InterleavedAttributeDescription
+    {
+        InterleavedAttributeDescription(uint32_t _location, uint32_t _componentCount, uint32_t _interleavedOffset = 0)
+            : location(_location)
+            , componentCount(_componentCount)
+            , interleavedOffset(_interleavedOffset)
+
+        {}
+
+        uint32_t location = 0;
+        uint32_t componentCount = 0;
+        uint32_t interleavedOffset = 0;
+    };
+
     void createFromSeparateAttributes(Device* device, const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
-    void createFromInterleavedAttributes(Device* device, const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
+    void createFromInterleavedAttributes(Device* device, uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
     void destroy();
 
     void setIndices(const uint16_t *indices, uint32_t numIndices);

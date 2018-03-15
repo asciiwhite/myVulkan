@@ -172,17 +172,19 @@ void Mesh::createInterleavedVertexAttributes()
         addShape(shapeStartIndex, currentMaterialId);
 
         const auto uniqueVertexCount = static_cast<uint32_t>(uniqueVertices.size());
+        auto vertexAttributeSize = (3 + 3) * 4;
 
-        std::vector<VertexBuffer::AttributeDescription> vertexDesc{
-            { 0, 3, uniqueVertexCount, &m_vertexData.front(), 0 }, // vertices
-            { 1, 3, uniqueVertexCount, &m_vertexData.front(), 3 * sizeof(float) } }; // normals
+        std::vector<VertexBuffer::InterleavedAttributeDescription> vertexDesc{
+            { 0, 3, 0 }, // vertices
+            { 1, 3, 3 * sizeof(float) } }; // normals
 
         if (!m_attrib.texcoords.empty())
         {
-            vertexDesc.emplace_back( 2, 2, uniqueVertexCount, &m_vertexData.front(), static_cast<uint32_t>(6 * sizeof(float)));
+            vertexDesc.emplace_back( 2, 2, static_cast<uint32_t>(6 * sizeof(float)));
+            vertexAttributeSize += 2 * 4;
         }
 
-        m_vertexBuffer.createFromInterleavedAttributes(m_device, vertexDesc);
+       m_vertexBuffer.createFromInterleavedAttributes(m_device, uniqueVertexCount, vertexAttributeSize, &m_vertexData.front(), vertexDesc);
         m_vertexData.clear();
 
         std::cout << "Triangle count:\t\t " << m_indices.size() / 3 << std::endl;
