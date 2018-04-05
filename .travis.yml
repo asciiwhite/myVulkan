@@ -1,0 +1,16 @@
+language: cpp
+sudo: required
+os: linux
+dist: trusty
+compiler:
+  - clang
+  - gcc
+script:
+  - cmake .
+  - make
+notifications:
+  email:
+    recipients:
+      - serialize.this@gmail.com
+    on_success: change
+    on_failure: always
