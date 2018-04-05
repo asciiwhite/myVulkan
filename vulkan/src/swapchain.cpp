@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <iostream>
+#include <stdexcept>
 
 void SwapChain::init(VkInstance instance, VkSurfaceKHR surface, Device& device)
 {
