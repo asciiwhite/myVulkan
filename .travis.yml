@@ -3,7 +3,6 @@ sudo: required
 os: linux
 dist: trusty
 compiler:
-  - clang
   - gcc
 install:
   - sudo apt-get -qq update
@@ -11,6 +10,7 @@ install:
   - wget -O vulkansdk-linux-x86_64-1.0.61.1.run https://sdk.lunarg.com/sdk/download/1.0.61.1/linux/vulkansdk-linux-x86_64-1.0.61.1.run
   - chmod ugo+x vulkansdk-linux-x86_64-1.0.61.1.run
   - ./vulkansdk-linux-x86_64-1.0.61.1.run
+  - export VULKAN_SDK=$TRAVIS_BUILD_DIR/VulkanSDK/1.0.61.1/x86_64
 script:
   - cmake .
   - make

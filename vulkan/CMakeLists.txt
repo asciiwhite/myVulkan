@@ -1,15 +1,20 @@
-find_package(Vulkan)
+if (NOT CMAKE_VERSION VERSION_LESS 3.7.0)
+	message(STATUS "Using module to find Vulkan")
+	find_package(Vulkan)
+endif()
 
 IF (NOT Vulkan_FOUND)
     IF(WIN32)
-        find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan)
+        find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan REQUIRED)
     ELSE(WIN32)
-        find_library(Vulkan_LIBRARY NAMES vulkan)
+        find_library(Vulkan_LIBRARY NAMES vulkan REQUIRED)
     ENDIF()
-    IF (Vulkan_LIBRARY)
-        set(Vulkan_FOUND ON)
-        MESSAGE("Using bundled Vulkan library version")
-    ENDIF()
+ENDIF()	
+
+IF (Vulkan_LIBRARY)
+    message(STATUS "Found Vulkan library: " ${Vulkan_LIBRARY})
+ELSE()    
+    message(FATAL_ERROR "Could not find Vulkan SDK!")
 ENDIF()
 
 set(VULKAN_SOURCES
