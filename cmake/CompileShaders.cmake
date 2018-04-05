@@ -1,9 +1,9 @@
+find_program(GLSLANGVALIDATOR glslangValidator HINTS "$ENV{VULKAN_SDK}/bin")
+
 set(SHADER_DIR ${RESOURCE_DIR}/shaders)
 
 file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.comp")
 source_group("shaders" FILES ${SHADERS})
-
-find_program(GLSLANGVALIDATOR glslangValidator)
 
 set(SHADER_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${SHADER_DIR}/)
 foreach(SHADER ${SHADERS})
