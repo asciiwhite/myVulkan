@@ -5,9 +5,12 @@ dist: trusty
 compiler:
   - clang
   - gcc
-before_script:
+install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libvulkan-dev
+  - sudo apt-get install -y libxinerama-dev libxcursor-dev libxi-dev libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 cmake libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev
+  - wget -O vulkansdk-linux-x86_64-1.0.61.1.run https://sdk.lunarg.com/sdk/download/1.0.61.1/linux/vulkansdk-linux-x86_64-1.0.61.1.run
+  - chmod ugo+x vulkansdk-linux-x86_64-1.0.61.1.run
+  - ./vulkansdk-linux-x86_64-1.0.61.1.run
 script:
   - cmake .
   - make
@@ -15,5 +18,5 @@ notifications:
   email:
     recipients:
       - serialize.this@gmail.com
-    on_success: change
+    on_success: never
     on_failure: never
