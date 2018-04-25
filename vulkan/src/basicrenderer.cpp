@@ -200,12 +200,6 @@ void BasicRenderer::draw()
 {
     m_stats.startFrame();
 
-    if (enableValidationLayers)
-    {
-        // to avoid memory leak from validation layers
-        VK_CHECK_RESULT(vkQueueWaitIdle(m_device.getPresentationQueue()));
-    }
-
     uint32_t imageId(0);
     if (!m_swapChain.acquireNextImage(imageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
