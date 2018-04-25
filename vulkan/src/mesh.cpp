@@ -498,7 +498,7 @@ void Mesh::render(VkCommandBuffer commandBuffer) const
 
         materialDesc.descriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout(), SET_ID_MATERIAL);
 
-        m_vertexBuffer.draw(commandBuffer, shapeDesc.startIndex, shapeDesc.indexCount);
+        m_vertexBuffer.draw(commandBuffer, 1, shapeDesc.startIndex, shapeDesc.indexCount);
     }
 }
 
