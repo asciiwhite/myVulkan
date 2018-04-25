@@ -189,7 +189,7 @@ void Renderer::buildComputeCommandBuffer()
 
         vkCmdPipelineBarrier(
             m_computeCommandBuffers[i],
-            VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0,
             0, nullptr,
@@ -214,7 +214,7 @@ void Renderer::buildComputeCommandBuffer()
         vkCmdPipelineBarrier(
             m_computeCommandBuffers[i],
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
             0,
             0, nullptr,
             1, &bufferBarrier,
