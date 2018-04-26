@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-void PipelineLayout::init(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts)
+void PipelineLayout::init(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts, const std::vector<VkPushConstantRange>& pushConstants)
 {
     m_device = device;
 
@@ -14,8 +14,8 @@ void PipelineLayout::init(VkDevice device, const std::vector<VkDescriptorSetLayo
     pipelineLayoutInfo.flags = 0;
     pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
     pipelineLayoutInfo.pSetLayouts = !layouts.empty() ? layouts.data() : nullptr;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
+    pipelineLayoutInfo.pPushConstantRanges = !pushConstants.empty() ? pushConstants.data() : nullptr;
 
     VK_CHECK_RESULT(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 }

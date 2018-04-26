@@ -9,7 +9,7 @@
 class PipelineLayout
 {
 public:
-    void init(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts = {});
+    void init(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts = {}, const std::vector<VkPushConstantRange>& pushConstants = {});
     void destroy();
 
     VkPipelineLayout getVkPipelineLayout() const { return m_pipelineLayout; }
