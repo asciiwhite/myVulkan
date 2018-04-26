@@ -1,7 +1,7 @@
 #pragma once
 
 #include "basicrenderer.h"
-#include "mesh.h"
+#include "texturearraymesh.h"
 
 class SimpleRenderer : public BasicRenderer
 {
@@ -11,5 +11,5 @@ private:
     void shutdown() override;
     void fillCommandBuffers() override;
 
-    Mesh m_mesh;
+    TextureArrayMesh m_mesh;
 };

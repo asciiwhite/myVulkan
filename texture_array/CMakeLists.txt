@@ -2,6 +2,8 @@ set(SOURCES
     main.cpp
     simplerenderer.h
     simplerenderer.cpp
+    texturearraymesh.h
+    texturearraymesh.cpp
 )
 
 set(RESOURCE_DIR data)
