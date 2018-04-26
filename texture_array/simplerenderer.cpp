@@ -14,7 +14,15 @@ bool SimpleRenderer::setup()
 
     glm::vec3 min, max;
     m_mesh.getBoundingbox(min, max);
-    setCameraFromBoundingBox(min, max, glm::vec3(0,1,1));
+
+    const auto size = max - min;
+    m_sceneBoundingBoxDiameter = std::max(std::max(size.x, size.y), size.z);
+    m_cameraTarget = (min + max) / 2.f;
+    m_cameraPosition = m_cameraTarget - glm::vec3(-1, 0, 0);
+    m_cameraLook = glm::normalize(m_cameraTarget - m_cameraPosition);
+    m_cameraUp = glm::vec3(0, -1, 0);
+
+    updateMVPUniform();
 
     return true;
 }

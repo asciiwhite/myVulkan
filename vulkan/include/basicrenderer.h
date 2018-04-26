@@ -30,6 +30,7 @@ public:
 protected:
     void submitCommandBuffer(VkCommandBuffer commandBuffer);
     void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir);
+    void updateMVPUniform();
 
 private:
     bool createInstance();
@@ -42,8 +43,6 @@ private:
     void destroyCommandBuffers();
 
     bool checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, uint32_t &graphicsQueueNodeIndex);
-
-    void updateMVPUniform();
 
     virtual bool setup() = 0;
     virtual void render(uint32_t frameId) = 0;
