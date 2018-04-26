@@ -8,7 +8,7 @@ void DescriptorSetLayout::init(VkDevice device, std::initializer_list<BindingDes
     for (const auto& desc : bindingDescs)
     {
         bindingIter->binding = desc.bindingId;
-        bindingIter->descriptorCount = 1;
+        bindingIter->descriptorCount = desc.count;
         bindingIter->descriptorType = desc.descriptorType;
         bindingIter->pImmutableSamplers = nullptr;
         bindingIter->stageFlags = desc.stageFlags;
@@ -48,22 +48,61 @@ void DescriptorPool::destroy(VkDevice device)
 
 //////////////////////////////////////////////////////////////////////////
 
-void DescriptorSet::addSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler)
+void DescriptorSet::addImageSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler)
 {
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = textureImageView;
     imageInfo.sampler = sampler;
-    m_imageInfos.push_back(imageInfo);
+    m_imageInfos.push_back({ imageInfo });
 
     VkWriteDescriptorSet descriptorWrite = {};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//    descriptorWrite.dstSet = m_descriptorSet; // filled in finalize
     descriptorWrite.dstBinding = bindingId;
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pImageInfo = &m_imageInfos.back();
+    descriptorWrite.pImageInfo = &m_imageInfos.back().front();
+    m_descriptorWrites.push_back(descriptorWrite);
+}
+
+
+void DescriptorSet::addSampler(uint32_t bindingId, VkSampler sampler)
+{
+    VkDescriptorImageInfo imageInfo = {};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = nullptr;
+    imageInfo.sampler = sampler;
+    m_imageInfos.push_back({ imageInfo });
+
+    VkWriteDescriptorSet descriptorWrite = {};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstBinding = bindingId;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pImageInfo = &m_imageInfos.back().front();
+    m_descriptorWrites.push_back(descriptorWrite);
+}
+
+void DescriptorSet::addImageArray(uint32_t bindingId, const std::vector<VkImageView>& imageViews)
+{
+    std::vector<VkDescriptorImageInfo> imageInfos(imageViews.size());
+    for (uint32_t i = 0u; i < imageViews.size(); i++)
+    {
+        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfos[i].imageView = imageViews[i];
+        imageInfos[i].sampler = nullptr;
+    }
+    m_imageInfos.push_back(imageInfos);
+
+    VkWriteDescriptorSet descriptorWrite = {};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstBinding = bindingId;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    descriptorWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size());
+    descriptorWrite.pImageInfo = &m_imageInfos.back().front();
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
@@ -77,7 +116,6 @@ void DescriptorSet::addUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer)
 
     VkWriteDescriptorSet descriptorWrite = {};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    //    descriptorWrite.dstSet = m_descriptorSet; // filled in finalize
     descriptorWrite.dstBinding = bindingId;
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -96,7 +134,6 @@ void DescriptorSet::addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer,
 
     VkWriteDescriptorSet descriptorWrite = {};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    //    descriptorWrite.dstSet = m_descriptorSet; // filled in finalize
     descriptorWrite.dstBinding = bindingId;
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;

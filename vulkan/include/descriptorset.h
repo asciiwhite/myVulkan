@@ -9,11 +9,12 @@ class DescriptorSetLayout
 public:
     struct BindingDesc
     {
-        BindingDesc(uint32_t _bindingId, VkDescriptorType _descriptorType, VkShaderStageFlags _stageFlags)
-            : bindingId(_bindingId), descriptorType(_descriptorType), stageFlags(_stageFlags)
+        BindingDesc(uint32_t _bindingId, uint32_t _count, VkDescriptorType _descriptorType, VkShaderStageFlags _stageFlags)
+            : bindingId(_bindingId), count(_count), descriptorType(_descriptorType), stageFlags(_stageFlags)
         {}
 
         uint32_t bindingId = 0;
+        uint32_t count = 1;
         VkDescriptorType descriptorType;
         VkShaderStageFlags stageFlags;
     };
@@ -46,7 +47,9 @@ private:
 class DescriptorSet
 {
 public:
-    void addSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler);
+    void addImageSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler);
+    void addSampler(uint32_t bindingId, VkSampler sampler);
+    void addImageArray(uint32_t bindingId, const std::vector<VkImageView>& imageViews);
     void addUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer);
     void addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
 
@@ -61,6 +64,6 @@ private:
     std::vector<VkWriteDescriptorSet> m_descriptorWrites;
     VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
 
-    std::list<VkDescriptorImageInfo> m_imageInfos;
-    std::list<VkDescriptorBufferInfo> m_bufferInfos;
+    std::list<std::vector<VkDescriptorImageInfo>> m_imageInfos;
+    std::vector<VkDescriptorBufferInfo> m_bufferInfos;
 };

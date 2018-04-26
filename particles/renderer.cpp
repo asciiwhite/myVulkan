@@ -50,7 +50,7 @@ bool Renderer::setup()
 void Renderer::setupCameraDescriptorSet()
 {
     m_cameraDescriptorSetLayout.init(m_device.getVkDevice(),
-        { { BINDING_ID_CAMERA, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
+        { { BINDING_ID_CAMERA, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
 
     m_cameraUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, m_cameraUniformBuffer.getVkBuffer());
     m_cameraUniformDescriptorSet.finalize(m_device.getVkDevice(), m_cameraDescriptorSetLayout, m_descriptorPool);
@@ -98,8 +98,8 @@ void Renderer::setupComputePipeline()
     m_computeMappedInputBuffer->timeDelta = 0.f;
 
     m_computeDescriptorSetLayout.init(m_device.getVkDevice(),
-        { { BINDING_ID_COMPUTE_PARTICLES, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT },
-          { BINDING_ID_COMPUTE_INPUT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT } });
+        { { BINDING_ID_COMPUTE_PARTICLES, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT },
+          { BINDING_ID_COMPUTE_INPUT, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT } });
 
     m_computeDescriptorSet.addStorageBuffer(BINDING_ID_COMPUTE_PARTICLES, m_vertexBuffer.getVkBuffer());
     m_computeDescriptorSet.addStorageBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer.getVkBuffer());

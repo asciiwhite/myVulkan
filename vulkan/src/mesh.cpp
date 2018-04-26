@@ -359,7 +359,7 @@ void Mesh::loadMaterials()
             if (texture)
             {
                 desc.diffuseTexture = texture;
-                desc.descriptorSet.addSampler(BINDING_ID_TEXTURE_DIFFUSE, texture->getImageView(), m_sampler);
+                desc.descriptorSet.addImageSampler(BINDING_ID_TEXTURE_DIFFUSE, texture->getImageView(), m_sampler);
             }
         }
 
@@ -436,7 +436,7 @@ bool Mesh::finalize(const RenderPass& renderPass)
     { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 } });
 
     m_cameraDescriptorSetLayout.init(m_device->getVkDevice(),
-    { { BINDING_ID_CAMERA, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
+    { { BINDING_ID_CAMERA, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
 
     m_cameraUniformDescriptorSet.finalize(m_device->getVkDevice(), m_cameraDescriptorSetLayout, m_cameraDescriptorPool);
 
@@ -449,8 +449,8 @@ bool Mesh::finalize(const RenderPass& renderPass)
           { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, materialDescriptorCount } });
 
     m_materialDescriptorSetLayout.init(m_device->getVkDevice(),
-        { { BINDING_ID_MATERIAL, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT },
-          { BINDING_ID_TEXTURE_DIFFUSE, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT } });
+        { { BINDING_ID_MATERIAL, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT },
+          { BINDING_ID_TEXTURE_DIFFUSE, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT } });
 
     m_pipelineLayout.init(m_device->getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout(), m_materialDescriptorSetLayout.getVkLayout() });
 
