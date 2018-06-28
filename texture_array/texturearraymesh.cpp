@@ -1,4 +1,4 @@
-#include "textureArrayMesh.h"
+#include "texturearraymesh.h"
 #include "device.h"
 #include "shader.h"
 #include "renderpass.h"
