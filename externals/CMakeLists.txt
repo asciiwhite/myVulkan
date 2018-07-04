@@ -6,3 +6,6 @@ add_subdirectory(glfw)
 
 set(GLM_INSTALL_ENABLE OFF CACHE BOOL "" FORCE)
 add_subdirectory(glm)
+
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+add_subdirectory(googletest)

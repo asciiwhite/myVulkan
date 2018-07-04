@@ -18,6 +18,8 @@ elseif()
     add_compile_options( -W -Wall -Werror )
 endif()
 
+enable_testing()
+
 add_subdirectory(vulkan)
 add_subdirectory(model_loader)
 add_subdirectory(texture_array)
