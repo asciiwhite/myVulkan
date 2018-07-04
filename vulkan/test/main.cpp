@@ -17,11 +17,17 @@ private:
 	void fillCommandBuffers() override {};
 };
 
+static void glfwErrorCallback(int error, const char* description)
+{
+	std::cout << "glfw error #" << error << " : " << description << "\n";
+}
+
 class VulkanBase : public ::testing::Test
 {
 public:
 	void SetUp()
 	{
+		glfwSetErrorCallback(glfwErrorCallback);
 		ASSERT_TRUE(glfwInit());
 	}
 
