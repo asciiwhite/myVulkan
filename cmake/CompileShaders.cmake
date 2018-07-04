@@ -1,5 +1,9 @@
 find_program(GLSLANGVALIDATOR glslangValidator HINTS "$ENV{VULKAN_SDK}/bin")
 
+if (NOT GLSLANGVALIDATOR)
+    message(FATAL_ERROR "glslangValidator not found")
+endif()
+
 set(SHADER_DIR ${RESOURCE_DIR}/shaders)
 
 file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.comp")
