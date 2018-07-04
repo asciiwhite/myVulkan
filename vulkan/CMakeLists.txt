@@ -77,10 +77,9 @@ add_library(vulkanBase
 )
 
 target_link_libraries(vulkanBase
-    PRIVATE
+    PUBLIC
         glfw
         glm
-    PUBLIC
         Vulkan::Vulkan
 )
 

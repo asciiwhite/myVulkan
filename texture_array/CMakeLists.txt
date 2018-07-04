@@ -19,8 +19,6 @@ add_executable(texture_array
 
 target_link_libraries(texture_array
     PRIVATE
-        glfw
-        glm
         vulkanBase
 )
 

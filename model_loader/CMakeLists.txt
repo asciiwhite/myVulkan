@@ -18,8 +18,6 @@ add_executable(model_loader
 
 target_link_libraries(model_loader
     PRIVATE
-        glfw
-        glm
         vulkanBase
 )
 

@@ -16,8 +16,6 @@ add_executable(particles
 
 target_link_libraries(particles
     PRIVATE
-        glfw
-        glm
         vulkanBase
 )
 
