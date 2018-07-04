@@ -14,6 +14,7 @@ install:
 script:
   - cmake .
   - cmake --build .
+  - ctest --output-on-failure
 notifications:
   email:
     recipients:
