@@ -13,7 +13,7 @@ install:
   - export VULKAN_SDK=$TRAVIS_BUILD_DIR/VulkanSDK/1.0.61.1/x86_64
 script:
   - cmake .
-  - cmake --build .
+  - cmake --build . -- -j8
   - ctest --output-on-failure
 notifications:
   email:
