@@ -7,10 +7,12 @@ compiler:
 install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libxinerama-dev libxcursor-dev libxi-dev libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 cmake libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev
-  - wget -O vulkansdk-linux-x86_64-1.0.61.1.run https://sdk.lunarg.com/sdk/download/1.0.61.1/linux/vulkansdk-linux-x86_64-1.0.61.1.run
-  - chmod ugo+x vulkansdk-linux-x86_64-1.0.61.1.run
-  - ./vulkansdk-linux-x86_64-1.0.61.1.run
-  - export VULKAN_SDK=$TRAVIS_BUILD_DIR/VulkanSDK/1.0.61.1/x86_64
+  - VULKAN_VERSION=1.1.73.0
+  - VULKAN_SDK_FILE=vulkansdk-linux-x86_64-$VULKAN_VERSION.run
+  - wget -O $VULKAN_SDK_FILE https://sdk.lunarg.com/sdk/download/$VULKAN_VERSION/linux/$VULKAN_SDK_FILE
+  - chmod ugo+x $VULKAN_SDK_FILE
+  - ./$VULKAN_SDK_FILE
+  - export VULKAN_SDK=$TRAVIS_BUILD_DIR/VulkanSDK/$VULKAN_VERSION/x86_64
 # Specify a display with xvfb for window creation / testing
 before_script:
   - "export DISPLAY=:99.0"
