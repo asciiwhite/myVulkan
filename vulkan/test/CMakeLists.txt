@@ -6,6 +6,8 @@ add_executable(vulkanBaseUnitTests
     ${SOURCES}
 )
 
+add_coverage(vulkanBaseUnitTests)
+
 target_link_libraries(vulkanBaseUnitTests
     PRIVATE
         vulkanBase

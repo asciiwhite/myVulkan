@@ -14,6 +14,8 @@ add_executable(particles
     ${BINARY_SHADERS}
 )
 
+#add_coverage(particles)
+
 target_link_libraries(particles
     PRIVATE
         vulkanBase

@@ -47,7 +47,7 @@ TEST_F(VulkanBase, createWindow)
 	window.destroy();	
 }
 
-TEST_F(VulkanBase, createBasicRenderer)
+TEST_F(VulkanBase, DISABLED_createBasicRenderer)
 {
 	Window window;
 	ASSERT_TRUE(window.init());

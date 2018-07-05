@@ -76,6 +76,8 @@ add_library(vulkanBase
     ${UTILS_SOURCES}
 )
 
+add_coverage(vulkanBase)
+
 target_link_libraries(vulkanBase
     PUBLIC
         glfw
@@ -89,4 +91,5 @@ target_include_directories(vulkanBase
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/externals/tiny_obj_loader>
 )
+
 add_subdirectory(test)
