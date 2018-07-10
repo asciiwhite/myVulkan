@@ -1,9 +1,29 @@
 language: cpp
 sudo: required
-os: linux
 dist: trusty
-compiler:
-  - gcc
+
+matrix:
+  # Show final status immediately if a test fails.
+  fast_finish: true
+  include:
+    # Linux GCC debug build.
+    - os: linux
+      compiler: gcc
+      env: BUILD_TYPE=DEFAULT
+    # Linux clang debug build.
+    - os: linux
+      compiler: clang
+      env: BUILD_TYPE=DEFAULT
+    #Linux gcc coverage build.
+    - os: linux
+      compiler: gcc
+      env: BUILD_TYPE=COVERAGE
+
+# Use set -e so that the build fails when a command fails.
+# The default action for Travis-CI is to continue running even if a command fails.
+# See https://github.com/travis-ci/travis-ci/issues/1066.
+# Use the YAML block scalar header (|) to allow easier multiline script coding.
+
 install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libxinerama-dev libxcursor-dev libxi-dev libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 cmake libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev lcov
@@ -13,16 +33,31 @@ install:
   - chmod ugo+x $VULKAN_SDK_FILE
   - ./$VULKAN_SDK_FILE
   - export VULKAN_SDK=$TRAVIS_BUILD_DIR/VulkanSDK/$VULKAN_VERSION/x86_64
+  - export core_count=$(nproc || echo 4) && echo core_count = $core_count
+
 # Specify a display with xvfb for window creation / testing
 before_script:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
+
 script:
-  - cmake . -DENABLE_COVERAGE=On
-  - cmake --build . -- -j8
-  - ctest --output-on-failure
-  - make lcov
+  - set -ev
+  - |
+    if [[ "$BUILD_TYPE" == "DEFAULT" ]]; then
+      cmake .
+      cmake --build . -- -j $core_count
+      ctest --output-on-failure
+    fi
+  - |
+    if [[ "$BUILD_TYPE" == "COVERAGE" ]]; then
+      cmake . -DENABLE_COVERAGE=On
+      make vulkanBaseUnitTests -j $core_count
+      ctest --output-on-failure
+      make lcov
+    fi
+  - set +ev
+
 notifications:
   email:
     recipients:
