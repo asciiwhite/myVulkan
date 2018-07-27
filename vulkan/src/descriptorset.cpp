@@ -62,7 +62,6 @@ void DescriptorSet::addImageSampler(uint32_t bindingId, VkImageView textureImage
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pImageInfo = &m_imageInfos.back().front();
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
@@ -81,7 +80,6 @@ void DescriptorSet::addSampler(uint32_t bindingId, VkSampler sampler)
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pImageInfo = &m_imageInfos.back().front();
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
@@ -102,7 +100,6 @@ void DescriptorSet::addImageArray(uint32_t bindingId, const std::vector<VkImageV
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     descriptorWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size());
-    descriptorWrite.pImageInfo = &m_imageInfos.back().front();
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
@@ -120,7 +117,6 @@ void DescriptorSet::addUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer)
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &m_bufferInfos.back();
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
@@ -138,7 +134,6 @@ void DescriptorSet::addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer,
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &m_bufferInfos.back();
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
@@ -151,9 +146,25 @@ void DescriptorSet::finalize(VkDevice device, const DescriptorSetLayout& layout,
     allocInfo.pSetLayouts = &layout.getVkLayout();
     VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_descriptorSet));
 
+    auto bufferIter = m_bufferInfos.begin();
+    auto imageIter = m_imageInfos.begin();
+
     for (auto& descriptorWrite : m_descriptorWrites)
     {
         descriptorWrite.dstSet = m_descriptorSet;
+        if (descriptorWrite.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+            descriptorWrite.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+        {
+            assert(bufferIter != m_bufferInfos.end());
+            descriptorWrite.pBufferInfo = const_cast<const VkDescriptorBufferInfo*>(&(*bufferIter));
+            bufferIter++;
+        }
+        else
+        {
+            assert(imageIter != m_imageInfos.end());
+            descriptorWrite.pImageInfo = const_cast<const VkDescriptorImageInfo*>(&imageIter->front());
+            imageIter++;
+        }
     }
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(m_descriptorWrites.size()), m_descriptorWrites.data(), 0, nullptr);
 
