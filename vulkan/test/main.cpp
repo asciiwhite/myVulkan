@@ -1,7 +1,6 @@
 #include "basicrenderer.h"
 #include "window.h"
 
-#include <GLFW/glfw3.h>
 #include <gtest/gtest.h>
 
 class TestRenderer : public BasicRenderer
@@ -17,27 +16,7 @@ private:
 	void fillCommandBuffers() override {};
 };
 
-static void glfwErrorCallback(int error, const char* description)
-{
-	std::cout << "glfw error #" << error << " : " << description << "\n";
-}
-
-class VulkanBase : public ::testing::Test
-{
-public:
-	void SetUp()
-	{
-		glfwSetErrorCallback(glfwErrorCallback);
-		ASSERT_TRUE(glfwInit());
-	}
-
-	void TearDown()
-	{
-		glfwTerminate();
-	}
-};
-
-TEST_F(VulkanBase, createWindow)
+TEST(VulkanBase, createWindow)
 {
 	Window window;
 	ASSERT_TRUE(window.init());
@@ -47,7 +26,7 @@ TEST_F(VulkanBase, createWindow)
 	window.destroy();	
 }
 
-TEST_F(VulkanBase, DISABLED_createBasicRenderer)
+TEST(VulkanBase, DISABLED_createBasicRenderer)
 {
 	Window window;
 	ASSERT_TRUE(window.init());

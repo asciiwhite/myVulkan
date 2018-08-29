@@ -2,9 +2,20 @@
 #include "basicrenderer.h"
 
 #include <GLFW/glfw3.h>
+#include <iostream>
+
+static void glfwErrorCallback(int error, const char* description)
+{
+    std::cout << "glfw error #" << error << " : " << description << "\n";
+}
 
 bool Window::init()
 {
+    glfwSetErrorCallback(glfwErrorCallback);
+
+    if (!glfwInit())
+        return false;
+
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -35,6 +46,7 @@ void Window::destroy()
         glfwDestroyWindow(m_window);
         m_window = nullptr;
     }
+    glfwTerminate();
 }
 
 void Window::show()

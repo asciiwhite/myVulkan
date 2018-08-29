@@ -80,9 +80,10 @@ add_coverage(vulkanBase)
 
 target_link_libraries(vulkanBase
     PUBLIC
-        glfw
         glm
         Vulkan::Vulkan
+    PRIVATE
+        glfw
 )
 
 target_include_directories(vulkanBase
