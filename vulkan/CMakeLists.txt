@@ -3,19 +3,19 @@ if (NOT CMAKE_VERSION VERSION_LESS 3.7.0)
 	find_package(Vulkan)
 endif()
 
-IF (NOT Vulkan_FOUND)
-    IF(WIN32)
+if (NOT Vulkan_FOUND)
+    if(WIN32)
         find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan REQUIRED)
-    ELSE(WIN32)
+    else(WIN32)
         find_library(Vulkan_LIBRARY NAMES vulkan REQUIRED)
-    ENDIF()
-ENDIF()	
+    endif()
+endif()	
 
-IF (Vulkan_LIBRARY)
+if (Vulkan_LIBRARY)
     message(STATUS "Found Vulkan library: " ${Vulkan_LIBRARY})
-ELSE()    
+else()    
     message(FATAL_ERROR "Could not find Vulkan SDK!")
-ENDIF()
+endif()
 
 set(VULKAN_SOURCES
     include/basicrenderer.h
