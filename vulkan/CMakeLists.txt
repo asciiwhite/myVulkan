@@ -66,9 +66,6 @@ set(UTILS_SOURCES
     utils/flythrough_camera.cpp
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/externals/stb)
-include_directories(${CMAKE_SOURCE_DIR}/externals/tiny_obj_loader)
-
 source_group("utils" FILES ${UTILS_SOURCES})
 
 add_library(vulkanBase
@@ -87,6 +84,9 @@ target_link_libraries(vulkanBase
 )
 
 target_include_directories(vulkanBase
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/externals/stb
+        ${CMAKE_SOURCE_DIR}/externals/tiny_obj_loader
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
