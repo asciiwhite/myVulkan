@@ -11,6 +11,8 @@ SET_PROPERTY(TARGET glm_dummy PROPERTY FOLDER "externals")
 SET_PROPERTY(TARGET uninstall PROPERTY FOLDER "externals")
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(INSTALL_GMOCK OFF CACHE BOOL "" FORCE)
 add_subdirectory(googletest)
 SET_PROPERTY(TARGET gmock      PROPERTY FOLDER "externals")
 SET_PROPERTY(TARGET gmock_main PROPERTY FOLDER "externals")
