@@ -10,7 +10,6 @@ SET(CMAKE_MODULE_PATH
 )
 
 include(GNUInstallDirs)
-include(cotire)
 
 find_package(codecov)
 

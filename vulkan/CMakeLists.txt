@@ -93,6 +93,4 @@ target_include_directories(vulkanBase
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/externals/tiny_obj_loader>
 )
 
-cotire(vulkanBase)
-
 add_subdirectory(test)
