@@ -120,8 +120,8 @@ bool BasicRenderer::createFrameResources(uint32_t numFrames)
 
     for (auto& resource : m_frameResources)
     {
-        VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device.getVkDevice(), &allocInfo, &resource.graphicsCommandBuffer));
-        VK_CHECK_RESULT(vkCreateFence(m_device.getVkDevice(), &fenceCreateInfo, nullptr, &resource.frameCompleteFence));
+        VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &allocInfo, &resource.graphicsCommandBuffer));
+        VK_CHECK_RESULT(vkCreateFence(m_device, &fenceCreateInfo, nullptr, &resource.frameCompleteFence));
     }
 
     return true;
@@ -134,8 +134,8 @@ bool BasicRenderer::createSwapChainFramebuffers()
     for (size_t i = 0; i < m_framebuffers.size(); i++)
     {
         m_framebuffers[i].init(
-            m_device.getVkDevice(),
-            m_renderPass.getVkRenderPass(),
+            m_device,
+            m_renderPass,
             { m_swapChain.getImageView(static_cast<uint32_t>(i)), m_swapChainDepthBuffer.getImageView() },
             m_swapChain.getImageExtent());
     }
@@ -146,7 +146,7 @@ bool BasicRenderer::createSwapChainFramebuffers()
 void BasicRenderer::destroy()
 {
     // wait to avoid destruction of still used resources
-    vkDeviceWaitIdle(m_device.getVkDevice());
+    vkDeviceWaitIdle(m_device);
 
     m_cameraUniformBuffer.destroy(m_device);
     m_swapChainDepthBuffer.destroy();
@@ -169,7 +169,7 @@ void BasicRenderer::destroy()
 
 bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
 {
-    vkDeviceWaitIdle(m_device.getVkDevice());
+    vkDeviceWaitIdle(m_device);
 
     if (m_swapChain.create())
     {
@@ -195,8 +195,8 @@ void BasicRenderer::destroyFrameResources()
 {
     for (const auto& resource : m_frameResources)
     {
-        vkFreeCommandBuffers(m_device.getVkDevice(), m_device.getGraphicsCommandPool(), 1, &resource.graphicsCommandBuffer);
-        vkDestroyFence(m_device.getVkDevice(), resource.frameCompleteFence, nullptr);
+        vkFreeCommandBuffers(m_device, m_device.getGraphicsCommandPool(), 1, &resource.graphicsCommandBuffer);
+        vkDestroyFence(m_device, resource.frameCompleteFence, nullptr);
     }
     m_frameResources.clear();
 }
@@ -207,15 +207,15 @@ void BasicRenderer::draw()
 
     m_frameResourceId = (m_frameResourceId + 1) % m_frameResourceCount;
 
-    vkWaitForFences(m_device.getVkDevice(), 1, &m_frameResources[m_frameResourceId].frameCompleteFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(m_device.getVkDevice(), 1, &m_frameResources[m_frameResourceId].frameCompleteFence);
+    vkWaitForFences(m_device, 1, &m_frameResources[m_frameResourceId].frameCompleteFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(m_device, 1, &m_frameResources[m_frameResourceId].frameCompleteFence);
 
     uint32_t swapChainImageId(0);
     if (!m_swapChain.acquireNextImage(swapChainImageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
     
     const FrameData frameData {
-        m_frameResources[m_frameResourceId], m_framebuffers[swapChainImageId].getVkFramebuffer()
+        m_frameResources[m_frameResourceId], m_framebuffers[swapChainImageId]
     };
 
     render(frameData);

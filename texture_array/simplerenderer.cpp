@@ -8,7 +8,7 @@ bool SimpleRenderer::setup()
     if (!m_mesh.loadFromObj(m_device, "data/meshes/sponza.obj"))
         return false;
 
-    m_mesh.addCameraUniformBuffer(m_cameraUniformBuffer.getVkBuffer());
+    m_mesh.addCameraUniformBuffer(m_cameraUniformBuffer);
     if (!m_mesh.finalize(m_renderPass))
         return false;
 
@@ -42,7 +42,7 @@ void SimpleRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuf
 
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass.getVkRenderPass();
+    renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.framebuffer = framebuffer;
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = m_swapChain.getImageExtent();

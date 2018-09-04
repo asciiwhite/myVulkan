@@ -12,7 +12,10 @@ public:
     void init(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts = {}, const std::vector<VkPushConstantRange>& pushConstants = {});
     void destroy();
 
-    VkPipelineLayout getVkPipelineLayout() const { return m_pipelineLayout; }
+    operator VkPipelineLayout() const
+    {
+        return m_pipelineLayout;
+    }
 
 private:
     VkDevice m_device = VK_NULL_HANDLE;
@@ -50,7 +53,7 @@ class GraphicsPipeline
 public:
     ~GraphicsPipeline();
 
-    VkPipeline getVkPipeline() const { return m_pipeline; }
+    operator VkPipeline() const { return m_pipeline; }
 
     static PipelineHandle getPipeline(
         VkDevice device,

@@ -21,7 +21,8 @@ public:
 
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 
-    VkDevice getVkDevice() const { return m_device; };
+    operator VkDevice() const { return m_device; }
+
     VkPhysicalDevice getVkPysicalDevice() const { return m_physicalDevice; };
     VkQueue getPresentationQueue() const { return m_presentQueue; };
     VkQueue getGraphicsQueue() const { return m_graphicsQueue; };

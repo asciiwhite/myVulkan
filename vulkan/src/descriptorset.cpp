@@ -139,11 +139,13 @@ void DescriptorSet::addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer,
 
 void DescriptorSet::finalize(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool)
 {
+    const VkDescriptorSetLayout descriptorSetLayout{ layout };
+
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = pool.getVkPool();
+    allocInfo.descriptorPool = pool;
     allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &layout.getVkLayout();
+    allocInfo.pSetLayouts = &descriptorSetLayout;
     VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_descriptorSet));
 
     auto bufferIter = m_bufferInfos.begin();

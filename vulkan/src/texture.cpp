@@ -72,9 +72,9 @@ bool Texture::loadFromFile(Device* device, const std::string& filename)
         stagingBuffer, stagingBufferMemory);
 
     void* data;
-    vkMapMemory(device->getVkDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
+    vkMapMemory(*device, stagingBufferMemory, 0, imageSize, 0, &data);
     std::memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(device->getVkDevice(), stagingBufferMemory);
+    vkUnmapMemory(*device, stagingBufferMemory);
 
     stbi_image_free(pixels);
 
@@ -97,8 +97,8 @@ bool Texture::loadFromFile(Device* device, const std::string& filename)
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    vkDestroyBuffer(device->getVkDevice(), stagingBuffer, nullptr);
-    vkFreeMemory(device->getVkDevice(), stagingBufferMemory, nullptr);
+    vkDestroyBuffer(*device, stagingBuffer, nullptr);
+    vkFreeMemory(*device, stagingBufferMemory, nullptr);
 
     device->createImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, m_imageView, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -131,12 +131,12 @@ bool Texture::hasTranspareny() const
 
 void Texture::destroy()
 {
-    vkDestroyImageView(m_device->getVkDevice(), m_imageView, nullptr);
+    vkDestroyImageView(*m_device, m_imageView, nullptr);
     m_imageView = VK_NULL_HANDLE;
 
-    vkDestroyImage(m_device->getVkDevice(), m_image, nullptr);
+    vkDestroyImage(*m_device, m_image, nullptr);
     m_image = VK_NULL_HANDLE;
 
-    vkFreeMemory(m_device->getVkDevice(), m_imageMemory, nullptr);
+    vkFreeMemory(*m_device, m_imageMemory, nullptr);
     m_imageMemory = VK_NULL_HANDLE;
 }

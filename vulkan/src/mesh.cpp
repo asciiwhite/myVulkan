@@ -24,9 +24,9 @@ void Mesh::destroy()
     
     for (auto& desc : m_materialDescs)
     {
-        vkDestroyBuffer(m_device->getVkDevice(), desc.materialUB, nullptr);
+        vkDestroyBuffer(*m_device, desc.materialUB, nullptr);
         desc.materialUB = VK_NULL_HANDLE;
-        vkFreeMemory(m_device->getVkDevice(), desc.materialUBMemory, nullptr);
+        vkFreeMemory(*m_device, desc.materialUBMemory, nullptr);
         desc.materialUBMemory = VK_NULL_HANDLE;
 
         GraphicsPipeline::release(desc.pipeline);
@@ -35,14 +35,14 @@ void Mesh::destroy()
             Texture::release(desc.diffuseTexture);
     }
     m_materials.clear();
-    m_cameraDescriptorSetLayout.destroy(m_device->getVkDevice());
-    m_materialDescriptorSetLayout.destroy(m_device->getVkDevice());
+    m_cameraDescriptorSetLayout.destroy(*m_device);
+    m_materialDescriptorSetLayout.destroy(*m_device);
     m_pipelineLayout.destroy();
-    m_materialDescriptorPool.destroy(m_device->getVkDevice());
-    m_cameraDescriptorPool.destroy(m_device->getVkDevice());
+    m_materialDescriptorPool.destroy(*m_device);
+    m_cameraDescriptorPool.destroy(*m_device);
 
     m_vertexBuffer.destroy();
-    vkDestroySampler(m_device->getVkDevice(), m_sampler, nullptr);
+    vkDestroySampler(*m_device, m_sampler, nullptr);
     m_sampler = VK_NULL_HANDLE;
     m_device = nullptr;
 
@@ -302,7 +302,7 @@ ShaderHandle Mesh::selectShaderFromAttributes(bool useTexture)
     const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
     const auto fragmentShaderFilename = shaderPath + fragmemtShaderName + ".frag.spv";
 
-    return Shader::getShader(m_device->getVkDevice(), { { VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFilename },
+    return Shader::getShader(*m_device, { { VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFilename },
                                                         { VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderFilename} });
 }
 
@@ -344,11 +344,11 @@ void Mesh::loadMaterials()
             desc.materialUB, desc.materialUBMemory);
 
         void* data;
-        vkMapMemory(m_device->getVkDevice(), desc.materialUBMemory, 0, uboSize, 0, &data);
+        vkMapMemory(*m_device, desc.materialUBMemory, 0, uboSize, 0, &data);
         std::memcpy(data, &material.ambient, 3 * sizeof(float));
         std::memcpy(static_cast<char*>(data) + 4 * sizeof(float), &material.diffuse, 3 * sizeof(float));
         std::memcpy(static_cast<char*>(data) + 8 * sizeof(float), &material.emission, 3 * sizeof(float));
-        vkUnmapMemory(m_device->getVkDevice(), desc.materialUBMemory);
+        vkUnmapMemory(*m_device, desc.materialUBMemory);
 
         desc.descriptorSet.addUniformBuffer(BINDING_ID_MATERIAL, desc.materialUB);
 
@@ -432,40 +432,40 @@ void Mesh::addCameraUniformBuffer(VkBuffer uniformBuffer)
 
 bool Mesh::finalize(const RenderPass& renderPass)
 {
-    m_cameraDescriptorPool.init(m_device->getVkDevice(), 1,
+    m_cameraDescriptorPool.init(*m_device, 1,
     { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 } });
 
-    m_cameraDescriptorSetLayout.init(m_device->getVkDevice(),
+    m_cameraDescriptorSetLayout.init(*m_device,
     { { BINDING_ID_CAMERA, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
 
-    m_cameraUniformDescriptorSet.finalize(m_device->getVkDevice(), m_cameraDescriptorSetLayout, m_cameraDescriptorPool);
+    m_cameraUniformDescriptorSet.finalize(*m_device, m_cameraDescriptorSetLayout, m_cameraDescriptorPool);
 
 
     const auto materialDescriptorCount = static_cast<uint32_t>(m_materialDescs.size());
 
     // TODO: why materialDescriptorCount at maxSets and descriptorCount?
-    m_materialDescriptorPool.init(m_device->getVkDevice(), materialDescriptorCount,
+    m_materialDescriptorPool.init(*m_device, materialDescriptorCount,
         { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, materialDescriptorCount },
           { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, materialDescriptorCount } });
 
-    m_materialDescriptorSetLayout.init(m_device->getVkDevice(),
+    m_materialDescriptorSetLayout.init(*m_device,
         { { BINDING_ID_MATERIAL, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT },
           { BINDING_ID_TEXTURE_DIFFUSE, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT } });
 
-    m_pipelineLayout.init(m_device->getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout(), m_materialDescriptorSetLayout.getVkLayout() });
+    m_pipelineLayout.init(*m_device, { m_cameraDescriptorSetLayout, m_materialDescriptorSetLayout });
 
     for (auto& desc : m_materialDescs)
     {
-        desc.descriptorSet.finalize(m_device->getVkDevice(), m_materialDescriptorSetLayout, m_materialDescriptorPool);
+        desc.descriptorSet.finalize(*m_device, m_materialDescriptorSetLayout, m_materialDescriptorPool);
 
         auto isTransparent = desc.diffuseTexture && desc.diffuseTexture->hasTranspareny();
 
         PipelineSettings settings;
         settings.setAlphaBlending(isTransparent).setCullMode(isTransparent ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT);
 
-        desc.pipeline = GraphicsPipeline::getPipeline(m_device->getVkDevice(),
-            renderPass.getVkRenderPass(),
-            m_pipelineLayout.getVkPipelineLayout(),
+        desc.pipeline = GraphicsPipeline::getPipeline(*m_device,
+            renderPass,
+            m_pipelineLayout,
             settings,
             desc.shader->getShaderStages(),
             &m_vertexBuffer);
@@ -483,7 +483,7 @@ void Mesh::render(VkCommandBuffer commandBuffer) const
 {
     PipelineHandle currentPipeline;
 
-    m_cameraUniformDescriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout(), SET_ID_CAMERA);
+    m_cameraUniformDescriptorSet.bind(commandBuffer, m_pipelineLayout, SET_ID_CAMERA);
 
     for (const auto& shapeDesc : m_shapeDescs)
     {
@@ -492,11 +492,11 @@ void Mesh::render(VkCommandBuffer commandBuffer) const
 
         if (currentPipeline != materialDesc.pipeline)
         {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, materialDesc.pipeline->getVkPipeline());
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *materialDesc.pipeline);
             currentPipeline = materialDesc.pipeline;
         }
 
-        materialDesc.descriptorSet.bind(commandBuffer, m_pipelineLayout.getVkPipelineLayout(), SET_ID_MATERIAL);
+        materialDesc.descriptorSet.bind(commandBuffer, m_pipelineLayout, SET_ID_MATERIAL);
 
         m_vertexBuffer.draw(commandBuffer, 1, shapeDesc.startIndex, shapeDesc.indexCount);
     }

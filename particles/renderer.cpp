@@ -20,16 +20,16 @@ const uint32_t GROUP_COUNT = static_cast<uint32_t>(std::ceil(static_cast<float>(
 
 bool Renderer::setup()
 {
-    m_shader = Shader::getShader(m_device.getVkDevice(), { { VK_SHADER_STAGE_VERTEX_BIT, "data/shaders/base.vert.spv"} ,
-                                                           { VK_SHADER_STAGE_FRAGMENT_BIT, "data/shaders/color.frag.spv"} });
+    m_shader = Shader::getShader(m_device, { { VK_SHADER_STAGE_VERTEX_BIT, "data/shaders/base.vert.spv"} ,
+                                             { VK_SHADER_STAGE_FRAGMENT_BIT, "data/shaders/color.frag.spv"} });
     if (m_shader == nullptr)
         return false;
 
-    m_computeShader = Shader::getShader(m_device.getVkDevice(), { { VK_SHADER_STAGE_COMPUTE_BIT, "data/shaders/particles.comp.spv"} });
+    m_computeShader = Shader::getShader(m_device, { { VK_SHADER_STAGE_COMPUTE_BIT, "data/shaders/particles.comp.spv"} });
     if (m_computeShader == nullptr)
         return false;
 
-    m_descriptorPool.init(m_device.getVkDevice(), 2,
+    m_descriptorPool.init(m_device, 2,
         { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
           { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 } });
 
@@ -49,11 +49,11 @@ bool Renderer::setup()
 
 void Renderer::setupCameraDescriptorSet()
 {
-    m_cameraDescriptorSetLayout.init(m_device.getVkDevice(),
+    m_cameraDescriptorSetLayout.init(m_device,
         { { BINDING_ID_CAMERA, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
 
-    m_cameraUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, m_cameraUniformBuffer.getVkBuffer());
-    m_cameraUniformDescriptorSet.finalize(m_device.getVkDevice(), m_cameraDescriptorSetLayout, m_descriptorPool);
+    m_cameraUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, m_cameraUniformBuffer);
+    m_cameraUniformDescriptorSet.finalize(m_device, m_cameraDescriptorSetLayout, m_descriptorPool);
 }
 
 void Renderer::setupParticleVertexBuffer()
@@ -77,14 +77,14 @@ void Renderer::setupParticleVertexBuffer()
 
 void Renderer::setupGraphicsPipeline()
 {
-    m_graphicsPipelineLayout.init(m_device.getVkDevice(), { m_cameraDescriptorSetLayout.getVkLayout() });
+    m_graphicsPipelineLayout.init(m_device, { m_cameraDescriptorSetLayout });
 
     PipelineSettings settings;
     settings.setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST).setAlphaBlending(true);
 
-    m_graphicsPipeline = GraphicsPipeline::getPipeline(m_device.getVkDevice(),
-        m_renderPass.getVkRenderPass(),
-        m_graphicsPipelineLayout.getVkPipelineLayout(),
+    m_graphicsPipeline = GraphicsPipeline::getPipeline(m_device,
+        m_renderPass,
+        m_graphicsPipelineLayout,
         settings,
         m_shader->getShaderStages(),
         &m_vertexBuffer);
@@ -97,25 +97,25 @@ void Renderer::setupComputePipeline()
     m_computeMappedInputBuffer->particleCount = NUM_PARTICLES;
     m_computeMappedInputBuffer->timeDelta = 0.f;
 
-    m_computeDescriptorSetLayout.init(m_device.getVkDevice(),
+    m_computeDescriptorSetLayout.init(m_device,
         { { BINDING_ID_COMPUTE_PARTICLES, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT },
           { BINDING_ID_COMPUTE_INPUT, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT } });
 
-    m_computeDescriptorSet.addStorageBuffer(BINDING_ID_COMPUTE_PARTICLES, m_vertexBuffer.getVkBuffer());
-    m_computeDescriptorSet.addStorageBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer.getVkBuffer());
-    m_computeDescriptorSet.finalize(m_device.getVkDevice(), m_computeDescriptorSetLayout, m_descriptorPool);
+    m_computeDescriptorSet.addStorageBuffer(BINDING_ID_COMPUTE_PARTICLES, m_vertexBuffer);
+    m_computeDescriptorSet.addStorageBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer);
+    m_computeDescriptorSet.finalize(m_device, m_computeDescriptorSetLayout, m_descriptorPool);
 
-    m_computePipelineLayout.init(m_device.getVkDevice(), { m_computeDescriptorSetLayout.getVkLayout() });
+    m_computePipelineLayout.init(m_device, { m_computeDescriptorSetLayout });
 
     VkComputePipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pipelineInfo.flags = 0;
     pipelineInfo.stage = m_computeShader->getShaderStages().front();
-    pipelineInfo.layout = m_computePipelineLayout.getVkPipelineLayout();
+    pipelineInfo.layout = m_computePipelineLayout;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = 0;
 
-    VK_CHECK_RESULT(vkCreateComputePipelines(m_device.getVkDevice(), nullptr, 1, &pipelineInfo, nullptr, &m_computePipeline));
+    VK_CHECK_RESULT(vkCreateComputePipelines(m_device, nullptr, 1, &pipelineInfo, nullptr, &m_computePipeline));
 }
 
 void Renderer::shutdown()
@@ -123,14 +123,14 @@ void Renderer::shutdown()
     m_vertexBuffer.destroy();
     m_graphicsPipelineLayout.destroy();
 
-    m_cameraDescriptorSetLayout.destroy(m_device.getVkDevice());
-    m_descriptorPool.destroy(m_device.getVkDevice());
+    m_cameraDescriptorSetLayout.destroy(m_device);
+    m_descriptorPool.destroy(m_device);
 
-    vkFreeCommandBuffers(m_device.getVkDevice(), m_device.getComputeCommandPool(), static_cast<uint32_t>(m_computeCommandBuffers.size()), m_computeCommandBuffers.data());
+    vkFreeCommandBuffers(m_device, m_device.getComputeCommandPool(), static_cast<uint32_t>(m_computeCommandBuffers.size()), m_computeCommandBuffers.data());
 
     m_computeInputBuffer.destroy(m_device);
-    m_computeDescriptorSetLayout.destroy(m_device.getVkDevice());
-    vkDestroyPipeline(m_device.getVkDevice(), m_computePipeline, nullptr);
+    m_computeDescriptorSetLayout.destroy(m_device);
+    vkDestroyPipeline(m_device, m_computePipeline, nullptr);
     m_computePipelineLayout.destroy();
 
     GraphicsPipeline::release(m_graphicsPipeline);
@@ -140,9 +140,9 @@ void Renderer::shutdown()
 
 void Renderer::renderParticles(VkCommandBuffer commandBuffer) const
 {
-    m_cameraUniformDescriptorSet.bind(commandBuffer, m_graphicsPipelineLayout.getVkPipelineLayout(), SET_ID_CAMERA);
+    m_cameraUniformDescriptorSet.bind(commandBuffer, m_graphicsPipelineLayout, SET_ID_CAMERA);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->getVkPipeline());
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *m_graphicsPipeline);
 
     m_vertexBuffer.draw(commandBuffer);
 }
@@ -157,7 +157,7 @@ bool Renderer::createComputeCommandBuffer()
     allocInfo.commandPool = m_device.getComputeCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = static_cast<uint32_t>(m_computeCommandBuffers.size());
-    VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device.getVkDevice(), &allocInfo, m_computeCommandBuffers.data()));
+    VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &allocInfo, m_computeCommandBuffers.data()));
 
     return true;
 }
@@ -173,7 +173,7 @@ void Renderer::buildComputeCommandBuffer(VkCommandBuffer commandBuffer)
     // Add memory barrier to ensure that the (graphics) vertex shader has fetched attributes before compute starts to write to the buffer
     VkBufferMemoryBarrier bufferBarrier = {};
     bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    bufferBarrier.buffer = m_vertexBuffer.getVkBuffer();
+    bufferBarrier.buffer = m_vertexBuffer;
     bufferBarrier.size = VK_WHOLE_SIZE;
     bufferBarrier.offset = 0;
     bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;						// Vertex shader invocations have finished reading from the buffer
@@ -193,8 +193,8 @@ void Renderer::buildComputeCommandBuffer(VkCommandBuffer commandBuffer)
         0, nullptr);
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
-    VkDescriptorSet descriptorSets{ m_computeDescriptorSet.getVkDescriptorSet() };
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout.getVkPipelineLayout(), 0, 1, &descriptorSets, 0, 0);
+    VkDescriptorSet descriptorSets{ m_computeDescriptorSet };
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout, 0, 1, &descriptorSets, 0, 0);
 
     vkCmdDispatch(commandBuffer, GROUP_COUNT, 1, 1);
 
@@ -229,7 +229,7 @@ void Renderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer fr
 
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass.getVkRenderPass();
+    renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.framebuffer = framebuffer;
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = m_swapChain.getImageExtent();
@@ -273,25 +273,3 @@ void Renderer::render(const FrameData& frameData)
     fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer);
     submitCommandBuffer(frameData.resources.graphicsCommandBuffer);
 }
-/*
-void Renderer::render(uint32_t swapChainImageId)
-{
-    // compute part
-    m_computeMappedInputBuffer->timeDelta = static_cast<float>(m_stats.getLastFrameTime()) / 1000000;
-
-    buildComputeCommandBuffer(m_computeCommandBuffers[m_frameResourceId]);
-
-    VkSubmitInfo computeSubmitInfo = {};
-    computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    computeSubmitInfo.commandBufferCount = 1;
-    computeSubmitInfo.pCommandBuffers = &m_computeCommandBuffers[m_frameResourceId];
-
-    VK_CHECK_RESULT(vkQueueSubmit(m_device.getComputeQueue(), 1, &computeSubmitInfo, nullptr));
-
-
-    // graphics part
-    auto graphicsCommandBuffer = m_frameResources[m_frameResourceId].graphicsCommandBuffer;
-
-    fillCommandBuffer(graphicsCommandBuffer, m_framebuffers[swapChainImageId].getVkFramebuffer());
-    submitCommandBuffer(graphicsCommandBuffer);
-}*/

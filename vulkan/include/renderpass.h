@@ -10,7 +10,7 @@ public:
     bool init(Device* device, VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat);
     void destroy();
 
-    VkRenderPass getVkRenderPass() const { return m_renderPass; }
+    operator VkRenderPass() const { return m_renderPass; }
 
 private:
     Device* m_device;

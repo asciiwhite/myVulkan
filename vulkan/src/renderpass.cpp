@@ -58,13 +58,13 @@ bool RenderPass::init(Device* device, VkFormat colorAttachmentFormat, VkFormat d
     renderPassInfo.dependencyCount = 0;
     renderPassInfo.pDependencies = nullptr;
 
-    VK_CHECK_RESULT(vkCreateRenderPass(m_device->getVkDevice(), &renderPassInfo, nullptr, &m_renderPass));
+    VK_CHECK_RESULT(vkCreateRenderPass(*m_device, &renderPassInfo, nullptr, &m_renderPass));
 
     return true;
 }
 
 void RenderPass::destroy()
 { 
-    vkDestroyRenderPass(m_device->getVkDevice(), m_renderPass, nullptr);
+    vkDestroyRenderPass(*m_device, m_renderPass, nullptr);
     m_renderPass = VK_NULL_HANDLE;
 }

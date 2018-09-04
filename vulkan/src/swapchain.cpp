@@ -229,20 +229,20 @@ bool SwapChain::create(bool vsync)
 
     if (oldSwapchain)
     {
-        vkDeviceWaitIdle(m_device->getVkDevice());
+        vkDeviceWaitIdle(*m_device);
     }
 
-    VK_CHECK_RESULT(vkCreateSwapchainKHR(m_device->getVkDevice(), &swapchainCI, nullptr, &m_swapChain));
+    VK_CHECK_RESULT(vkCreateSwapchainKHR(*m_device, &swapchainCI, nullptr, &m_swapChain));
 
     // If an existing swap chain is re-created, destroy the old swap chain
     // This also cleans up all the presentable images
     destroySwapChain(oldSwapchain);
 
-    VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device->getVkDevice(), m_swapChain, &imageCount, nullptr));
+    VK_CHECK_RESULT(vkGetSwapchainImagesKHR(*m_device, m_swapChain, &imageCount, nullptr));
 
     // Get the swap chain images
     m_images.resize(imageCount);
-    VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device->getVkDevice(), m_swapChain, &imageCount, m_images.data()));
+    VK_CHECK_RESULT(vkGetSwapchainImagesKHR(*m_device, m_swapChain, &imageCount, m_images.data()));
 
     createImageViews(imageCount);
 
@@ -270,8 +270,8 @@ void SwapChain::createSemaphores(uint32_t imageCount)
     m_semaphores.resize(imageCount);
     for (auto& sems : m_semaphores)
     {
-        VK_CHECK_RESULT(vkCreateSemaphore(m_device->getVkDevice(), &semaphoreInfo, nullptr, &sems.first));
-        VK_CHECK_RESULT(vkCreateSemaphore(m_device->getVkDevice(), &semaphoreInfo, nullptr, &sems.second));
+        VK_CHECK_RESULT(vkCreateSemaphore(*m_device, &semaphoreInfo, nullptr, &sems.first));
+        VK_CHECK_RESULT(vkCreateSemaphore(*m_device, &semaphoreInfo, nullptr, &sems.second));
     }
 }
 
@@ -280,7 +280,7 @@ bool SwapChain::acquireNextImage(uint32_t& imageId)
     // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
     // With that we don't have to handle VK_NOT_READY
     auto imageAcquiredSemaphore = m_semaphores[m_currentImageId].first;
-    auto result = vkAcquireNextImageKHR(m_device->getVkDevice(), m_swapChain, UINT64_MAX, imageAcquiredSemaphore, VK_NULL_HANDLE, &imageId);
+    auto result = vkAcquireNextImageKHR(*m_device, m_swapChain, UINT64_MAX, imageAcquiredSemaphore, VK_NULL_HANDLE, &imageId);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -330,8 +330,8 @@ void SwapChain::destroySemaphores()
 {
     for (auto& sems : m_semaphores)
     {
-        vkDestroySemaphore(m_device->getVkDevice(), sems.first, nullptr);
-        vkDestroySemaphore(m_device->getVkDevice(), sems.second, nullptr);
+        vkDestroySemaphore(*m_device, sems.first, nullptr);
+        vkDestroySemaphore(*m_device, sems.second, nullptr);
     }
     m_semaphores.clear();
 }
@@ -342,9 +342,9 @@ void SwapChain::destroySwapChain(VkSwapchainKHR& swapChain)
     {
         for (auto& imageView : m_imageViews)
         {
-            vkDestroyImageView(m_device->getVkDevice(), imageView, nullptr);
+            vkDestroyImageView(*m_device, imageView, nullptr);
         }
-        vkDestroySwapchainKHR(m_device->getVkDevice(), swapChain, nullptr);
+        vkDestroySwapchainKHR(*m_device, swapChain, nullptr);
         swapChain = VK_NULL_HANDLE;
     }
 }

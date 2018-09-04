@@ -121,7 +121,7 @@ void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer&
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        m_device->copyBuffer(stagingBuffer.getVkBuffer(), buffer.getVkBuffer(), size);
+        m_device->copyBuffer(stagingBuffer, buffer, size);
 
         stagingBuffer.destroy(*m_device);
     }
@@ -170,13 +170,13 @@ void VertexBuffer::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount, u
 {
     for (auto i = 0u; i < m_bindingDescriptions.size(); i++)
     {
-        VkBuffer buffer{ m_vertexBuffer.getVkBuffer() };
+        VkBuffer buffer{ m_vertexBuffer };
         vkCmdBindVertexBuffers(commandBuffer, i, 1, &buffer, &m_bindingOffsets[i]);
     }
 
     if (m_indexBuffer.isValid())
     {
-        vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer.getVkBuffer(), 0, m_indexType);
+        vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, m_indexType);
         vkCmdDrawIndexed(commandBuffer, indexCount == 0 ? m_numIndices : indexCount, instanceCount, firstIndex, 0, 0);
     }
     else
