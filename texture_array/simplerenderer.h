@@ -7,9 +7,9 @@ class SimpleRenderer : public BasicRenderer
 {
 private:
     bool setup() override;
-    void render(uint32_t imageId) override;
+    void render(const FrameData& frameData) override;
     void shutdown() override;
-    void fillCommandBuffers() override;
+    void fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer);
 
     TextureArrayMesh m_mesh;
 };

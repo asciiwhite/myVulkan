@@ -11,9 +11,8 @@ public:
 
 private:
 	bool setup() override { return true; };
-	void render(uint32_t) override {};
+	void render(const FrameData&) override {};
 	void shutdown() override {};
-	void fillCommandBuffers() override {};
 };
 
 TEST(VulkanBase, createWindow)

@@ -37,7 +37,7 @@ bool Renderer::setup()
     setupParticleVertexBuffer();
     setupGraphicsPipeline();
     setupComputePipeline();
-    buildComputeCommandBuffer();
+    createComputeCommandBuffer();
 
     const auto size = 10.f;
     glm::vec3 min(-size, -size, 0.f);
@@ -116,11 +116,6 @@ void Renderer::setupComputePipeline()
     pipelineInfo.basePipelineIndex = 0;
 
     VK_CHECK_RESULT(vkCreateComputePipelines(m_device.getVkDevice(), nullptr, 1, &pipelineInfo, nullptr, &m_computePipeline));
-
-    VkFenceCreateInfo fenceCreateInfo = {};
-    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    VK_CHECK_RESULT(vkCreateFence(m_device.getVkDevice(), &fenceCreateInfo, nullptr, &m_computeFence));
 }
 
 void Renderer::shutdown()
@@ -138,8 +133,6 @@ void Renderer::shutdown()
     vkDestroyPipeline(m_device.getVkDevice(), m_computePipeline, nullptr);
     m_computePipelineLayout.destroy();
 
-    vkDestroyFence(m_device.getVkDevice(), m_computeFence, nullptr);
-
     GraphicsPipeline::release(m_graphicsPipeline);
     Shader::release(m_shader);
     Shader::release(m_computeShader);
@@ -154,10 +147,10 @@ void Renderer::renderParticles(VkCommandBuffer commandBuffer) const
     m_vertexBuffer.draw(commandBuffer);
 }
 
-void Renderer::buildComputeCommandBuffer()
+bool Renderer::createComputeCommandBuffer()
 {
     // Create a command buffer for compute operations
-    m_computeCommandBuffers.resize(m_swapChain.getImageCount());
+    m_computeCommandBuffers.resize(m_frameResourceCount);
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -166,117 +159,139 @@ void Renderer::buildComputeCommandBuffer()
     allocInfo.commandBufferCount = static_cast<uint32_t>(m_computeCommandBuffers.size());
     VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device.getVkDevice(), &allocInfo, m_computeCommandBuffers.data()));
 
-    for (size_t i = 0; i < m_computeCommandBuffers.size(); i++)
-    {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    return true;
+}
+ 
+void Renderer::buildComputeCommandBuffer(VkCommandBuffer commandBuffer)
+{
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-        VK_CHECK_RESULT(vkBeginCommandBuffer(m_computeCommandBuffers[i], &beginInfo));
+    VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-        // Add memory barrier to ensure that the (graphics) vertex shader has fetched attributes before compute starts to write to the buffer
-        VkBufferMemoryBarrier bufferBarrier = {};
-        bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        bufferBarrier.buffer = m_vertexBuffer.getVkBuffer();
-        bufferBarrier.size = VK_WHOLE_SIZE;
-        bufferBarrier.offset = 0;
-        bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;						// Vertex shader invocations have finished reading from the buffer
-        bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;								// Compute shader wants to write to the buffer
-                                                                                                // Compute and graphics queue may have different queue families (see VulkanDevice::createLogicalDevice)
-                                                                                                // For the barrier to work across different queues, we need to set their family indices
-        bufferBarrier.srcQueueFamilyIndex = m_device.getGraphicsQueueFamilyId();		        // Required as compute and graphics queue may have different families
-        bufferBarrier.dstQueueFamilyIndex = m_device.getComputeQueueFamilyId();	            	// Required as compute and graphics queue may have different families
+    // Add memory barrier to ensure that the (graphics) vertex shader has fetched attributes before compute starts to write to the buffer
+    VkBufferMemoryBarrier bufferBarrier = {};
+    bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufferBarrier.buffer = m_vertexBuffer.getVkBuffer();
+    bufferBarrier.size = VK_WHOLE_SIZE;
+    bufferBarrier.offset = 0;
+    bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;						// Vertex shader invocations have finished reading from the buffer
+    bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;								// Compute shader wants to write to the buffer
+                                                                                            // Compute and graphics queue may have different queue families (see VulkanDevice::createLogicalDevice)
+                                                                                            // For the barrier to work across different queues, we need to set their family indices
+    bufferBarrier.srcQueueFamilyIndex = m_device.getGraphicsQueueFamilyId();		        // Required as compute and graphics queue may have different families
+    bufferBarrier.dstQueueFamilyIndex = m_device.getComputeQueueFamilyId();	            	// Required as compute and graphics queue may have different families
 
-        vkCmdPipelineBarrier(
-            m_computeCommandBuffers[i],
-            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            0,
-            0, nullptr,
-            1, &bufferBarrier,
-            0, nullptr);
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        0,
+        0, nullptr,
+        1, &bufferBarrier,
+        0, nullptr);
 
-        vkCmdBindPipeline(m_computeCommandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
-        VkDescriptorSet descriptorSets{ m_computeDescriptorSet.getVkDescriptorSet() };
-        vkCmdBindDescriptorSets(m_computeCommandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout.getVkPipelineLayout(), 0, 1, &descriptorSets, 0, 0);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
+    VkDescriptorSet descriptorSets{ m_computeDescriptorSet.getVkDescriptorSet() };
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout.getVkPipelineLayout(), 0, 1, &descriptorSets, 0, 0);
 
-        vkCmdDispatch(m_computeCommandBuffers[i], GROUP_COUNT, 1, 1);
+    vkCmdDispatch(commandBuffer, GROUP_COUNT, 1, 1);
 
-        // Add memory barrier to ensure that compute shader has finished writing to the buffer
-        // Without this the (rendering) vertex shader may display incomplete results (partial data from last frame) 
-        bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;								// Compute shader has finished writes to the buffer
-        bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;						// Vertex shader invocations want to read from the buffer
-        // Compute and graphics queue may have different queue families (see VulkanDevice::createLogicalDevice)
-        // For the barrier to work across different queues, we need to set their family indices
-        bufferBarrier.srcQueueFamilyIndex = m_device.getComputeQueueFamilyId();				    // Required as compute and graphics queue may have different families
-        bufferBarrier.dstQueueFamilyIndex = m_device.getGraphicsQueueFamilyId();     		    // Required as compute and graphics queue may have different families
+    // Add memory barrier to ensure that compute shader has finished writing to the buffer
+    // Without this the (rendering) vertex shader may display incomplete results (partial data from last frame) 
+    bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;								// Compute shader has finished writes to the buffer
+    bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;						// Vertex shader invocations want to read from the buffer
+    // Compute and graphics queue may have different queue families (see VulkanDevice::createLogicalDevice)
+    // For the barrier to work across different queues, we need to set their family indices
+    bufferBarrier.srcQueueFamilyIndex = m_device.getComputeQueueFamilyId();				    // Required as compute and graphics queue may have different families
+    bufferBarrier.dstQueueFamilyIndex = m_device.getGraphicsQueueFamilyId();     		    // Required as compute and graphics queue may have different families
 
-        vkCmdPipelineBarrier(
-            m_computeCommandBuffers[i],
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-            0,
-            0, nullptr,
-            1, &bufferBarrier,
-            0, nullptr);
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        0,
+        0, nullptr,
+        1, &bufferBarrier,
+        0, nullptr);
 
-        vkEndCommandBuffer(m_computeCommandBuffers[i]);
-    }
+    vkEndCommandBuffer(commandBuffer);
 }
 
-void Renderer::fillCommandBuffers()
+void Renderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer)
 {
-    for (size_t i = 0; i < m_commandBuffers.size(); i++)
-    {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-        VK_CHECK_RESULT(vkBeginCommandBuffer(m_commandBuffers[i], &beginInfo));
+    VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_renderPass.getVkRenderPass();
-        renderPassInfo.framebuffer = m_framebuffers[i].getVkFramebuffer();
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = m_swapChain.getImageExtent();
-        std::array<VkClearValue, 2> clearValues = {};
-        clearValues[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
-        clearValues[1].depthStencil = { 1.0f, 0 };
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_renderPass.getVkRenderPass();
+    renderPassInfo.framebuffer = framebuffer;
+    renderPassInfo.renderArea.offset = { 0, 0 };
+    renderPassInfo.renderArea.extent = m_swapChain.getImageExtent();
+    std::array<VkClearValue, 2> clearValues = {};
+    clearValues[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
+    clearValues[1].depthStencil = { 1.0f, 0 };
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
 
-        vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        VkViewport viewport = { 0.0f, 0.0f, static_cast<float>(m_swapChain.getImageExtent().width), static_cast<float>(m_swapChain.getImageExtent().height), 0.0f, 1.0f };
-        vkCmdSetViewport(m_commandBuffers[i], 0, 1, &viewport);
+    VkViewport viewport = { 0.0f, 0.0f, static_cast<float>(m_swapChain.getImageExtent().width), static_cast<float>(m_swapChain.getImageExtent().height), 0.0f, 1.0f };
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-        VkRect2D scissor = { {0, 0}, m_swapChain.getImageExtent() };
-        vkCmdSetScissor(m_commandBuffers[i], 0, 1, &scissor);
+    VkRect2D scissor = { {0, 0}, m_swapChain.getImageExtent() };
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        renderParticles(m_commandBuffers[i]);
+    renderParticles(commandBuffer);
 
-        vkCmdEndRenderPass(m_commandBuffers[i]);
+    vkCmdEndRenderPass(commandBuffer);
 
-        VK_CHECK_RESULT(vkEndCommandBuffer(m_commandBuffers[i]));
-    }
+    VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
-void Renderer::render(uint32_t imageId)
+void Renderer::render(const FrameData& frameData)
 {
+    // compute part
     m_computeMappedInputBuffer->timeDelta = static_cast<float>(m_stats.getLastFrameTime()) / 1000000;
 
-    // Submit graphics commands
-    submitCommandBuffer(m_commandBuffers[imageId]);
 
-    // Submit compute commands
-    vkWaitForFences(m_device.getVkDevice(), 1, &m_computeFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(m_device.getVkDevice(), 1, &m_computeFence);
+    buildComputeCommandBuffer(m_computeCommandBuffers[m_frameResourceId]);
 
     VkSubmitInfo computeSubmitInfo = {};
     computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     computeSubmitInfo.commandBufferCount = 1;
-    computeSubmitInfo.pCommandBuffers = &m_computeCommandBuffers[imageId];
+    computeSubmitInfo.pCommandBuffers = &m_computeCommandBuffers[m_frameResourceId];
 
-    VK_CHECK_RESULT(vkQueueSubmit(m_device.getComputeQueue(), 1, &computeSubmitInfo, m_computeFence));
+    VK_CHECK_RESULT(vkQueueSubmit(m_device.getComputeQueue(), 1, &computeSubmitInfo, nullptr));
+
+    // graphics part
+    fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer);
+    submitCommandBuffer(frameData.resources.graphicsCommandBuffer);
 }
+/*
+void Renderer::render(uint32_t swapChainImageId)
+{
+    // compute part
+    m_computeMappedInputBuffer->timeDelta = static_cast<float>(m_stats.getLastFrameTime()) / 1000000;
+
+    buildComputeCommandBuffer(m_computeCommandBuffers[m_frameResourceId]);
+
+    VkSubmitInfo computeSubmitInfo = {};
+    computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    computeSubmitInfo.commandBufferCount = 1;
+    computeSubmitInfo.pCommandBuffers = &m_computeCommandBuffers[m_frameResourceId];
+
+    VK_CHECK_RESULT(vkQueueSubmit(m_device.getComputeQueue(), 1, &computeSubmitInfo, nullptr));
+
+
+    // graphics part
+    auto graphicsCommandBuffer = m_frameResources[m_frameResourceId].graphicsCommandBuffer;
+
+    fillCommandBuffer(graphicsCommandBuffer, m_framebuffers[swapChainImageId].getVkFramebuffer());
+    submitCommandBuffer(graphicsCommandBuffer);
+}*/

@@ -41,13 +41,9 @@ bool BasicRenderer::init(GLFWwindow* window)
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    if (!setup())
-        return false;
+    createFrameResources(2u);
 
-    createCommandBuffers();
-    fillCommandBuffers();
-    
-    return true;
+    return setup();
 }
 
 bool BasicRenderer::createInstance()
@@ -106,17 +102,27 @@ bool BasicRenderer::createDevice()
     return m_device.init(m_instance, m_surface, enableValidationLayers);
 }
 
-bool BasicRenderer::createCommandBuffers()
+bool BasicRenderer::createFrameResources(uint32_t numFrames)
 {
-    m_commandBuffers.resize(m_swapChain.getImageCount());
+    m_frameResourceCount = numFrames;
+
+    m_frameResources.resize(m_frameResourceCount);
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_device.getComputeCommandPool();
+    allocInfo.commandPool = m_device.getGraphicsCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
+    allocInfo.commandBufferCount = 1;
 
-    VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device.getVkDevice(), &allocInfo, m_commandBuffers.data()));
+    VkFenceCreateInfo fenceCreateInfo = {};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (auto& resource : m_frameResources)
+    {
+        VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device.getVkDevice(), &allocInfo, &resource.graphicsCommandBuffer));
+        VK_CHECK_RESULT(vkCreateFence(m_device.getVkDevice(), &fenceCreateInfo, nullptr, &resource.frameCompleteFence));
+    }
 
     return true;
 }
@@ -146,7 +152,7 @@ void BasicRenderer::destroy()
     m_swapChainDepthBuffer.destroy();
     m_renderPass.destroy();
     destroyFramebuffers();
-    destroyCommandBuffers();
+    destroyFrameResources();
     m_swapChain.destroy();
 
     shutdown();
@@ -169,13 +175,9 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
     {
         m_swapChainDepthBuffer.destroy();
         destroyFramebuffers();
-        destroyCommandBuffers();
-        createCommandBuffers();
         m_swapChainDepthBuffer.createDepthBuffer(&m_device, m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
         createSwapChainFramebuffers();
 
-        fillCommandBuffers();
-        
         updateMVPUniform();
 
         return true;
@@ -186,27 +188,39 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
 void BasicRenderer::destroyFramebuffers()
 {
     for (auto& framebuffer : m_framebuffers)
-    {
         framebuffer.destroy();
-    }
 }
 
-void BasicRenderer::destroyCommandBuffers()
+void BasicRenderer::destroyFrameResources()
 {
-    vkFreeCommandBuffers(m_device.getVkDevice(), m_device.getGraphicsCommandPool(), static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
+    for (const auto& resource : m_frameResources)
+    {
+        vkFreeCommandBuffers(m_device.getVkDevice(), m_device.getGraphicsCommandPool(), 1, &resource.graphicsCommandBuffer);
+        vkDestroyFence(m_device.getVkDevice(), resource.frameCompleteFence, nullptr);
+    }
+    m_frameResources.clear();
 }
 
 void BasicRenderer::draw()
 {
     m_stats.startFrame();
 
-    uint32_t imageId(0);
-    if (!m_swapChain.acquireNextImage(imageId))
+    m_frameResourceId = (m_frameResourceId + 1) % m_frameResourceCount;
+
+    vkWaitForFences(m_device.getVkDevice(), 1, &m_frameResources[m_frameResourceId].frameCompleteFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(m_device.getVkDevice(), 1, &m_frameResources[m_frameResourceId].frameCompleteFence);
+
+    uint32_t swapChainImageId(0);
+    if (!m_swapChain.acquireNextImage(swapChainImageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
+    
+    const FrameData frameData {
+        m_frameResources[m_frameResourceId], m_framebuffers[swapChainImageId].getVkFramebuffer()
+    };
 
-    render(imageId);
+    render(frameData);
 
-    if (!m_swapChain.present(imageId))
+    if (!m_swapChain.present(swapChainImageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
 
     if (m_stats.endFrame())
@@ -229,7 +243,7 @@ void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer)
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = m_swapChain.getRenderFinishedSemaphore();
 
-    VK_CHECK_RESULT(vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
+    VK_CHECK_RESULT(vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, m_frameResources[m_frameResourceId].frameCompleteFence));
 }
 
 void BasicRenderer::updateMVPUniform()

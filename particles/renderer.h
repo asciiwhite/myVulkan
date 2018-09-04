@@ -11,15 +11,16 @@ class Renderer : public BasicRenderer
 {
 private:
     bool setup() override;
-    void render(uint32_t frameId) override;
+    void render(const FrameData& frameData) override;
     void shutdown() override;
-    void fillCommandBuffers() override;
+    void fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer);
 
     void setupCameraDescriptorSet();
     void setupParticleVertexBuffer();
     void setupGraphicsPipeline();
     void setupComputePipeline();
-    void buildComputeCommandBuffer();
+    bool createComputeCommandBuffer();
+    void buildComputeCommandBuffer(VkCommandBuffer commandBuffer);
     void renderParticles(VkCommandBuffer commandBuffer) const;
 
     VertexBuffer m_vertexBuffer;
@@ -44,6 +45,5 @@ private:
     };
     ComputeInput* m_computeMappedInputBuffer = nullptr;
 
-    VkFence m_computeFence = VK_NULL_HANDLE;
     DescriptorPool m_descriptorPool;
 };

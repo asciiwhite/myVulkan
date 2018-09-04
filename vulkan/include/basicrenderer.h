@@ -32,47 +32,61 @@ protected:
     void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir);
     void updateMVPUniform();
 
+    struct BaseFrameResources
+    {
+        VkCommandBuffer graphicsCommandBuffer;
+        VkFence frameCompleteFence;
+    };
+
+    struct FrameData
+    {
+        BaseFrameResources& resources;
+        VkFramebuffer framebuffer;
+    };
+
+    virtual void render(const FrameData& frameData) = 0;
+
+    uint32_t m_frameResourceId = 0;
+    uint32_t m_frameResourceCount = 0;
+    
+    Device m_device;
+    SwapChain m_swapChain;
+    RenderPass m_renderPass;
+    Buffer m_cameraUniformBuffer;
+    Statistics m_stats;
+
 private:
+    std::vector<BaseFrameResources> m_frameResources;
+    std::vector<Framebuffer> m_framebuffers;
+
     bool createInstance();
     bool createDevice();
     bool createSwapChain();
-    bool createCommandBuffers();
+    bool createFrameResources(uint32_t numFrames);
     bool createSwapChainFramebuffers();
 
     void destroyFramebuffers();
-    void destroyCommandBuffers();
-
-    bool checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, uint32_t &graphicsQueueNodeIndex);
+    void destroyFrameResources();
 
     virtual bool setup() = 0;
-    virtual void render(uint32_t frameId) = 0;
     virtual void shutdown() = 0;
-    virtual void fillCommandBuffers() = 0;
 
     VkInstance m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
-
-protected:
-    Device m_device;
-    SwapChain m_swapChain;
     Texture m_swapChainDepthBuffer;
     VkFormat m_swapChainDepthBufferFormat = VK_FORMAT_UNDEFINED;
-    RenderPass m_renderPass;
-    std::vector<VkCommandBuffer> m_commandBuffers;
-    std::vector<Framebuffer> m_framebuffers;
 
-    Statistics m_stats;
-
-    Buffer m_cameraUniformBuffer;
-
+    // camera stuff
+protected:
     float m_sceneBoundingBoxDiameter = 0.f;
-    bool m_observerCameraMode = true;
 
     glm::vec3 m_cameraPosition;
     glm::vec3 m_cameraTarget;
     glm::vec3 m_cameraLook;
     glm::vec3 m_cameraUp;
 
+private:
+    bool m_observerCameraMode = true;
     bool m_leftMouseButtonDown = false;
     bool m_middleMouseButtonDown = false;
     bool m_rightMouseButtonDown = false;
