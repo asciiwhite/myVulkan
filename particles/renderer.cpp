@@ -20,13 +20,13 @@ const uint32_t GROUP_COUNT = static_cast<uint32_t>(std::ceil(static_cast<float>(
 
 bool Renderer::setup()
 {
-    m_shader = Shader::getShader(m_device, { { VK_SHADER_STAGE_VERTEX_BIT, "data/shaders/base.vert.spv"} ,
-                                             { VK_SHADER_STAGE_FRAGMENT_BIT, "data/shaders/color.frag.spv"} });
-    if (m_shader == nullptr)
+    m_shader = ShaderManager::Acquire(m_device, { { VK_SHADER_STAGE_VERTEX_BIT, "data/shaders/base.vert.spv"} ,
+                                                  { VK_SHADER_STAGE_FRAGMENT_BIT, "data/shaders/color.frag.spv"} });
+    if (!m_shader)
         return false;
 
-    m_computeShader = Shader::getShader(m_device, { { VK_SHADER_STAGE_COMPUTE_BIT, "data/shaders/particles.comp.spv"} });
-    if (m_computeShader == nullptr)
+    m_computeShader = ShaderManager::Acquire(m_device, { { VK_SHADER_STAGE_COMPUTE_BIT, "data/shaders/particles.comp.spv"} });
+    if (!m_computeShader)
         return false;
 
     m_descriptorPool.init(m_device, 2,
@@ -86,7 +86,7 @@ void Renderer::setupGraphicsPipeline()
         m_renderPass,
         m_graphicsPipelineLayout,
         settings,
-        m_shader->getShaderStages(),
+        m_shader.getShaderStages(),
         &m_vertexBuffer);
 }
 
@@ -110,7 +110,7 @@ void Renderer::setupComputePipeline()
     VkComputePipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pipelineInfo.flags = 0;
-    pipelineInfo.stage = m_computeShader->getShaderStages().front();
+    pipelineInfo.stage = m_computeShader.getShaderStages().front();
     pipelineInfo.layout = m_computePipelineLayout;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = 0;
@@ -133,9 +133,9 @@ void Renderer::shutdown()
     vkDestroyPipeline(m_device, m_computePipeline, nullptr);
     m_device.destroyPipelineLayout(m_computePipelineLayout);
 
-    Shader::release(m_shader);
-    Shader::release(m_computeShader);
     GraphicsPipeline::Release(m_device, m_graphicsPipeline);
+    ShaderManager::Release(m_device, m_shader);
+    ShaderManager::Release(m_device, m_computeShader);
 }
 
 void Renderer::renderParticles(VkCommandBuffer commandBuffer) const

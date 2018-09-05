@@ -29,7 +29,6 @@ set(VULKAN_SOURCES
     include/vertexbuffer.h
     include/texture.h
     include/mesh.h
-    include/handles.h
     include/window.h
     include/buffer.h
     src/basicrenderer.cpp

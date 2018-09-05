@@ -1,7 +1,7 @@
 #include "vertexbuffer.h"
 #include "graphicspipeline.h"
 #include "descriptorset.h"
-#include "handles.h"
+#include "shader.h"
 #include "texture.h"
 #include "../utils/glm.h"
 
@@ -30,7 +30,7 @@ private:
     bool hasUniqueVertexAttributes() const;
     void createSeparateVertexAttributes();
     void createInterleavedVertexAttributes();
-    ShaderHandle selectShaderFromAttributes(bool useTexture);
+    Shader selectShaderFromAttributes(bool useTexture);
     void calculateBoundingBox();
     void loadMaterials();
     void createDefaultMaterial();
@@ -73,7 +73,7 @@ private:
     struct MaterialDesc
     {
         Buffer material;
-        ShaderHandle shader;
+        Shader shader;
         Texture diffuseTexture;
         VkPipeline pipeline;
         DescriptorSet descriptorSet;

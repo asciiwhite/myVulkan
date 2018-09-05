@@ -1,12 +1,13 @@
 #include "shader.h"
 #include "vulkanhelper.h"
+#include "device.h"
 
 #include <fstream>
 #include <algorithm>
 
-Shader::ShaderMap Shader::m_loadedShaders;
+ShaderManager::ShaderMap ShaderManager::m_loadedShaders;
 
-ShaderHandle Shader::getShader(VkDevice device, const std::vector<ModuleDesc>& modules)
+Shader ShaderManager::Acquire(Device& device, const std::vector<ModuleDesc>& modules)
 {
     std::string combindedShaderFilenames;
 
@@ -15,53 +16,46 @@ ShaderHandle Shader::getShader(VkDevice device, const std::vector<ModuleDesc>& m
 
     if (m_loadedShaders.count(combindedShaderFilenames) == 0)
     {
-        auto newShader = std::make_shared<Shader>();
-        if (newShader->createFromFiles(device, modules))
+        Shader newShader = CreateFromFiles(device, modules);
+        if (newShader)
         {
-            m_loadedShaders[combindedShaderFilenames] = newShader;
-        }
-        else
-        {
-            newShader.reset();
+            m_loadedShaders[combindedShaderFilenames] = { 1, newShader }; // init refcount
         }
         return newShader;
     }
 
-    return m_loadedShaders[combindedShaderFilenames];
+    auto& entry = m_loadedShaders.at(combindedShaderFilenames);
+    entry.refCount++;
+    return entry.shader;
 }
 
-void Shader::release(ShaderHandle& shader)
+void ShaderManager::Release(Device& device, Shader& shader)
 {
-    auto iter = std::find_if(m_loadedShaders.begin(), m_loadedShaders.end(), [=](const ShaderMap::value_type& shaderPair) { return shaderPair.second == shader; });
+    auto iter = std::find_if(m_loadedShaders.begin(), m_loadedShaders.end(), [=](const ShaderMap::value_type& shaderPair) { return shaderPair.second.shader == shader; });
     assert(iter != m_loadedShaders.end());
 
-    shader.reset();
-
-    if (iter->second.unique())
+    auto& entry = iter->second;
+    if (--entry.refCount == 0)
     {
+        for (auto shaderModule : entry.shader.shaderModules)
+        {
+            vkDestroyShaderModule(device, shaderModule, nullptr);
+        }
         m_loadedShaders.erase(iter);
     }
 }
 
-Shader::~Shader()
+Shader ShaderManager::CreateFromFiles(Device& device, const std::vector<ModuleDesc>& modules)
 {
-    for (auto shaderModule : m_shaderModules)
-    {
-        vkDestroyShaderModule(m_device, shaderModule, nullptr);
-    }
-}
-
-bool Shader::createFromFiles(VkDevice device, const std::vector<ModuleDesc>& modules)
-{
-    m_device = device;
+    Shader shader;
 
     for (const auto& moduleDesc : modules)
     {
         auto shaderModule = CreateShaderModule(device, moduleDesc.filename);
         if (shaderModule == VK_NULL_HANDLE)
-            return false;
+            return shader;
 
-        m_shaderModules.push_back(shaderModule);
+        shader.shaderModules.push_back(shaderModule);
 
         VkPipelineShaderStageCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -69,13 +63,13 @@ bool Shader::createFromFiles(VkDevice device, const std::vector<ModuleDesc>& mod
         info.module = shaderModule;
         info.pName = "main";
 
-        m_shaderStageCreateInfo.push_back(info);
+        shader.shaderStageCreateInfo.push_back(info);
     }
 
-    return true;
+    return shader;
 }
 
-VkShaderModule Shader::CreateShaderModule(VkDevice device, const std::string& filename)
+VkShaderModule ShaderManager::CreateShaderModule(Device& device, const std::string& filename)
 {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     if (!file.is_open())

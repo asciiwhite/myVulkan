@@ -1,7 +1,7 @@
 #pragma once
 
 #include "basicrenderer.h"
-#include "handles.h"
+#include "shader.h"
 #include "vertexbuffer.h"
 #include "descriptorset.h"
 #include "graphicspipeline.h"
@@ -24,7 +24,7 @@ private:
     void renderParticles(VkCommandBuffer commandBuffer) const;
 
     VertexBuffer m_vertexBuffer;
-    ShaderHandle m_shader;
+    Shader m_shader;
     VkPipeline m_graphicsPipeline;
     VkPipelineLayout m_graphicsPipelineLayout;
     DescriptorSetLayout m_cameraDescriptorSetLayout;
@@ -36,7 +36,7 @@ private:
     VkPipelineLayout m_computePipelineLayout;
     DescriptorSetLayout m_computeDescriptorSetLayout;
     DescriptorSet m_computeDescriptorSet;
-    ShaderHandle m_computeShader;
+    Shader m_computeShader;
     Buffer m_computeInputBuffer;
     struct ComputeInput
     {

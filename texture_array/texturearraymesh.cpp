@@ -27,8 +27,8 @@ void TextureArrayMesh::destroy()
     for (auto& desc : m_materialDescs)
     {
         m_device->destroyBuffer(desc.material);
-        Shader::release(desc.shader);
         GraphicsPipeline::Release(*m_device, desc.pipeline);
+        ShaderManager::Release(*m_device, desc.shader);
         if (desc.diffuseTexture.isValid())
             TextureManager::Release(*m_device, desc.diffuseTexture);
     }
@@ -285,7 +285,7 @@ void TextureArrayMesh::createSeparateVertexAttributes()
     std::cout << "Vertex count:\t " << m_attrib.vertices.size() / 3 << std::endl;
 }
 
-ShaderHandle TextureArrayMesh::selectShaderFromAttributes(bool useTexture)
+Shader TextureArrayMesh::selectShaderFromAttributes(bool useTexture)
 {
     const std::string shaderPath = "data/shaders/";
     std::string vertexShaderName = "color_normal";
@@ -300,8 +300,8 @@ ShaderHandle TextureArrayMesh::selectShaderFromAttributes(bool useTexture)
     const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
     const auto fragmentShaderFilename = shaderPath + fragmemtShaderName + ".frag.spv";
 
-    return Shader::getShader(*m_device, { { VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFilename },
-                                          { VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderFilename} });
+    return ShaderManager::Acquire(*m_device, { { VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFilename },
+                                               { VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderFilename} });
 }
 
 void TextureArrayMesh::loadMaterials()
@@ -476,7 +476,7 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
             renderPass,
             m_pipelineLayout,
             settings,
-            desc.shader->getShaderStages(),
+            desc.shader.getShaderStages(),
             &m_vertexBuffer);
 
         if (!desc.pipeline)

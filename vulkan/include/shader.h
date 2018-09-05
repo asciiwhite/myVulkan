@@ -1,36 +1,51 @@
 #pragma once
 
-#include "handles.h"
-
 #include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
 
-class Shader
+class Device;
+
+struct Shader
 {
 public:
-    ~Shader();
+    std::vector<VkPipelineShaderStageCreateInfo> getShaderStages() const { return shaderStageCreateInfo; }
 
-    std::vector<VkPipelineShaderStageCreateInfo> getShaderStages() const { return m_shaderStageCreateInfo; }
+    operator bool() const
+    {
+        return !shaderModules.empty();
+    }
 
+private:
+    std::vector<VkShaderModule> shaderModules;
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo;
+
+    friend class ShaderManager;
+};
+
+class ShaderManager
+{
+public:
     struct ModuleDesc
     {
         VkShaderStageFlagBits stage;
         std::string filename;
     };
 
-    static ShaderHandle getShader(VkDevice device, const std::vector<ModuleDesc>& modules);
-    static void release(ShaderHandle& shader);
+    static Shader Acquire(Device& device, const std::vector<ModuleDesc>& modules);
+    static void Release(Device& device, Shader& shader);
+
 private:
-    bool createFromFiles(VkDevice device, const std::vector<ModuleDesc>& modules);
+    static Shader CreateFromFiles(Device& device, const std::vector<ModuleDesc>& modules);
+    static VkShaderModule CreateShaderModule(Device& device, const std::string& filename);
 
-    static VkShaderModule CreateShaderModule(VkDevice device, const std::string& filename);
+    struct ShaderData
+    {
+        uint64_t refCount;
+        Shader shader;
+    };
 
-    VkDevice m_device = VK_NULL_HANDLE;
-    std::vector<VkShaderModule> m_shaderModules;
-    std::vector<VkPipelineShaderStageCreateInfo> m_shaderStageCreateInfo;
-
-    using ShaderMap = std::unordered_map<std::string, ShaderHandle>;
+    using ShaderMap = std::unordered_map<std::string, ShaderData>;
     static ShaderMap m_loadedShaders;
 };
