@@ -1,6 +1,7 @@
 #include "graphicspipeline.h"
 #include "vulkanhelper.h"
 #include "vertexbuffer.h"
+#include "device.h"
 #include "../utils/hasher.h"
 
 #include <algorithm>
@@ -120,7 +121,7 @@ PipelineSettings& PipelineSettings::setCullMode(VkCullModeFlags mode)
 
 GraphicsPipeline::PipelineMap GraphicsPipeline::m_createdPipelines;
 
-PipelineHandle GraphicsPipeline::getPipeline(VkDevice device,
+VkPipeline GraphicsPipeline::Acquire(Device& device,
     VkRenderPass renderPass,
     VkPipelineLayout layout,
     const PipelineSettings& settings,
@@ -138,82 +139,25 @@ PipelineHandle GraphicsPipeline::getPipeline(VkDevice device,
 
     if (m_createdPipelines.count(pipelineHash) == 0)
     {
-        auto newPipeline = std::make_shared<GraphicsPipeline>();
-        if (newPipeline->init(device, renderPass, layout, settings, shaderStages, vertexbuffer))
-        {
-            m_createdPipelines[pipelineHash] = newPipeline;
-        }
-        else
-        {
-            newPipeline.reset();
-        }
+        auto newPipeline = device.createPipeline(renderPass, layout, settings, shaderStages, vertexbuffer);
+        m_createdPipelines[pipelineHash] = { 1, newPipeline }; // init refcount 
         return newPipeline;
     }
 
-    return m_createdPipelines[pipelineHash];
+    auto& pipelineData = m_createdPipelines.at(pipelineHash);
+    pipelineData.refCount++;
+    return pipelineData.pipeline;
 }
 
-void GraphicsPipeline::release(PipelineHandle& pipeline)
+void GraphicsPipeline::Release(Device& device, VkPipeline& pipeline)
 {
-    auto iter = std::find_if(m_createdPipelines.begin(), m_createdPipelines.end(), [=](const PipelineMap::value_type& pipelinePair) { return pipelinePair.second == pipeline; });
+    auto iter = std::find_if(m_createdPipelines.begin(), m_createdPipelines.end(), [=](const PipelineMap::value_type& pipelinePair) { return pipelinePair.second.pipeline == pipeline; });
     assert(iter != m_createdPipelines.end());
 
-    pipeline.reset();
-
-    if (iter->second.unique())
+    auto& pipelineData = iter->second;
+    if (--pipelineData.refCount == 0)
     {
+        device.destroyPipeline(pipelineData.pipeline);
         m_createdPipelines.erase(iter);
     }
-}
-
-bool GraphicsPipeline::init(VkDevice device,
-    VkRenderPass renderPass,
-    VkPipelineLayout layout,
-    const PipelineSettings& settings,
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
-    const VertexBuffer* vertexbuffer)
-{
-    assert(!shaderStages.empty());
-
-    m_device = device;
-
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.flags = 0;
-    vertexInputInfo.vertexBindingDescriptionCount = vertexbuffer ? static_cast<uint32_t>(vertexbuffer->getBindingDescriptions().size()) : 0;
-    vertexInputInfo.pVertexBindingDescriptions = vertexbuffer ? &vertexbuffer->getBindingDescriptions()[0] : nullptr;
-    vertexInputInfo.vertexAttributeDescriptionCount = vertexbuffer ? static_cast<uint32_t>(vertexbuffer->getAttributeDescriptions().size()) : 0;
-    vertexInputInfo.pVertexAttributeDescriptions = vertexbuffer ? &vertexbuffer->getAttributeDescriptions()[0] : nullptr;
-
-    VkGraphicsPipelineCreateInfo pipelineInfo = {};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-    pipelineInfo.pStages = &shaderStages[0];
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &settings.inputAssembly;
-    pipelineInfo.pViewportState = &settings.viewportState;
-    pipelineInfo.pRasterizationState = &settings.rasterizer;
-    pipelineInfo.pMultisampleState = &settings.multisampling;
-    pipelineInfo.pDepthStencilState = &settings.depthStencil;
-    pipelineInfo.pColorBlendState = &settings.colorBlending;
-    pipelineInfo.pDynamicState = &settings.dynamicState;
-    pipelineInfo.layout = layout;
-    pipelineInfo.renderPass = renderPass;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-    VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline));
-
-    return true;
-}
-
-GraphicsPipeline::~GraphicsPipeline()
-{
-    destroy();
-}
-
-void GraphicsPipeline::destroy()
-{
-    vkDestroyPipeline(m_device, m_pipeline, nullptr);
-    m_pipeline = VK_NULL_HANDLE;
 }

@@ -27,8 +27,8 @@ void TextureArrayMesh::destroy()
     for (auto& desc : m_materialDescs)
     {
         m_device->destroyBuffer(desc.material);
-        GraphicsPipeline::release(desc.pipeline);
         Shader::release(desc.shader);
+        GraphicsPipeline::Release(*m_device, desc.pipeline);
         if (desc.diffuseTexture)
             Texture::release(desc.diffuseTexture);
     }
@@ -472,7 +472,7 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
         PipelineSettings settings;
         settings.setAlphaBlending(isTransparent).setCullMode(isTransparent ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT);
 
-        desc.pipeline = GraphicsPipeline::getPipeline(*m_device,
+        desc.pipeline = GraphicsPipeline::Acquire(*m_device,
             renderPass,
             m_pipelineLayout,
             settings,
@@ -490,7 +490,7 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
 
 void TextureArrayMesh::render(VkCommandBuffer commandBuffer) const
 {
-    PipelineHandle currentPipeline;
+    VkPipeline currentPipeline = VK_NULL_HANDLE;
 
     m_cameraUniformDescriptorSet.bind(commandBuffer, m_pipelineLayout, SET_ID_CAMERA);
     m_texturesDescriptorSet.bind(commandBuffer, m_pipelineLayout, SET_ID_TEXTURES);
@@ -502,7 +502,7 @@ void TextureArrayMesh::render(VkCommandBuffer commandBuffer) const
 
         if (currentPipeline != materialDesc.pipeline)
         {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *materialDesc.pipeline);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, materialDesc.pipeline);
             currentPipeline = materialDesc.pipeline;
         }
 

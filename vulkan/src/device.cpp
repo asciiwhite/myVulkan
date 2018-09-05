@@ -2,6 +2,8 @@
 #include "vulkanhelper.h"
 #include "buffer.h"
 #include "debug.h"
+#include "vertexbuffer.h"
+#include "graphicspipeline.h"
 
 #include <array>
 
@@ -367,6 +369,46 @@ void Device::destroyPipelineLayout(VkPipelineLayout& pipelineLayout) const
 {
     vkDestroyPipelineLayout(m_device, pipelineLayout, nullptr);
     pipelineLayout = VK_NULL_HANDLE;
+}
+
+VkPipeline Device::createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const PipelineSettings& settings, std::vector<VkPipelineShaderStageCreateInfo> shaderStages, const VertexBuffer* vertexbuffer)
+{
+    assert(!shaderStages.empty());
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.flags = 0;
+    vertexInputInfo.vertexBindingDescriptionCount = vertexbuffer ? static_cast<uint32_t>(vertexbuffer->getBindingDescriptions().size()) : 0;
+    vertexInputInfo.pVertexBindingDescriptions = vertexbuffer ? &vertexbuffer->getBindingDescriptions()[0] : nullptr;
+    vertexInputInfo.vertexAttributeDescriptionCount = vertexbuffer ? static_cast<uint32_t>(vertexbuffer->getAttributeDescriptions().size()) : 0;
+    vertexInputInfo.pVertexAttributeDescriptions = vertexbuffer ? &vertexbuffer->getAttributeDescriptions()[0] : nullptr;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+    pipelineInfo.pStages = &shaderStages[0];
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &settings.inputAssembly;
+    pipelineInfo.pViewportState = &settings.viewportState;
+    pipelineInfo.pRasterizationState = &settings.rasterizer;
+    pipelineInfo.pMultisampleState = &settings.multisampling;
+    pipelineInfo.pDepthStencilState = &settings.depthStencil;
+    pipelineInfo.pColorBlendState = &settings.colorBlending;
+    pipelineInfo.pDynamicState = &settings.dynamicState;
+    pipelineInfo.layout = layout;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+    VkPipeline pipeline;
+    VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
+    return pipeline;
+}
+
+void Device::destroyPipeline(VkPipeline& pipeline)
+{
+    vkDestroyPipeline(m_device, pipeline, nullptr);
+    pipeline = VK_NULL_HANDLE;
 }
 
 void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const

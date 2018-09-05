@@ -82,7 +82,7 @@ void Renderer::setupGraphicsPipeline()
     PipelineSettings settings;
     settings.setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST).setAlphaBlending(true);
 
-    m_graphicsPipeline = GraphicsPipeline::getPipeline(m_device,
+    m_graphicsPipeline = GraphicsPipeline::Acquire(m_device,
         m_renderPass,
         m_graphicsPipelineLayout,
         settings,
@@ -133,16 +133,16 @@ void Renderer::shutdown()
     vkDestroyPipeline(m_device, m_computePipeline, nullptr);
     m_device.destroyPipelineLayout(m_computePipelineLayout);
 
-    GraphicsPipeline::release(m_graphicsPipeline);
     Shader::release(m_shader);
     Shader::release(m_computeShader);
+    GraphicsPipeline::Release(m_device, m_graphicsPipeline);
 }
 
 void Renderer::renderParticles(VkCommandBuffer commandBuffer) const
 {
     m_cameraUniformDescriptorSet.bind(commandBuffer, m_graphicsPipelineLayout, SET_ID_CAMERA);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *m_graphicsPipeline);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
     m_vertexBuffer.draw(commandBuffer);
 }

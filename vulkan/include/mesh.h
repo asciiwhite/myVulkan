@@ -74,7 +74,7 @@ private:
         Buffer material;
         ShaderHandle shader;
         TextureHandle diffuseTexture;
-        PipelineHandle pipeline;
+        VkPipeline pipeline;
         DescriptorSet descriptorSet;
     };
     std::vector<MaterialDesc> m_materialDescs;

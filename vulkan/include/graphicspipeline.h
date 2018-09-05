@@ -1,7 +1,5 @@
 #pragma once
 
-#include "handles.h"
-
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <unordered_map>
@@ -27,41 +25,30 @@ public:
     static VkDynamicState dynamicStates[2];
 };
 
+class Device;
 class VertexBuffer;
-class GraphicsPipeline;
-
-using PipelineHandle = std::shared_ptr<GraphicsPipeline>;
 
 class GraphicsPipeline
 {
 public:
-    ~GraphicsPipeline();
-
-    operator VkPipeline() const { return m_pipeline; }
-
-    static PipelineHandle getPipeline(
-        VkDevice device,
+    static VkPipeline Acquire(
+        Device& device,
         VkRenderPass renderPass,
         VkPipelineLayout layout,
         const PipelineSettings& settings,
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
         const VertexBuffer* vertexbuffer = nullptr);
 
-    static void release(PipelineHandle& pipeline);
+    static void Release(Device& device, VkPipeline& pipeline);
 
 private:
-    bool init(VkDevice device,
-        VkRenderPass renderPass,
-        VkPipelineLayout layout,
-        const PipelineSettings& settings,
-        std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
-        const VertexBuffer* vertexbuffer = nullptr);
 
-    void destroy();
+    struct PipelineData
+    {
+        uint64_t refCount;
+        VkPipeline pipeline;
+    };
 
-    VkDevice m_device = VK_NULL_HANDLE;
-    VkPipeline m_pipeline = VK_NULL_HANDLE;
-
-    using PipelineMap = std::unordered_map<size_t, PipelineHandle>;
+    using PipelineMap = std::unordered_map<size_t, PipelineData>;
     static PipelineMap m_createdPipelines;
 };

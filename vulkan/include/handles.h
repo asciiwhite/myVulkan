@@ -8,4 +8,3 @@
 
 DECLARE_HANDLE(Shader);
 DECLARE_HANDLE(Texture);
-DECLARE_HANDLE(GraphicsPipeline);

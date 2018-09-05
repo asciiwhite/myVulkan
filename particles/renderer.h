@@ -25,7 +25,7 @@ private:
 
     VertexBuffer m_vertexBuffer;
     ShaderHandle m_shader;
-    PipelineHandle m_graphicsPipeline;
+    VkPipeline m_graphicsPipeline;
     VkPipelineLayout m_graphicsPipelineLayout;
     DescriptorSetLayout m_cameraDescriptorSetLayout;
     DescriptorSet m_cameraUniformDescriptorSet;

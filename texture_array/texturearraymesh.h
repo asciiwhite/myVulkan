@@ -77,7 +77,7 @@ private:
         Buffer material;
         ShaderHandle shader;
         TextureHandle diffuseTexture;
-        PipelineHandle pipeline;
+        VkPipeline pipeline;
         DescriptorSet descriptorSet;
         uint32_t imageIdx = ~0u;
     };
