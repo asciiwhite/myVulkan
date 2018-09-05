@@ -40,8 +40,7 @@ void TextureArrayMesh::destroy()
     m_device->destroyPipelineLayout(m_pipelineLayout);
 
     m_vertexBuffer.destroy();
-    vkDestroySampler(*m_device, m_sampler, nullptr);
-    m_sampler = VK_NULL_HANDLE;
+    m_device->destroySampler(m_sampler);
     m_device = nullptr;
 
     assert(m_indices.empty());
@@ -315,7 +314,7 @@ void TextureArrayMesh::loadMaterials()
 
     createDefaultMaterial();
 
-    m_device->createSampler(m_sampler);
+    m_sampler = m_device->createSampler();
 
     // TODO: only load used materials
     m_materialDescs.resize(m_materials.size());

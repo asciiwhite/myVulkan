@@ -477,7 +477,7 @@ void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkIma
     VK_CHECK_RESULT(vkBindImageMemory(m_device, image, imageMemory, 0));
 }
 
-void Device::createSampler(VkSampler& sampler) const
+VkSampler Device::createSampler() const
 {
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -497,7 +497,15 @@ void Device::createSampler(VkSampler& sampler) const
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 0.0f;
 
+    VkSampler sampler;
     VK_CHECK_RESULT(vkCreateSampler(m_device, &samplerInfo, nullptr, &sampler));
+    return sampler;
+}
+
+void Device::destroySampler(VkSampler& sampler) const
+{
+    vkDestroySampler(m_device, sampler, nullptr);
+    sampler = VK_NULL_HANDLE;
 }
 
 uint32_t Device::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)

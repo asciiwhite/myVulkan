@@ -34,7 +34,9 @@ public:
     Texture createDepthBuffer(const VkExtent2D& extend, VkFormat format) const;
     void destroyTexture(Texture& texture) const;
 
-    void createSampler(VkSampler& sampler) const;    
+    VkSampler createSampler() const;
+    void destroySampler(VkSampler& sampler) const;
+
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
     void createImageView(VkImage image, VkFormat format, VkImageView& imageView, VkImageAspectFlags aspectFlags) const;
 
