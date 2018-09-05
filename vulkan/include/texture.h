@@ -24,7 +24,6 @@ public:
 
 private:
     bool loadFromFile(Device* device, const std::string& filename);
-    void createImageView();
 
     Device* m_device = nullptr;
 

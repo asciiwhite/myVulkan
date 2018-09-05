@@ -1,5 +1,6 @@
 #include "device.h"
 #include "vulkanhelper.h"
+#include "buffer.h"
 #include "debug.h"
 
 bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidationLayers)
@@ -210,26 +211,51 @@ void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
     endSingleTimeCommands(commandBuffer);
 }
 
-void Device::createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
+Buffer Device::createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) const
 {
+    Buffer resultBuffer;
+
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VK_CHECK_RESULT(vkCreateBuffer(m_device, &bufferInfo, nullptr, &buffer));
+    vkCreateBuffer(m_device, &bufferInfo, nullptr, &resultBuffer.buffer);
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_device, buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(m_device, resultBuffer.buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(m_physicalDevice, memRequirements.memoryTypeBits, properties);
 
-    VK_CHECK_RESULT(vkAllocateMemory(m_device, &allocInfo, nullptr, &bufferMemory));
-    VK_CHECK_RESULT(vkBindBufferMemory(m_device, buffer, bufferMemory, 0));
+    vkAllocateMemory(m_device, &allocInfo, nullptr, &resultBuffer.memory);
+    vkBindBufferMemory(m_device, resultBuffer.buffer, resultBuffer.memory, 0);
+
+    return resultBuffer;
+}
+
+void Device::destroyBuffer(Buffer& buffer) const
+{
+    vkDestroyBuffer(m_device, buffer.buffer, nullptr);
+    vkFreeMemory(m_device, buffer.memory, nullptr);
+
+    buffer.buffer = VK_NULL_HANDLE;
+    buffer.memory = VK_NULL_HANDLE;
+}
+
+void* Device::mapBuffer(const Buffer& buffer, uint64_t size, uint64_t offset) const
+{
+    void* data;
+    VK_CHECK_RESULT(vkMapMemory(m_device, buffer.memory, offset, size, 0, &data));
+    return data;
+}
+
+void Device::unmapBuffer(const Buffer& buffer) const
+{
+    vkUnmapMemory(m_device, buffer.memory);
 }
 
 void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const

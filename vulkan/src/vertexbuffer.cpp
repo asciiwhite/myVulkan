@@ -110,24 +110,23 @@ void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer&
     if (useStaging)
     {
         // TODO: use single persistent staging buffer?
-        Buffer stagingBuffer;
-        stagingBuffer.create(*m_device, size,
+        Buffer stagingBuffer = m_device->createBuffer(size,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         mapMemory(stagingBuffer, memcpyFunc);
 
-        buffer.create(*m_device, size,
+        buffer = m_device->createBuffer(size,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         m_device->copyBuffer(stagingBuffer, buffer, size);
 
-        stagingBuffer.destroy(*m_device);
+        m_device->destroyBuffer(stagingBuffer);
     }
     else
     {
-        buffer.create(*m_device, size,
+        buffer = m_device->createBuffer(size,
             usage,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
@@ -137,9 +136,9 @@ void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer&
 
 void VertexBuffer::mapMemory(Buffer& buffer, const MemcpyFunc& memcpyFunc)
 {
-    void* mappedMemory = buffer.map(*m_device);
+    void* mappedMemory = m_device->mapBuffer(buffer);
     memcpyFunc(mappedMemory);
-    buffer.unmap(*m_device);
+    m_device->unmapBuffer(buffer);
 }
 
 void VertexBuffer::setIndices(const uint16_t *indices, uint32_t numIndices)
@@ -197,10 +196,8 @@ const std::vector<VkVertexInputBindingDescription>& VertexBuffer::getBindingDesc
 
 void VertexBuffer::destroy()
 {
-    m_vertexBuffer.destroy(*m_device);
+    m_device->destroyBuffer(m_vertexBuffer);
 
     if (m_indexBuffer.isValid())
-    {
-        m_indexBuffer.destroy(*m_device);
-    }
+        m_device->destroyBuffer(m_indexBuffer);
 }

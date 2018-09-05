@@ -11,6 +11,7 @@
 
 class Device;
 class RenderPass;
+struct Buffer;
 
 class Mesh
 {
@@ -29,7 +30,6 @@ private:
     void createSeparateVertexAttributes();
     void createInterleavedVertexAttributes();
     ShaderHandle selectShaderFromAttributes(bool useTexture);
-    void createPipeline();
     void calculateBoundingBox();
     void loadMaterials();
     void createDefaultMaterial();
@@ -71,8 +71,7 @@ private:
 
     struct MaterialDesc
     {
-        VkBuffer materialUB = VK_NULL_HANDLE;
-        VkDeviceMemory materialUBMemory = VK_NULL_HANDLE;
+        Buffer material;
         ShaderHandle shader;
         TextureHandle diffuseTexture;
         PipelineHandle pipeline;

@@ -1,6 +1,7 @@
 #include "texture.h"
 #include "vulkanhelper.h"
 #include "device.h"
+#include "buffer.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -64,17 +65,13 @@ bool Texture::loadFromFile(Device* device, const std::string& filename)
 
     const uint32_t imageSize = texWidth * texHeight * 4;
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    device->createBuffer(imageSize,
+    Buffer stagingBuffer = device->createBuffer(imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer, stagingBufferMemory);
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    void* data;
-    vkMapMemory(*device, stagingBufferMemory, 0, imageSize, 0, &data);
+    void* data = device->mapBuffer(stagingBuffer, imageSize, 0);
     std::memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(*device, stagingBufferMemory);
+    device->unmapBuffer(stagingBuffer);
 
     stbi_image_free(pixels);
 
@@ -97,8 +94,7 @@ bool Texture::loadFromFile(Device* device, const std::string& filename)
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    vkDestroyBuffer(*device, stagingBuffer, nullptr);
-    vkFreeMemory(*device, stagingBufferMemory, nullptr);
+    device->destroyBuffer(stagingBuffer);
 
     device->createImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, m_imageView, VK_IMAGE_ASPECT_COLOR_BIT);
 

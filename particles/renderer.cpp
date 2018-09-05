@@ -92,8 +92,8 @@ void Renderer::setupGraphicsPipeline()
 
 void Renderer::setupComputePipeline()
 {
-    m_computeInputBuffer.create(m_device, sizeof(ComputeInput), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    m_computeMappedInputBuffer = static_cast<ComputeInput*>(m_computeInputBuffer.map(m_device));
+    m_computeInputBuffer = m_device.createBuffer(sizeof(ComputeInput), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    m_computeMappedInputBuffer = static_cast<ComputeInput*>(m_device.mapBuffer(m_computeInputBuffer));
     m_computeMappedInputBuffer->particleCount = NUM_PARTICLES;
     m_computeMappedInputBuffer->timeDelta = 0.f;
 
@@ -128,7 +128,7 @@ void Renderer::shutdown()
 
     vkFreeCommandBuffers(m_device, m_device.getComputeCommandPool(), static_cast<uint32_t>(m_computeCommandBuffers.size()), m_computeCommandBuffers.data());
 
-    m_computeInputBuffer.destroy(m_device);
+    m_device.destroyBuffer(m_computeInputBuffer);
     m_computeDescriptorSetLayout.destroy(m_device);
     vkDestroyPipeline(m_device, m_computePipeline, nullptr);
     m_computePipelineLayout.destroy();

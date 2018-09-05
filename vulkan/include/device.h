@@ -3,14 +3,20 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 
+struct Buffer;
+
 class Device
 {
 public:
     bool init(VkInstance instance, VkSurfaceKHR surface, bool enableValidationLayers);
     void destroy();
 
-    void createSampler(VkSampler& sampler) const;
-    void createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+    Buffer createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) const;
+    void* mapBuffer(const Buffer& buffer, uint64_t size = VK_WHOLE_SIZE, uint64_t offset = 0u) const;
+    void unmapBuffer(const Buffer& buffer) const;
+    void destroyBuffer(Buffer& buffer) const;
+
+    void createSampler(VkSampler& sampler) const;    
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
     void createImageView(VkImage image, VkFormat format, VkImageView& imageView, VkImageAspectFlags aspectFlags) const;
 

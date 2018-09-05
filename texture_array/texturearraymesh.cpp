@@ -27,11 +27,7 @@ void TextureArrayMesh::destroy()
     
     for (auto& desc : m_materialDescs)
     {
-        vkDestroyBuffer(*m_device, desc.materialUB, nullptr);
-        desc.materialUB = VK_NULL_HANDLE;
-        vkFreeMemory(*m_device, desc.materialUBMemory, nullptr);
-        desc.materialUBMemory = VK_NULL_HANDLE;
-
+        m_device->destroyBuffer(desc.material);
         GraphicsPipeline::release(desc.pipeline);
         Shader::release(desc.shader);
         if (desc.diffuseTexture)
@@ -341,19 +337,17 @@ void TextureArrayMesh::loadMaterials()
         auto& desc = *materialDescIter++;
 
         const uint32_t uboSize = sizeof(glm::vec4) + sizeof(glm::vec4) + sizeof(glm::vec4);
-        m_device->createBuffer(uboSize,
+        desc.material = m_device->createBuffer(uboSize,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            desc.materialUB, desc.materialUBMemory);
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        void* data;
-        vkMapMemory(*m_device, desc.materialUBMemory, 0, uboSize, 0, &data);
+        void* data = m_device->mapBuffer(desc.material, uboSize, 0);
         std::memcpy(data, &material.ambient, 3 * sizeof(float));
         std::memcpy(static_cast<char*>(data) + 4 * sizeof(float), &material.diffuse, 3 * sizeof(float));
         std::memcpy(static_cast<char*>(data) + 8 * sizeof(float), &material.emission, 3 * sizeof(float));
-        vkUnmapMemory(*m_device, desc.materialUBMemory);
+        m_device->unmapBuffer(desc.material);
 
-        desc.descriptorSet.addUniformBuffer(BINDING_ID_MATERIAL, desc.materialUB);
+        desc.descriptorSet.addUniformBuffer(BINDING_ID_MATERIAL, desc.material);
 
         if (!textureFilename.empty())
         {

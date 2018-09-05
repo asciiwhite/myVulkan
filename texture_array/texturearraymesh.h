@@ -11,6 +11,7 @@
 
 class Device;
 class RenderPass;
+struct Buffer;
 
 class TextureArrayMesh
 {
@@ -73,8 +74,7 @@ private:
     DescriptorSet m_texturesDescriptorSet;
     struct MaterialDesc
     {
-        VkBuffer materialUB = VK_NULL_HANDLE;
-        VkDeviceMemory materialUBMemory = VK_NULL_HANDLE;
+        Buffer material;
         ShaderHandle shader;
         TextureHandle diffuseTexture;
         PipelineHandle pipeline;
