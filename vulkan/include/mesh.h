@@ -2,6 +2,7 @@
 #include "graphicspipeline.h"
 #include "descriptorset.h"
 #include "handles.h"
+#include "texture.h"
 #include "../utils/glm.h"
 
 #include <tiny_obj_loader.h>
@@ -73,7 +74,7 @@ private:
     {
         Buffer material;
         ShaderHandle shader;
-        TextureHandle diffuseTexture;
+        Texture diffuseTexture;
         VkPipeline pipeline;
         DescriptorSet descriptorSet;
     };

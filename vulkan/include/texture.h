@@ -1,37 +1,43 @@
 #pragma once
 
-#include "handles.h"
-
 #include <vulkan/vulkan.h>
 #include <string>
 #include <unordered_map>
 
 class Device;
 
-class Texture
+struct Texture
 {
 public:
-    ~Texture();
+    bool hasTranspareny() const { return numChannels == 4; }
+    bool isValid() const { return image != VK_NULL_HANDLE; }
 
-    void createDepthBuffer(Device* device, const VkExtent2D& extend, VkFormat format);
-    void destroy();
+    VkImage image = VK_NULL_HANDLE;
+    VkImageView imageView = VK_NULL_HANDLE;
+    VkDeviceMemory imageMemory = VK_NULL_HANDLE;
+    int numChannels = 0;
 
-    VkImageView getImageView() const { return m_imageView; }
-    bool hasTranspareny() const;
+    bool operator ==(const Texture& rhs) const
+    {
+        return image == rhs.image;
+    }
+};
 
-    static TextureHandle getTexture(Device& device, const std::string& textureFilename);
-    static void release(TextureHandle& texture);
+class TextureManager
+{
+public:
+    static Texture Acquire(Device& device, const std::string& textureFilename);
+    static void Release(Device& device, Texture& texture);
 
 private:
-    bool loadFromFile(Device* device, const std::string& filename);
+    static Texture LoadFromFile(Device& device, const std::string& filename);
 
-    Device* m_device = nullptr;
+    struct TextureData
+    {
+        uint64_t refCount;
+        Texture texture;
+    };
 
-    VkImage m_image = VK_NULL_HANDLE;
-    VkImageView m_imageView = VK_NULL_HANDLE;
-    VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
-    int m_numChannels = 0;
-
-    using TextureMap = std::unordered_map<std::string, TextureHandle>;
-    static TextureMap m_loadedTextures;    
+    using TextureMap = std::unordered_map<std::string, TextureData>;
+    static TextureMap m_loadedTextures;
 };

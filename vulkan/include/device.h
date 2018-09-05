@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 
+struct Texture;
 struct Buffer;
 struct PipelineSettings;
 class VertexBuffer;
@@ -29,6 +30,9 @@ public:
 
     VkPipeline createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const PipelineSettings& settings, std::vector<VkPipelineShaderStageCreateInfo> shaderStages, const VertexBuffer* vertexbuffer = nullptr);
     void destroyPipeline(VkPipeline& pipeline);
+
+    Texture createDepthBuffer(const VkExtent2D& extend, VkFormat format) const;
+    void destroyTexture(Texture& texture) const;
 
     void createSampler(VkSampler& sampler) const;    
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;

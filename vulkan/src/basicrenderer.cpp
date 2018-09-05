@@ -32,7 +32,8 @@ bool BasicRenderer::init(GLFWwindow* window)
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
     );
-    m_swapChainDepthBuffer.createDepthBuffer(&m_device, m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
+
+    m_swapChainDepthBuffer = m_device.createDepthBuffer(m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
 
     m_renderPass = m_device.createRenderPass(m_swapChain.getImageFormat(), m_swapChainDepthBufferFormat);
     createSwapChainFramebuffers();
@@ -135,7 +136,7 @@ bool BasicRenderer::createSwapChainFramebuffers()
     {
         m_framebuffers[i] = m_device.createFramebuffer(
             m_renderPass,
-            { m_swapChain.getImageView(static_cast<uint32_t>(i)), m_swapChainDepthBuffer.getImageView() },
+            { m_swapChain.getImageView(static_cast<uint32_t>(i)), m_swapChainDepthBuffer.imageView },
             m_swapChain.getImageExtent());
     }
 
@@ -148,7 +149,7 @@ void BasicRenderer::destroy()
     vkDeviceWaitIdle(m_device);
 
     m_device.destroyBuffer(m_cameraUniformBuffer);
-    m_swapChainDepthBuffer.destroy();
+    m_device.destroyTexture(m_swapChainDepthBuffer);
     m_device.destroyRenderPass(m_renderPass);
     destroyFramebuffers();
     destroyFrameResources();
@@ -172,9 +173,9 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
 
     if (m_swapChain.create())
     {
-        m_swapChainDepthBuffer.destroy();
+        m_device.destroyTexture(m_swapChainDepthBuffer);
         destroyFramebuffers();
-        m_swapChainDepthBuffer.createDepthBuffer(&m_device, m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
+        m_swapChainDepthBuffer = m_device.createDepthBuffer(m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
         createSwapChainFramebuffers();
 
         updateMVPUniform();

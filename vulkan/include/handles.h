@@ -7,4 +7,3 @@
     using Object##Handle = std::shared_ptr<Object>;
 
 DECLARE_HANDLE(Shader);
-DECLARE_HANDLE(Texture);

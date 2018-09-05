@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "vertexbuffer.h"
 #include "graphicspipeline.h"
+#include "texture.h"
 
 #include <array>
 
@@ -409,6 +410,40 @@ void Device::destroyPipeline(VkPipeline& pipeline)
 {
     vkDestroyPipeline(m_device, pipeline, nullptr);
     pipeline = VK_NULL_HANDLE;
+}
+
+
+Texture Device::createDepthBuffer(const VkExtent2D& extend, VkFormat format) const
+{
+    Texture texture;
+
+    createImage(extend.width, extend.height,
+        format,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        texture.image, texture.imageMemory);
+
+    createImageView(texture.image, format, texture.imageView, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    transitionImageLayout(texture.image,
+        format,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+    return texture;
+}
+
+void Device::destroyTexture(Texture& texture) const
+{
+    vkDestroyImageView(m_device, texture.imageView, nullptr);
+    texture.imageView = VK_NULL_HANDLE;
+
+    vkDestroyImage(m_device, texture.image, nullptr);
+    texture.image = VK_NULL_HANDLE;
+
+    vkFreeMemory(m_device, texture.imageMemory, nullptr);
+    texture.imageMemory = VK_NULL_HANDLE;
 }
 
 void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const

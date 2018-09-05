@@ -9,130 +9,84 @@
 #include <cstring>
 #include <algorithm>
 
-Texture::TextureMap Texture::m_loadedTextures;
+TextureManager::TextureMap TextureManager::m_loadedTextures;
 
-TextureHandle Texture::getTexture(Device& device, const std::string& textureFilename)
+Texture TextureManager::LoadFromFile(Device& device, const std::string& filename)
 {
-    if (m_loadedTextures.count(textureFilename) == 0)
-    {
-        auto newTexture = std::make_shared<Texture>();
-        if (newTexture->loadFromFile(&device, textureFilename))
-        {
-            m_loadedTextures[textureFilename] = newTexture;
-        }
-        else
-        {
-            newTexture.reset();
-        }
-        return newTexture;
-    }
-
-    return m_loadedTextures[textureFilename];
-}
-
-void Texture::release(TextureHandle& texture)
-{
-    auto iter = std::find_if(m_loadedTextures.begin(), m_loadedTextures.end(), [=](const TextureMap::value_type& texturePair) { return texturePair.second == texture; });
-    assert(iter != m_loadedTextures.end());
-
-    texture.reset();
-
-    if (iter->second.unique())
-    {
-        m_loadedTextures.erase(iter);
-    }
-}
-
-Texture::~Texture()
-{
-    if (m_imageMemory != VK_NULL_HANDLE)
-    {
-        destroy();
-    }
-}
-
-bool Texture::loadFromFile(Device* device, const std::string& filename)
-{
-    m_device = device;
+    Texture texture;
 
     int texWidth, texHeight;
-    stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &m_numChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texture.numChannels, STBI_rgb_alpha);
     if (!pixels)
     {
         printf("Error: could not load texture %s, reason: %s\n", filename.c_str(), stbi_failure_reason());
-        return false;
+        return texture;
     }
 
     const uint32_t imageSize = texWidth * texHeight * 4;
 
-    Buffer stagingBuffer = device->createBuffer(imageSize,
+    Buffer stagingBuffer = device.createBuffer(imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    void* data = device->mapBuffer(stagingBuffer, imageSize, 0);
+    void* data = device.mapBuffer(stagingBuffer, imageSize, 0);
     std::memcpy(data, pixels, static_cast<size_t>(imageSize));
-    device->unmapBuffer(stagingBuffer);
+    device.unmapBuffer(stagingBuffer);
 
     stbi_image_free(pixels);
 
-    device->createImage(texWidth, texHeight,
+    device.createImage(texWidth, texHeight,
         VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        m_image, m_imageMemory);
+        texture.image, texture.imageMemory);
 
-    device->transitionImageLayout(m_image,
+    device.transitionImageLayout(texture.image,
         VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-    device->copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    device.copyBufferToImage(stagingBuffer, texture.image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
-    device->transitionImageLayout(m_image,
+    device.transitionImageLayout(texture.image,
         VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    device->destroyBuffer(stagingBuffer);
+    device.destroyBuffer(stagingBuffer);
 
-    device->createImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, m_imageView, VK_IMAGE_ASPECT_COLOR_BIT);
+    device.createImageView(texture.image, VK_FORMAT_R8G8B8A8_UNORM, texture.imageView, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    return true;
+    return texture;
 }
 
-void Texture::createDepthBuffer(Device* device, const VkExtent2D& extend, VkFormat format)
+Texture TextureManager::Acquire(Device& device, const std::string& textureFilename)
 {
-    m_device = device;
+    if (m_loadedTextures.count(textureFilename) == 0)
+    {
+        auto newTexture = LoadFromFile(device, textureFilename);
+        if (newTexture.isValid())
+        {
+            m_loadedTextures[textureFilename] = { 1, newTexture }; // init refcount
+        }
+        return newTexture;
+    }
 
-    device->createImage(extend.width, extend.height,
-        format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        m_image, m_imageMemory);
-
-    device->createImageView(m_image, format, m_imageView, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-    device->transitionImageLayout(m_image,
-        format,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    auto& entry = m_loadedTextures.at(textureFilename);
+    entry.refCount++;
+    return entry.texture;
 }
 
-bool Texture::hasTranspareny() const
+void TextureManager::Release(Device& device, Texture& texture)
 {
-    return m_numChannels == 4;
-}
+    auto iter = std::find_if(m_loadedTextures.begin(), m_loadedTextures.end(), [=](const TextureMap::value_type& texturePair) { return texturePair.second.texture == texture; });
+    assert(iter != m_loadedTextures.end());
 
-void Texture::destroy()
-{
-    vkDestroyImageView(*m_device, m_imageView, nullptr);
-    m_imageView = VK_NULL_HANDLE;
-
-    vkDestroyImage(*m_device, m_image, nullptr);
-    m_image = VK_NULL_HANDLE;
-
-    vkFreeMemory(*m_device, m_imageMemory, nullptr);
-    m_imageMemory = VK_NULL_HANDLE;
+    auto& entry = iter->second;
+    if (--entry.refCount == 0)
+    {
+        device.destroyTexture(entry.texture);
+        m_loadedTextures.erase(iter);
+    }
 }

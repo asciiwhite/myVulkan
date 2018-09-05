@@ -29,8 +29,8 @@ void TextureArrayMesh::destroy()
         m_device->destroyBuffer(desc.material);
         Shader::release(desc.shader);
         GraphicsPipeline::Release(*m_device, desc.pipeline);
-        if (desc.diffuseTexture)
-            Texture::release(desc.diffuseTexture);
+        if (desc.diffuseTexture.isValid())
+            TextureManager::Release(*m_device, desc.diffuseTexture);
     }
     m_materials.clear();
     m_cameraDescriptorSetLayout.destroy(*m_device);
@@ -351,16 +351,16 @@ void TextureArrayMesh::loadMaterials()
         if (!textureFilename.empty())
         {
             const auto textureFullname = m_materialBaseDir + textureFilename;
-            auto texture = Texture::getTexture(*m_device, textureFullname);
-            if (texture)
+            auto texture = TextureManager::Acquire(*m_device, textureFullname);
+            if (texture.isValid())
             {
                 desc.diffuseTexture = texture;
                 desc.imageIdx = static_cast<uint32_t>(m_imageViews.size());
-                m_imageViews.push_back(texture->getImageView());
+                m_imageViews.push_back(texture.imageView);
             }
         }
 
-        desc.shader = selectShaderFromAttributes(desc.diffuseTexture != nullptr);
+        desc.shader = selectShaderFromAttributes(desc.diffuseTexture.isValid());
     }
 }
 
@@ -410,7 +410,7 @@ void TextureArrayMesh::mergeShapesByMaterial()
 bool TextureArrayMesh::isTransparentMaterial(uint32_t id) const
 {
     assert(id < m_materialDescs.size());
-    return m_materialDescs[id].diffuseTexture && m_materialDescs[id].diffuseTexture->hasTranspareny();
+    return m_materialDescs[id].diffuseTexture.isValid() && m_materialDescs[id].diffuseTexture.hasTranspareny();
 }
 
 void TextureArrayMesh::sortShapesByMaterialTransparency()
@@ -467,7 +467,7 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
     {
         desc.descriptorSet.finalize(*m_device, m_materialDescriptorSetLayout, m_mainDescriptorPool);
 
-        auto isTransparent = desc.diffuseTexture && desc.diffuseTexture->hasTranspareny();
+        auto isTransparent = desc.diffuseTexture.isValid() && desc.diffuseTexture.hasTranspareny();
 
         PipelineSettings settings;
         settings.setAlphaBlending(isTransparent).setCullMode(isTransparent ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT);
