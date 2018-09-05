@@ -19,6 +19,9 @@ public:
     VkRenderPass createRenderPass(VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat) const;
     void destroyRenderPass(VkRenderPass& renderPass) const;
 
+    VkFramebuffer createFramebuffer(VkRenderPass renderPass, const std::vector<VkImageView>& attachments, VkExtent2D extent) const;
+    void destroyFramebuffer(VkFramebuffer& framebuffer) const;
+
     void createSampler(VkSampler& sampler) const;    
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
     void createImageView(VkImage image, VkFormat format, VkImageView& imageView, VkImageAspectFlags aspectFlags) const;

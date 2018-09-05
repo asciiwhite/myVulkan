@@ -133,8 +133,7 @@ bool BasicRenderer::createSwapChainFramebuffers()
 
     for (size_t i = 0; i < m_framebuffers.size(); i++)
     {
-        m_framebuffers[i].init(
-            m_device,
+        m_framebuffers[i] = m_device.createFramebuffer(
             m_renderPass,
             { m_swapChain.getImageView(static_cast<uint32_t>(i)), m_swapChainDepthBuffer.getImageView() },
             m_swapChain.getImageExtent());
@@ -188,7 +187,7 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
 void BasicRenderer::destroyFramebuffers()
 {
     for (auto& framebuffer : m_framebuffers)
-        framebuffer.destroy();
+        m_device.destroyFramebuffer(framebuffer);
 }
 
 void BasicRenderer::destroyFrameResources()

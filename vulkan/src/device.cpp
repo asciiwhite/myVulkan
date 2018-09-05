@@ -324,6 +324,29 @@ void Device::destroyRenderPass(VkRenderPass& renderPass) const
     renderPass = VK_NULL_HANDLE;
 }
 
+VkFramebuffer Device::createFramebuffer(VkRenderPass renderPass, const std::vector<VkImageView>& attachments, VkExtent2D extent) const
+{
+    VkFramebufferCreateInfo framebufferInfo = {};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = renderPass;
+    framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    framebufferInfo.pAttachments = &attachments.front();
+    framebufferInfo.width = extent.width;
+    framebufferInfo.height = extent.height;
+    framebufferInfo.layers = 1;
+
+    VkFramebuffer frameBuffer;
+    VK_CHECK_RESULT(vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &frameBuffer));
+
+    return frameBuffer;
+}
+
+void Device::destroyFramebuffer(VkFramebuffer& framebuffer) const
+{
+    vkDestroyFramebuffer(m_device, framebuffer, nullptr);
+    framebuffer = VK_NULL_HANDLE;
+}
+
 void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const
 {
     VkImageCreateInfo imageInfo = {};

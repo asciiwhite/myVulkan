@@ -2,7 +2,6 @@
 
 #include "swapchain.h"
 #include "device.h"
-#include "framebuffer.h"
 #include "texture.h"
 #include "buffer.h"
 
@@ -56,7 +55,7 @@ protected:
 
 private:
     std::vector<BaseFrameResources> m_frameResources;
-    std::vector<Framebuffer> m_framebuffers;
+    std::vector<VkFramebuffer> m_framebuffers;
 
     bool createInstance();
     bool createDevice();
