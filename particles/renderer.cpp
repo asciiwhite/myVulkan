@@ -79,7 +79,7 @@ void Renderer::setupGraphicsPipeline()
 {
     m_graphicsPipelineLayout = m_device.createPipelineLayout({ m_cameraDescriptorSetLayout });
 
-    PipelineSettings settings;
+    GraphicsPipelineSettings settings;
     settings.setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST).setAlphaBlending(true);
 
     m_graphicsPipeline = GraphicsPipeline::Acquire(m_device,

@@ -4,14 +4,14 @@
 #include <vector>
 #include <unordered_map>
 
-struct PipelineSettings
+struct GraphicsPipelineSettings
 {
 public:
-    PipelineSettings();
+    GraphicsPipelineSettings();
 
-    PipelineSettings& setPrimitiveTopology(VkPrimitiveTopology topology);
-    PipelineSettings& setAlphaBlending(bool blend);
-    PipelineSettings& setCullMode(VkCullModeFlags mode);
+    GraphicsPipelineSettings& setPrimitiveTopology(VkPrimitiveTopology topology);
+    GraphicsPipelineSettings& setAlphaBlending(bool blend);
+    GraphicsPipelineSettings& setCullMode(VkCullModeFlags mode);
 
     VkPipelineViewportStateCreateInfo viewportState = {};
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -35,7 +35,7 @@ public:
         Device& device,
         VkRenderPass renderPass,
         VkPipelineLayout layout,
-        const PipelineSettings& settings,
+        const GraphicsPipelineSettings& settings,
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
         const VertexBuffer* vertexbuffer = nullptr);
 

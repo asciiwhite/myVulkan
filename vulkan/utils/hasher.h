@@ -47,7 +47,7 @@ namespace std
     };
 
     template<>
-    struct hash<PipelineSettings> : public BitwiseHash<PipelineSettings>
+    struct hash<GraphicsPipelineSettings> : public BitwiseHash<GraphicsPipelineSettings>
     {};
 
     template<>

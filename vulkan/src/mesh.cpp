@@ -454,7 +454,7 @@ bool Mesh::finalize(VkRenderPass renderPass)
 
         auto isTransparent = desc.diffuseTexture.isValid() && desc.diffuseTexture.hasTranspareny();
 
-        PipelineSettings settings;
+        GraphicsPipelineSettings settings;
         settings.setAlphaBlending(isTransparent).setCullMode(isTransparent ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT);
 
         desc.pipeline = GraphicsPipeline::Acquire(*m_device,

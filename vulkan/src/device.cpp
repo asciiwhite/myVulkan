@@ -372,7 +372,7 @@ void Device::destroyPipelineLayout(VkPipelineLayout& pipelineLayout) const
     pipelineLayout = VK_NULL_HANDLE;
 }
 
-VkPipeline Device::createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const PipelineSettings& settings, std::vector<VkPipelineShaderStageCreateInfo> shaderStages, const VertexBuffer* vertexbuffer)
+VkPipeline Device::createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const GraphicsPipelineSettings& settings, std::vector<VkPipelineShaderStageCreateInfo> shaderStages, const VertexBuffer* vertexbuffer)
 {
     assert(!shaderStages.empty());
 

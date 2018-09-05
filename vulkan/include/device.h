@@ -5,7 +5,7 @@
 
 struct Texture;
 struct Buffer;
-struct PipelineSettings;
+struct GraphicsPipelineSettings;
 class VertexBuffer;
 
 class Device
@@ -28,7 +28,7 @@ public:
     VkPipelineLayout createPipelineLayout(const std::vector<VkDescriptorSetLayout>& layouts = {}, const std::vector<VkPushConstantRange>& pushConstants = {}) const;
     void destroyPipelineLayout(VkPipelineLayout& pipelineLayout) const;
 
-    VkPipeline createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const PipelineSettings& settings, std::vector<VkPipelineShaderStageCreateInfo> shaderStages, const VertexBuffer* vertexbuffer = nullptr);
+    VkPipeline createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const GraphicsPipelineSettings& settings, std::vector<VkPipelineShaderStageCreateInfo> shaderStages, const VertexBuffer* vertexbuffer = nullptr);
     void destroyPipeline(VkPipeline& pipeline);
 
     Texture createDepthBuffer(const VkExtent2D& extend, VkFormat format) const;

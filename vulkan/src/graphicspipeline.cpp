@@ -7,12 +7,12 @@
 #include <algorithm>
 
 
-VkDynamicState PipelineSettings::dynamicStates[] = {
+VkDynamicState GraphicsPipelineSettings::dynamicStates[] = {
     VK_DYNAMIC_STATE_VIEWPORT,
     VK_DYNAMIC_STATE_SCISSOR
 };
 
-PipelineSettings::PipelineSettings()
+GraphicsPipelineSettings::GraphicsPipelineSettings()
 {
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
@@ -83,13 +83,13 @@ PipelineSettings::PipelineSettings()
     dynamicState.pDynamicStates = dynamicStates;
 }
 
-PipelineSettings& PipelineSettings::setPrimitiveTopology(VkPrimitiveTopology topology)
+GraphicsPipelineSettings& GraphicsPipelineSettings::setPrimitiveTopology(VkPrimitiveTopology topology)
 {
     inputAssembly.topology = topology;
     return *this;
 }
 
-PipelineSettings& PipelineSettings::setAlphaBlending(bool blend)
+GraphicsPipelineSettings& GraphicsPipelineSettings::setAlphaBlending(bool blend)
 {
     if (blend)
     {
@@ -111,7 +111,7 @@ PipelineSettings& PipelineSettings::setAlphaBlending(bool blend)
     return *this;
 }
 
-PipelineSettings& PipelineSettings::setCullMode(VkCullModeFlags mode)
+GraphicsPipelineSettings& GraphicsPipelineSettings::setCullMode(VkCullModeFlags mode)
 {
     rasterizer.cullMode = mode;
     return *this;
@@ -124,7 +124,7 @@ GraphicsPipeline::PipelineMap GraphicsPipeline::m_createdPipelines;
 VkPipeline GraphicsPipeline::Acquire(Device& device,
     VkRenderPass renderPass,
     VkPipelineLayout layout,
-    const PipelineSettings& settings,
+    const GraphicsPipelineSettings& settings,
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
     const VertexBuffer* vertexbuffer)
 {
