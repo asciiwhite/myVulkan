@@ -67,7 +67,7 @@ private:
     DescriptorSet m_cameraUniformDescriptorSet;
     DescriptorSetLayout m_materialDescriptorSetLayout;
     DescriptorPool m_materialDescriptorPool;   
-    PipelineLayout m_pipelineLayout;
+    VkPipelineLayout m_pipelineLayout;
 
     struct MaterialDesc
     {

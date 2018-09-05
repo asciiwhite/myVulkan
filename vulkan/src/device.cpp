@@ -347,6 +347,28 @@ void Device::destroyFramebuffer(VkFramebuffer& framebuffer) const
     framebuffer = VK_NULL_HANDLE;
 }
 
+VkPipelineLayout Device::createPipelineLayout(const std::vector<VkDescriptorSetLayout>& layouts, const std::vector<VkPushConstantRange>& pushConstants) const
+{
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.flags = 0;
+    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
+    pipelineLayoutInfo.pSetLayouts = !layouts.empty() ? layouts.data() : nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
+    pipelineLayoutInfo.pPushConstantRanges = !pushConstants.empty() ? pushConstants.data() : nullptr;
+
+    VkPipelineLayout pipelineLayout;
+    VK_CHECK_RESULT(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &pipelineLayout));
+
+    return pipelineLayout;
+}
+
+void Device::destroyPipelineLayout(VkPipelineLayout& pipelineLayout) const
+{
+    vkDestroyPipelineLayout(m_device, pipelineLayout, nullptr);
+    pipelineLayout = VK_NULL_HANDLE;
+}
+
 void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const
 {
     VkImageCreateInfo imageInfo = {};

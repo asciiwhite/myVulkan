@@ -26,14 +26,14 @@ private:
     VertexBuffer m_vertexBuffer;
     ShaderHandle m_shader;
     PipelineHandle m_graphicsPipeline;
-    PipelineLayout m_graphicsPipelineLayout;
+    VkPipelineLayout m_graphicsPipelineLayout;
     DescriptorSetLayout m_cameraDescriptorSetLayout;
     DescriptorSet m_cameraUniformDescriptorSet;
 
     VkCommandPool m_computeCommandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> m_computeCommandBuffers;
     VkPipeline m_computePipeline;
-    PipelineLayout m_computePipelineLayout;
+    VkPipelineLayout m_computePipelineLayout;
     DescriptorSetLayout m_computeDescriptorSetLayout;
     DescriptorSet m_computeDescriptorSet;
     ShaderHandle m_computeShader;

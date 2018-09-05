@@ -77,7 +77,7 @@ void Renderer::setupParticleVertexBuffer()
 
 void Renderer::setupGraphicsPipeline()
 {
-    m_graphicsPipelineLayout.init(m_device, { m_cameraDescriptorSetLayout });
+    m_graphicsPipelineLayout = m_device.createPipelineLayout({ m_cameraDescriptorSetLayout });
 
     PipelineSettings settings;
     settings.setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST).setAlphaBlending(true);
@@ -105,7 +105,7 @@ void Renderer::setupComputePipeline()
     m_computeDescriptorSet.addStorageBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer);
     m_computeDescriptorSet.finalize(m_device, m_computeDescriptorSetLayout, m_descriptorPool);
 
-    m_computePipelineLayout.init(m_device, { m_computeDescriptorSetLayout });
+    m_computePipelineLayout = m_device.createPipelineLayout({ m_computeDescriptorSetLayout });
 
     VkComputePipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -121,7 +121,7 @@ void Renderer::setupComputePipeline()
 void Renderer::shutdown()
 {
     m_vertexBuffer.destroy();
-    m_graphicsPipelineLayout.destroy();
+    m_device.destroyPipelineLayout(m_graphicsPipelineLayout);
 
     m_cameraDescriptorSetLayout.destroy(m_device);
     m_descriptorPool.destroy(m_device);
@@ -131,7 +131,7 @@ void Renderer::shutdown()
     m_device.destroyBuffer(m_computeInputBuffer);
     m_computeDescriptorSetLayout.destroy(m_device);
     vkDestroyPipeline(m_device, m_computePipeline, nullptr);
-    m_computePipelineLayout.destroy();
+    m_device.destroyPipelineLayout(m_computePipelineLayout);
 
     GraphicsPipeline::release(m_graphicsPipeline);
     Shader::release(m_shader);

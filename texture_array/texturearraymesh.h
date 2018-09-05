@@ -69,7 +69,7 @@ private:
     DescriptorSetLayout m_texturesDescriptorSetLayout;
     DescriptorSetLayout m_materialDescriptorSetLayout;
     DescriptorSet m_cameraUniformDescriptorSet;
-    PipelineLayout m_pipelineLayout;
+    VkPipelineLayout m_pipelineLayout;
 
     DescriptorSet m_texturesDescriptorSet;
     struct MaterialDesc

@@ -32,7 +32,7 @@ void Mesh::destroy()
     m_materials.clear();
     m_cameraDescriptorSetLayout.destroy(*m_device);
     m_materialDescriptorSetLayout.destroy(*m_device);
-    m_pipelineLayout.destroy();
+    m_device->destroyPipelineLayout(m_pipelineLayout);
     m_materialDescriptorPool.destroy(*m_device);
     m_cameraDescriptorPool.destroy(*m_device);
 
@@ -446,7 +446,7 @@ bool Mesh::finalize(VkRenderPass renderPass)
         { { BINDING_ID_MATERIAL, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT },
           { BINDING_ID_TEXTURE_DIFFUSE, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT } });
 
-    m_pipelineLayout.init(*m_device, { m_cameraDescriptorSetLayout, m_materialDescriptorSetLayout });
+    m_pipelineLayout = m_device->createPipelineLayout({ m_cameraDescriptorSetLayout, m_materialDescriptorSetLayout });
 
     for (auto& desc : m_materialDescs)
     {

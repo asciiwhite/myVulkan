@@ -6,22 +6,6 @@
 #include <vector>
 #include <unordered_map>
 
-class PipelineLayout
-{
-public:
-    void init(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts = {}, const std::vector<VkPushConstantRange>& pushConstants = {});
-    void destroy();
-
-    operator VkPipelineLayout() const
-    {
-        return m_pipelineLayout;
-    }
-
-private:
-    VkDevice m_device = VK_NULL_HANDLE;
-    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-};
-
 struct PipelineSettings
 {
 public:

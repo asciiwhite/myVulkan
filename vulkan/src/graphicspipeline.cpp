@@ -5,28 +5,6 @@
 
 #include <algorithm>
 
-void PipelineLayout::init(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts, const std::vector<VkPushConstantRange>& pushConstants)
-{
-    m_device = device;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.flags = 0;
-    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-    pipelineLayoutInfo.pSetLayouts = !layouts.empty() ? layouts.data() : nullptr;
-    pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
-    pipelineLayoutInfo.pPushConstantRanges = !pushConstants.empty() ? pushConstants.data() : nullptr;
-
-    VK_CHECK_RESULT(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
-}
-
-void PipelineLayout::destroy()
-{
-    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-    m_pipelineLayout = VK_NULL_HANDLE;
-}
-
-//////////////////////////////////////////////////////////////////////////
 
 VkDynamicState PipelineSettings::dynamicStates[] = {
     VK_DYNAMIC_STATE_VIEWPORT,

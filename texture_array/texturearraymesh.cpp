@@ -37,7 +37,7 @@ void TextureArrayMesh::destroy()
     m_materialDescriptorSetLayout.destroy(*m_device);
     m_texturesDescriptorSetLayout.destroy(*m_device);
     m_mainDescriptorPool.destroy(*m_device);
-    m_pipelineLayout.destroy();
+    m_device->destroyPipelineLayout(m_pipelineLayout);
 
     m_vertexBuffer.destroy();
     vkDestroySampler(*m_device, m_sampler, nullptr);
@@ -461,7 +461,7 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
     pushConstantRange.size = sizeof(uint32_t);
     pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    m_pipelineLayout.init(*m_device, { m_cameraDescriptorSetLayout, m_texturesDescriptorSetLayout, m_materialDescriptorSetLayout }, { pushConstantRange });
+    m_pipelineLayout = m_device->createPipelineLayout({ m_cameraDescriptorSetLayout, m_texturesDescriptorSetLayout, m_materialDescriptorSetLayout }, { pushConstantRange });
 
     for (auto& desc : m_materialDescs)
     {
