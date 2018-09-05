@@ -10,7 +10,7 @@ class Device;
 struct Shader
 {
 public:
-    std::vector<VkPipelineShaderStageCreateInfo> getShaderStages() const { return shaderStageCreateInfo; }
+    const std::vector<VkPipelineShaderStageCreateInfo>& getShaderStages() const { return shaderStageCreateInfo; }
 
     operator bool() const
     {

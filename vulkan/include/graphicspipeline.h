@@ -36,7 +36,7 @@ public:
         VkRenderPass renderPass,
         VkPipelineLayout layout,
         const GraphicsPipelineSettings& settings,
-        std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+        const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
         const VertexBuffer* vertexbuffer = nullptr);
 
     static void Release(Device& device, VkPipeline& pipeline);

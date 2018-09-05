@@ -125,7 +125,7 @@ VkPipeline GraphicsPipeline::Acquire(Device& device,
     VkRenderPass renderPass,
     VkPipelineLayout layout,
     const GraphicsPipelineSettings& settings,
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+    const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
     const VertexBuffer* vertexbuffer)
 {
     Hasher hasher;
