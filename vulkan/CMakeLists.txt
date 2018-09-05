@@ -26,7 +26,6 @@ set(VULKAN_SOURCES
     include/shader.h
     include/descriptorset.h
     include/graphicspipeline.h
-    include/renderpass.h
     include/framebuffer.h
     include/vertexbuffer.h
     include/texture.h
@@ -42,7 +41,6 @@ set(VULKAN_SOURCES
     src/shader.cpp    
     src/descriptorset.cpp    
     src/graphicspipeline.cpp
-    src/renderpass.cpp    
     src/framebuffer.cpp
     src/vertexbuffer.cpp
     src/texture.cpp

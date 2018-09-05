@@ -3,7 +3,6 @@
 #include "swapchain.h"
 #include "device.h"
 #include "framebuffer.h"
-#include "renderpass.h"
 #include "texture.h"
 #include "buffer.h"
 
@@ -51,7 +50,7 @@ protected:
     
     Device m_device;
     SwapChain m_swapChain;
-    RenderPass m_renderPass;
+    VkRenderPass m_renderPass;
     Buffer m_cameraUniformBuffer;
     Statistics m_stats;
 

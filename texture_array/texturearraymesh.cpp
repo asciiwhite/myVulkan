@@ -1,7 +1,6 @@
 #include "texturearraymesh.h"
 #include "device.h"
 #include "shader.h"
-#include "renderpass.h"
 #include "texture.h"
 #include "../utils/scopedtimelog.h"
 #include "../utils/hasher.h"
@@ -428,7 +427,7 @@ void TextureArrayMesh::addCameraUniformBuffer(VkBuffer uniformBuffer)
     m_cameraUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, uniformBuffer);
 }
 
-bool TextureArrayMesh::finalize(const RenderPass& renderPass)
+bool TextureArrayMesh::finalize(VkRenderPass renderPass)
 {
     const auto descriptorSetCount = static_cast<uint32_t>(m_materialDescs.size()) + 1 + 1; // camera set + texture set
     const auto uniformBufferCount = static_cast<uint32_t>(m_materialDescs.size()) + 1; // + camera set

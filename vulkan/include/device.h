@@ -16,6 +16,9 @@ public:
     void unmapBuffer(const Buffer& buffer) const;
     void destroyBuffer(Buffer& buffer) const;
 
+    VkRenderPass createRenderPass(VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat) const;
+    void destroyRenderPass(VkRenderPass& renderPass) const;
+
     void createSampler(VkSampler& sampler) const;    
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
     void createImageView(VkImage image, VkFormat format, VkImageView& imageView, VkImageAspectFlags aspectFlags) const;

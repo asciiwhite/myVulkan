@@ -34,7 +34,7 @@ bool BasicRenderer::init(GLFWwindow* window)
     );
     m_swapChainDepthBuffer.createDepthBuffer(&m_device, m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
 
-    m_renderPass.init(&m_device, m_swapChain.getImageFormat(), m_swapChainDepthBufferFormat);
+    m_renderPass = m_device.createRenderPass(m_swapChain.getImageFormat(), m_swapChainDepthBufferFormat);
     createSwapChainFramebuffers();
 
     m_cameraUniformBuffer = m_device.createBuffer(sizeof(glm::mat4),
@@ -150,7 +150,7 @@ void BasicRenderer::destroy()
 
     m_device.destroyBuffer(m_cameraUniformBuffer);
     m_swapChainDepthBuffer.destroy();
-    m_renderPass.destroy();
+    m_device.destroyRenderPass(m_renderPass);
     destroyFramebuffers();
     destroyFrameResources();
     m_swapChain.destroy();

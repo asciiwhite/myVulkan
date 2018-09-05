@@ -1,7 +1,6 @@
 #include "mesh.h"
 #include "device.h"
 #include "shader.h"
-#include "renderpass.h"
 #include "texture.h"
 #include "../utils/scopedtimelog.h"
 #include "../utils/hasher.h"
@@ -425,7 +424,7 @@ void Mesh::addCameraUniformBuffer(VkBuffer uniformBuffer)
     m_cameraUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, uniformBuffer);
 }
 
-bool Mesh::finalize(const RenderPass& renderPass)
+bool Mesh::finalize(VkRenderPass renderPass)
 {
     m_cameraDescriptorPool.init(*m_device, 1,
     { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 } });
