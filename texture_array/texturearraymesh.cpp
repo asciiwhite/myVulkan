@@ -29,7 +29,7 @@ void TextureArrayMesh::destroy()
         m_device->destroyBuffer(desc.material);
         GraphicsPipeline::Release(*m_device, desc.pipeline);
         ShaderManager::Release(*m_device, desc.shader);
-        if (desc.diffuseTexture.isValid())
+        if (desc.diffuseTexture)
             TextureManager::Release(*m_device, desc.diffuseTexture);
     }
     m_materials.clear();
@@ -299,8 +299,9 @@ Shader TextureArrayMesh::selectShaderFromAttributes(bool useTexture)
     const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
     const auto fragmentShaderFilename = shaderPath + fragmemtShaderName + ".frag.spv";
 
-    return ShaderManager::Acquire(*m_device, { { VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFilename },
-                                               { VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderFilename} });
+    return ShaderManager::Acquire(*m_device, ShaderResourceHandler::ShaderModulesDescription
+        { { VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFilename },
+          { VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderFilename} });
 }
 
 void TextureArrayMesh::loadMaterials()
@@ -351,7 +352,7 @@ void TextureArrayMesh::loadMaterials()
         {
             const auto textureFullname = m_materialBaseDir + textureFilename;
             auto texture = TextureManager::Acquire(*m_device, textureFullname);
-            if (texture.isValid())
+            if (texture)
             {
                 desc.diffuseTexture = texture;
                 desc.imageIdx = static_cast<uint32_t>(m_imageViews.size());
@@ -359,7 +360,7 @@ void TextureArrayMesh::loadMaterials()
             }
         }
 
-        desc.shader = selectShaderFromAttributes(desc.diffuseTexture.isValid());
+        desc.shader = selectShaderFromAttributes(desc.diffuseTexture);
     }
 }
 
@@ -409,7 +410,7 @@ void TextureArrayMesh::mergeShapesByMaterial()
 bool TextureArrayMesh::isTransparentMaterial(uint32_t id) const
 {
     assert(id < m_materialDescs.size());
-    return m_materialDescs[id].diffuseTexture.isValid() && m_materialDescs[id].diffuseTexture.hasTranspareny();
+    return m_materialDescs[id].diffuseTexture && m_materialDescs[id].diffuseTexture.hasTranspareny();
 }
 
 void TextureArrayMesh::sortShapesByMaterialTransparency()
@@ -466,7 +467,7 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
     {
         desc.descriptorSet.finalize(*m_device, m_materialDescriptorSetLayout, m_mainDescriptorPool);
 
-        auto isTransparent = desc.diffuseTexture.isValid() && desc.diffuseTexture.hasTranspareny();
+        auto isTransparent = desc.diffuseTexture && desc.diffuseTexture.hasTranspareny();
 
         GraphicsPipelineSettings settings;
         settings.setAlphaBlending(isTransparent).setCullMode(isTransparent ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT);
@@ -475,7 +476,7 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
             renderPass,
             m_pipelineLayout,
             settings,
-            desc.shader.getShaderStages(),
+            desc.shader.shaderStageCreateInfos,
             &m_vertexBuffer);
 
         if (!desc.pipeline)

@@ -20,12 +20,14 @@ const uint32_t GROUP_COUNT = static_cast<uint32_t>(std::ceil(static_cast<float>(
 
 bool Renderer::setup()
 {
-    m_shader = ShaderManager::Acquire(m_device, { { VK_SHADER_STAGE_VERTEX_BIT, "data/shaders/base.vert.spv"} ,
-                                                  { VK_SHADER_STAGE_FRAGMENT_BIT, "data/shaders/color.frag.spv"} });
+    m_shader = ShaderManager::Acquire(m_device, ShaderResourceHandler::ShaderModulesDescription
+        { { VK_SHADER_STAGE_VERTEX_BIT, "data/shaders/base.vert.spv"} ,
+          { VK_SHADER_STAGE_FRAGMENT_BIT, "data/shaders/color.frag.spv"} });
     if (!m_shader)
         return false;
 
-    m_computeShader = ShaderManager::Acquire(m_device, { { VK_SHADER_STAGE_COMPUTE_BIT, "data/shaders/particles.comp.spv"} });
+    m_computeShader = ShaderManager::Acquire(m_device, ShaderResourceHandler::ShaderModulesDescription
+        { { VK_SHADER_STAGE_COMPUTE_BIT, "data/shaders/particles.comp.spv"} });
     if (!m_computeShader)
         return false;
 
@@ -86,7 +88,7 @@ void Renderer::setupGraphicsPipeline()
         m_renderPass,
         m_graphicsPipelineLayout,
         settings,
-        m_shader.getShaderStages(),
+        m_shader.shaderStageCreateInfos,
         &m_vertexBuffer);
 }
 
@@ -110,7 +112,7 @@ void Renderer::setupComputePipeline()
     VkComputePipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pipelineInfo.flags = 0;
-    pipelineInfo.stage = m_computeShader.getShaderStages().front();
+    pipelineInfo.stage = m_computeShader.shaderStageCreateInfos.front();
     pipelineInfo.layout = m_computePipelineLayout;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = 0;

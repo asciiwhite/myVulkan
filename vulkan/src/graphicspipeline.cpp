@@ -4,8 +4,6 @@
 #include "device.h"
 #include "../utils/hasher.h"
 
-#include <algorithm>
-
 
 VkDynamicState GraphicsPipelineSettings::dynamicStates[] = {
     VK_DYNAMIC_STATE_VIEWPORT,
@@ -119,10 +117,7 @@ GraphicsPipelineSettings& GraphicsPipelineSettings::setCullMode(VkCullModeFlags 
 
 //////////////////////////////////////////////////////////////////////////
 
-GraphicsPipeline::PipelineMap GraphicsPipeline::m_createdPipelines;
-
-VkPipeline GraphicsPipeline::Acquire(Device& device,
-    VkRenderPass renderPass,
+size_t GraphicsPipelineResourceHandler::CreateResourceKey(VkRenderPass renderPass,
     VkPipelineLayout layout,
     const GraphicsPipelineSettings& settings,
     const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
@@ -135,29 +130,19 @@ VkPipeline GraphicsPipeline::Acquire(Device& device,
     hasher.add(shaderStages);
     hasher.add(vertexbuffer->getAttributeDescriptions());
     hasher.add(vertexbuffer->getBindingDescriptions());
-    const auto pipelineHash = hasher.get();
-
-    if (m_createdPipelines.count(pipelineHash) == 0)
-    {
-        auto newPipeline = device.createPipeline(renderPass, layout, settings, shaderStages, vertexbuffer);
-        m_createdPipelines[pipelineHash] = { 1, newPipeline }; // init refcount 
-        return newPipeline;
-    }
-
-    auto& pipelineData = m_createdPipelines.at(pipelineHash);
-    pipelineData.refCount++;
-    return pipelineData.pipeline;
+    return hasher.get();
 }
 
-void GraphicsPipeline::Release(Device& device, VkPipeline& pipeline)
+VkPipeline GraphicsPipelineResourceHandler::CreateResource(Device& device, VkRenderPass renderPass,
+    VkPipelineLayout layout,
+    const GraphicsPipelineSettings& settings,
+    const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
+    const VertexBuffer* vertexbuffer)
 {
-    auto iter = std::find_if(m_createdPipelines.begin(), m_createdPipelines.end(), [=](const PipelineMap::value_type& pipelinePair) { return pipelinePair.second.pipeline == pipeline; });
-    assert(iter != m_createdPipelines.end());
+    return device.createPipeline(renderPass, layout, settings, shaderStages, vertexbuffer);
+}
 
-    auto& pipelineData = iter->second;
-    if (--pipelineData.refCount == 0)
-    {
-        device.destroyPipeline(pipelineData.pipeline);
-        m_createdPipelines.erase(iter);
-    }
+void GraphicsPipelineResourceHandler::DestroyResource(Device& device, VkPipeline& resource)
+{
+    device.destroyPipeline(resource);
 }

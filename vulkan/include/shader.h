@@ -1,51 +1,44 @@
 #pragma once
 
+#include "resourcemanager.h"
+
 #include <vulkan/vulkan.h>
 #include <string>
-#include <vector>
-#include <unordered_map>
 
 class Device;
 
 struct Shader
 {
 public:
-    const std::vector<VkPipelineShaderStageCreateInfo>& getShaderStages() const { return shaderStageCreateInfo; }
+    std::vector<VkShaderModule> shaderModules;
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfos;
 
     operator bool() const
     {
         return !shaderModules.empty();
     }
-
-private:
-    std::vector<VkShaderModule> shaderModules;
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo;
-
-    friend class ShaderManager;
 };
 
-class ShaderManager
+class ShaderResourceHandler
 {
 public:
+    using ResourceKey = std::string;
+    using ResourceType = Shader;
+
     struct ModuleDesc
     {
         VkShaderStageFlagBits stage;
         std::string filename;
     };
+    using ShaderModulesDescription = std::vector<ModuleDesc>;
 
-    static Shader Acquire(Device& device, const std::vector<ModuleDesc>& modules);
-    static void Release(Device& device, Shader& shader);
+    static ResourceKey CreateResourceKey(const ShaderModulesDescription& modules);
+    static ResourceType CreateResource(Device& device, const ShaderModulesDescription& modules);
+    static void DestroyResource(Device& device, ResourceType& resource);
 
 private:
-    static Shader CreateFromFiles(Device& device, const std::vector<ModuleDesc>& modules);
+    static Shader CreateFromFiles(Device& device, const ShaderModulesDescription& modules);
     static VkShaderModule CreateShaderModule(Device& device, const std::string& filename);
-
-    struct ShaderData
-    {
-        uint64_t refCount;
-        Shader shader;
-    };
-
-    using ShaderMap = std::unordered_map<std::string, ShaderData>;
-    static ShaderMap m_loadedShaders;
 };
+
+using ShaderManager = ResourceManager<ShaderResourceHandler>;

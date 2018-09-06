@@ -31,6 +31,7 @@ set(VULKAN_SOURCES
     include/mesh.h
     include/window.h
     include/buffer.h
+    include/resourcemanager.h
     src/basicrenderer.cpp
     src/swapchain.cpp
     src/vulkanhelper.cpp

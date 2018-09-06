@@ -7,11 +7,23 @@
 #include "stb_image.h"
 
 #include <cstring>
-#include <algorithm>
 
-TextureManager::TextureMap TextureManager::m_loadedTextures;
+std::string TextureResourceHandler::CreateResourceKey(const std::string& filename)
+{
+    return filename;
+}
 
-Texture TextureManager::LoadFromFile(Device& device, const std::string& filename)
+Texture TextureResourceHandler::CreateResource(Device& device, const std::string& filename)
+{
+    return LoadFromFile(device, filename);
+}
+
+void TextureResourceHandler::DestroyResource(Device& device, Texture& texture)
+{
+    device.destroyTexture(texture);
+}
+
+Texture TextureResourceHandler::LoadFromFile(Device& device, const std::string& filename)
 {
     Texture texture;
 
@@ -59,34 +71,4 @@ Texture TextureManager::LoadFromFile(Device& device, const std::string& filename
     device.createImageView(texture.image, VK_FORMAT_R8G8B8A8_UNORM, texture.imageView, VK_IMAGE_ASPECT_COLOR_BIT);
 
     return texture;
-}
-
-Texture TextureManager::Acquire(Device& device, const std::string& textureFilename)
-{
-    if (m_loadedTextures.count(textureFilename) == 0)
-    {
-        auto newTexture = LoadFromFile(device, textureFilename);
-        if (newTexture.isValid())
-        {
-            m_loadedTextures[textureFilename] = { 1, newTexture }; // init refcount
-        }
-        return newTexture;
-    }
-
-    auto& entry = m_loadedTextures.at(textureFilename);
-    entry.refCount++;
-    return entry.texture;
-}
-
-void TextureManager::Release(Device& device, Texture& texture)
-{
-    auto iter = std::find_if(m_loadedTextures.begin(), m_loadedTextures.end(), [=](const TextureMap::value_type& texturePair) { return texturePair.second.texture == texture; });
-    assert(iter != m_loadedTextures.end());
-
-    auto& entry = iter->second;
-    if (--entry.refCount == 0)
-    {
-        device.destroyTexture(entry.texture);
-        m_loadedTextures.erase(iter);
-    }
 }

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "resourcemanager.h"
+
 #include <vulkan/vulkan.h>
-#include <vector>
-#include <unordered_map>
 
 struct GraphicsPipelineSettings
 {
@@ -28,27 +28,25 @@ public:
 class Device;
 class VertexBuffer;
 
-class GraphicsPipeline
+class GraphicsPipelineResourceHandler
 {
 public:
-    static VkPipeline Acquire(
-        Device& device,
-        VkRenderPass renderPass,
+    using ResourceKey = size_t;
+    using ResourceType = VkPipeline;
+
+    static ResourceKey CreateResourceKey(VkRenderPass renderPass,
         VkPipelineLayout layout,
         const GraphicsPipelineSettings& settings,
         const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
         const VertexBuffer* vertexbuffer = nullptr);
 
-    static void Release(Device& device, VkPipeline& pipeline);
+    static ResourceType CreateResource(Device& device, VkRenderPass renderPass,
+        VkPipelineLayout layout,
+        const GraphicsPipelineSettings& settings,
+        const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
+        const VertexBuffer* vertexbuffer = nullptr);
 
-private:
-
-    struct PipelineData
-    {
-        uint64_t refCount;
-        VkPipeline pipeline;
-    };
-
-    using PipelineMap = std::unordered_map<size_t, PipelineData>;
-    static PipelineMap m_createdPipelines;
+    static void DestroyResource(Device& device, ResourceType& resource);
 };
+
+using GraphicsPipeline = ResourceManager<GraphicsPipelineResourceHandler>;
