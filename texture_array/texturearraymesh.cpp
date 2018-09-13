@@ -60,6 +60,7 @@ void TextureArrayMesh::clearFileData()
 bool TextureArrayMesh::loadFromObj(Device& device, const std::string& filename)
 {
     m_device = &device;
+    m_fileName = filename;
 
     std::string err;
     bool result;
@@ -539,4 +540,24 @@ void TextureArrayMesh::getBoundingbox(glm::vec3& min, glm::vec3& max) const
 {
     min = m_minBB;
     max = m_maxBB;
+}
+
+uint32_t TextureArrayMesh::numVertices() const
+{
+    return m_vertexBuffer.numVertices();
+}
+
+uint32_t TextureArrayMesh::numIndices() const
+{
+    return m_vertexBuffer.numIndices();
+}
+
+uint32_t TextureArrayMesh::numShapes() const
+{
+    return static_cast<uint32_t>(m_shapeDescs.size());
+}
+
+const std::string& TextureArrayMesh::fileName() const
+{
+    return m_fileName;
 }

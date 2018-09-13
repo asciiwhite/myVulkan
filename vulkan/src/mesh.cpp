@@ -57,6 +57,7 @@ void Mesh::clearFileData()
 bool Mesh::loadFromObj(Device& device, const std::string& filename)
 {
     m_device = &device;
+    m_fileName = filename;
 
     std::string err;
     bool result;
@@ -518,4 +519,19 @@ void Mesh::getBoundingbox(glm::vec3& min, glm::vec3& max) const
 {
     min = m_minBB;
     max = m_maxBB;
+}
+
+uint32_t Mesh::numVertices() const
+{
+    return m_vertexBuffer.numVertices();
+}
+
+uint32_t Mesh::numIndices() const
+{
+    return m_vertexBuffer.numIndices();
+}
+
+const std::string& Mesh::fileName() const
+{
+    return m_fileName;
 }

@@ -26,6 +26,10 @@ public:
     bool finalize(VkRenderPass renderPass);
     void getBoundingbox(glm::vec3& min, glm::vec3& max) const;
 
+    uint32_t numVertices() const;
+    uint32_t numIndices() const;
+    const std::string& fileName() const;
+
 private:
     bool hasUniqueVertexAttributes() const;
     void createSeparateVertexAttributes();
@@ -87,4 +91,6 @@ private:
         uint32_t materialId;
     };
     std::vector<ShapeDesc> m_shapeDescs;
+
+    std::string m_fileName;
 };
