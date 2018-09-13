@@ -1,15 +1,14 @@
 #include "basicrenderer.h"
 #include "vulkanhelper.h"
 #include "debug.h"
+#include "imgui.h"
 
-#include "../utils/glm.h"
 #include "../utils/arcball_camera.h"
 #include "../utils/flythrough_camera.h"
 
 #include <GLFW/glfw3.h>
 
 #include <vector>
-#include <array>
 #include <iostream>
 #include <algorithm>
 
@@ -47,7 +46,12 @@ bool BasicRenderer::init(GLFWwindow* window)
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    createFrameResources(2u);
+    const auto frameResourceCount = 2u;
+
+    createFrameResources(frameResourceCount);
+
+    m_gui = std::unique_ptr<GUI>(new GUI(m_device));
+    m_gui->setup(frameResourceCount, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_swapChain.getImageFormat(), m_swapChainDepthBufferFormat);
 
     return setup();
 }
@@ -127,6 +131,7 @@ bool BasicRenderer::createFrameResources(uint32_t numFrames)
     for (auto& resource : m_frameResources)
     {
         VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &allocInfo, &resource.graphicsCommandBuffer));
+        VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &allocInfo, &resource.guiCommandBuffer));
         VK_CHECK_RESULT(vkCreateFence(m_device, &fenceCreateInfo, nullptr, &resource.frameCompleteFence));
     }
 
@@ -152,6 +157,8 @@ void BasicRenderer::destroy()
 {
     // wait to avoid destruction of still used resources
     vkDeviceWaitIdle(m_device);
+    
+    m_gui.reset();
 
     m_device.destroyBuffer(m_cameraUniformBuffer);
     m_device.destroyTexture(m_swapChainDepthBuffer);
@@ -183,6 +190,8 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
         m_swapChainDepthBuffer = m_device.createDepthBuffer(m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
         createSwapChainFramebuffers();
 
+        m_gui->onResize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
+
         updateMVPUniform();
 
         return true;
@@ -201,6 +210,7 @@ void BasicRenderer::destroyFrameResources()
     for (const auto& resource : m_frameResources)
     {
         vkFreeCommandBuffers(m_device, m_device.getGraphicsCommandPool(), 1, &resource.graphicsCommandBuffer);
+        vkFreeCommandBuffers(m_device, m_device.getGraphicsCommandPool(), 1, &resource.guiCommandBuffer);
         vkDestroyFence(m_device, resource.frameCompleteFence, nullptr);
     }
     m_frameResources.clear();
@@ -210,21 +220,29 @@ void BasicRenderer::draw()
 {
     m_stats.update();
 
-    m_frameResourceId = (m_frameResourceId + 1) % m_frameResourceCount;
+    // gui frame start
+    const MouseInputState mouseState{ { m_leftMouseButtonDown, m_middleMouseButtonDown, m_rightMouseButtonDown }, { static_cast<float>(m_mousePositionX), static_cast<float>(m_mousePositionY) } };
+    m_gui->startFrame(m_stats, mouseState);
+    createGUIContent();
 
+    // wait for previous frame completion
+    m_frameResourceId = (m_frameResourceId + 1) % m_frameResourceCount;
     vkWaitForFences(m_device, 1, &m_frameResources[m_frameResourceId].frameCompleteFence, VK_TRUE, UINT64_MAX);
     vkResetFences(m_device, 1, &m_frameResources[m_frameResourceId].frameCompleteFence);
 
+    // aquire image for rendering
     uint32_t swapChainImageId(0);
     if (!m_swapChain.acquireNextImage(swapChainImageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
     
-    const FrameData frameData {
-        m_frameResources[m_frameResourceId], m_framebuffers[swapChainImageId]
-    };
+    // scene rendering
+    render({ m_frameResources[m_frameResourceId], m_framebuffers[swapChainImageId] });
 
-    render(frameData);
+    // gui rendering
+    m_gui->draw(m_frameResourceId, m_frameResources[m_frameResourceId].guiCommandBuffer, m_framebuffers[swapChainImageId]);
+    submitCommandBuffer(m_frameResources[m_frameResourceId].guiCommandBuffer, nullptr, m_swapChain.getRenderFinishedSemaphore(), &m_frameResources[m_frameResourceId].frameCompleteFence);
 
+    // presentation
     if (!m_swapChain.present(swapChainImageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
 }
@@ -335,25 +353,25 @@ void BasicRenderer::mouseMove(double x, double y)
         m_rightMouseButtonDown) && 
         m_observerCameraMode)
     {
-            const auto stepSize = 0.005f * m_sceneBoundingBoxDiameter;
+        const auto stepSize = 0.005f * m_sceneBoundingBoxDiameter;
 
-            arcball_camera_update(
-                glm::value_ptr(m_cameraPosition),
-                glm::value_ptr(m_cameraTarget),
-                glm::value_ptr(m_cameraUp),
-                nullptr,
-                0.01f,
-                stepSize, 100.0f, 5.0f,
-                m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height,
-                static_cast<int>(m_lastMousePositionX), static_cast<int>(m_mousePositionX),
-                static_cast<int>(m_mousePositionY), static_cast<int>(m_lastMousePositionY),  // inverse axis for correct rotation direction
-                m_rightMouseButtonDown,
-                m_leftMouseButtonDown,
-                m_middleMouseButtonDown ? static_cast<int>(m_mousePositionY - m_lastMousePositionY) : 0,
-                0);
+        arcball_camera_update(
+            glm::value_ptr(m_cameraPosition),
+            glm::value_ptr(m_cameraTarget),
+            glm::value_ptr(m_cameraUp),
+            nullptr,
+            0.01f,
+            stepSize, 100.0f, 5.0f,
+            m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height,
+            static_cast<int>(m_lastMousePositionX), static_cast<int>(m_mousePositionX),
+            static_cast<int>(m_mousePositionY), static_cast<int>(m_lastMousePositionY),  // inverse axis for correct rotation direction
+            m_rightMouseButtonDown,
+            m_leftMouseButtonDown,
+            m_middleMouseButtonDown ? static_cast<int>(m_mousePositionY - m_lastMousePositionY) : 0,
+            0);
 
-            m_cameraLook = glm::normalize(m_cameraTarget - m_cameraPosition);
+        m_cameraLook = glm::normalize(m_cameraTarget - m_cameraPosition);
             
-            updateMVPUniform();
+        updateMVPUniform();
     }    
 }

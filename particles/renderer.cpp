@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "vulkanhelper.h"
 #include "shader.h"
+#include "imgui.h"
 
 #include <array>
 
@@ -275,4 +276,11 @@ void Renderer::render(const FrameData& frameData)
     // graphics part
     fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer);
     submitCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapChain.getImageAvailableSemaphore(), nullptr, nullptr);
+}
+
+void Renderer::createGUIContent()
+{
+    ImGui::Begin("", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+    ImGui::Text("Num particles: %u", NUM_PARTICLES);
+    ImGui::End();
 }

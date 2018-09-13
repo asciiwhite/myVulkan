@@ -1,5 +1,6 @@
 #include "simplerenderer.h"
 #include "vulkanhelper.h"
+#include "imgui.h"
 
 #include <array>
 
@@ -71,4 +72,16 @@ void SimpleRenderer::render(const FrameData& frameData)
 {
     fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer);
     submitCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapChain.getImageAvailableSemaphore(), nullptr, nullptr);
+}
+
+void SimpleRenderer::createGUIContent()
+{
+    const auto baseFileName = m_mesh.fileName().substr(m_mesh.fileName().find_last_of("/\\") + 1, m_mesh.fileName().size());
+
+    ImGui::Begin("Mesh loader", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Text("File: %s", baseFileName.c_str());
+    ImGui::Text("#vertices: %u", m_mesh.numVertices());
+    ImGui::Text("#indices: %u", m_mesh.numIndices());
+    ImGui::Text("#shapes/materials: %u", m_mesh.numShapes());
+    ImGui::End();
 }

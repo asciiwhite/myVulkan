@@ -22,6 +22,7 @@ private:
     bool createComputeCommandBuffer();
     void buildComputeCommandBuffer(VkCommandBuffer commandBuffer);
     void renderParticles(VkCommandBuffer commandBuffer) const;
+    void createGUIContent() override;
 
     VertexBuffer m_vertexBuffer;
     Shader m_shader;

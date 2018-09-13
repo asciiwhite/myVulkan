@@ -60,6 +60,8 @@ set(UTILS_SOURCES
     utils/arcball_camera.cpp
     utils/flythrough_camera.h
     utils/flythrough_camera.cpp
+    utils/gui.h
+    utils/gui.cpp
 )
 
 source_group("utils" FILES ${UTILS_SOURCES})
@@ -73,6 +75,7 @@ add_coverage(vulkanBase)
 
 target_link_libraries(vulkanBase
     PUBLIC
+        imgui
         glm
         Vulkan::Vulkan
     PRIVATE

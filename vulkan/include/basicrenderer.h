@@ -7,8 +7,11 @@
 
 #include "../utils/statistics.h"
 #include "../utils/glm.h"
+#include "../utils/gui.h"
 
 #include <vulkan/vulkan.h>
+
+#include <memory>
 
 struct GLFWwindow;
 
@@ -29,10 +32,12 @@ protected:
     void submitCommandBuffer(VkCommandBuffer commandBuffer, const VkSemaphore* waitSemaphore, const VkSemaphore* signalSemaphore, VkFence* submitFence);
     void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir);
     void updateMVPUniform();
+    virtual void createGUIContent() {};
 
     struct BaseFrameResources
     {
         VkCommandBuffer graphicsCommandBuffer;
+        VkCommandBuffer guiCommandBuffer;
         VkFence frameCompleteFence;
     };
 
@@ -92,4 +97,6 @@ private:
     double m_mousePositionY = 0.0;
     double m_lastMousePositionX = 0.0;
     double m_lastMousePositionY = 0.0;
+
+    std::unique_ptr<GUI> m_gui;
 };
