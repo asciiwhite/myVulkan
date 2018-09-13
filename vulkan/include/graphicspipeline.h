@@ -38,13 +38,15 @@ public:
         VkPipelineLayout layout,
         const GraphicsPipelineSettings& settings,
         const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
-        const VertexBuffer* vertexbuffer = nullptr);
+        const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
+        const std::vector<VkVertexInputBindingDescription>& bindingDesc);
 
     static ResourceType CreateResource(Device& device, VkRenderPass renderPass,
         VkPipelineLayout layout,
         const GraphicsPipelineSettings& settings,
         const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
-        const VertexBuffer* vertexbuffer = nullptr);
+        const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
+        const std::vector<VkVertexInputBindingDescription>& bindingDesc);
 
     static void DestroyResource(Device& device, ResourceType& resource);
 };

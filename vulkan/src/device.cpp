@@ -372,17 +372,20 @@ void Device::destroyPipelineLayout(VkPipelineLayout& pipelineLayout) const
     pipelineLayout = VK_NULL_HANDLE;
 }
 
-VkPipeline Device::createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const GraphicsPipelineSettings& settings, std::vector<VkPipelineShaderStageCreateInfo> shaderStages, const VertexBuffer* vertexbuffer)
+VkPipeline Device::createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const GraphicsPipelineSettings& settings,
+    const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
+    const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
+    const std::vector<VkVertexInputBindingDescription>& bindingDesc)
 {
     assert(!shaderStages.empty());
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.flags = 0;
-    vertexInputInfo.vertexBindingDescriptionCount = vertexbuffer ? static_cast<uint32_t>(vertexbuffer->getBindingDescriptions().size()) : 0;
-    vertexInputInfo.pVertexBindingDescriptions = vertexbuffer ? &vertexbuffer->getBindingDescriptions()[0] : nullptr;
-    vertexInputInfo.vertexAttributeDescriptionCount = vertexbuffer ? static_cast<uint32_t>(vertexbuffer->getAttributeDescriptions().size()) : 0;
-    vertexInputInfo.pVertexAttributeDescriptions = vertexbuffer ? &vertexbuffer->getAttributeDescriptions()[0] : nullptr;
+    vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDesc.size());
+    vertexInputInfo.pVertexBindingDescriptions = bindingDesc.empty() ? nullptr : bindingDesc.data();
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDesc.size());
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.empty() ? nullptr : attributeDesc.data();
 
     VkGraphicsPipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

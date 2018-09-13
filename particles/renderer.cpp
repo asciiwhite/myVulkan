@@ -89,7 +89,8 @@ void Renderer::setupGraphicsPipeline()
         m_graphicsPipelineLayout,
         settings,
         m_shader.shaderStageCreateInfos,
-        &m_vertexBuffer);
+        m_vertexBuffer.getAttributeDescriptions(),
+        m_vertexBuffer.getBindingDescriptions());
 }
 
 void Renderer::setupComputePipeline()

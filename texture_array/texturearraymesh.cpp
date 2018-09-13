@@ -477,7 +477,8 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
             m_pipelineLayout,
             settings,
             desc.shader.shaderStageCreateInfos,
-            &m_vertexBuffer);
+            m_vertexBuffer.getAttributeDescriptions(),
+            m_vertexBuffer.getBindingDescriptions());
 
         if (!desc.pipeline)
         {

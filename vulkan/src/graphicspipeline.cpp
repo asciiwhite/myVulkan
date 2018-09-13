@@ -1,6 +1,5 @@
 #include "graphicspipeline.h"
 #include "vulkanhelper.h"
-#include "vertexbuffer.h"
 #include "device.h"
 #include "../utils/hasher.h"
 
@@ -121,15 +120,16 @@ size_t GraphicsPipelineResourceHandler::CreateResourceKey(VkRenderPass renderPas
     VkPipelineLayout layout,
     const GraphicsPipelineSettings& settings,
     const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
-    const VertexBuffer* vertexbuffer)
+    const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
+    const std::vector<VkVertexInputBindingDescription>& bindingDesc)
 {
     Hasher hasher;
     hasher.add(renderPass);
     hasher.add(layout);
     hasher.add(settings);
     hasher.add(shaderStages);
-    hasher.add(vertexbuffer->getAttributeDescriptions());
-    hasher.add(vertexbuffer->getBindingDescriptions());
+    hasher.add(attributeDesc);
+    hasher.add(bindingDesc);
     return hasher.get();
 }
 
@@ -137,9 +137,10 @@ VkPipeline GraphicsPipelineResourceHandler::CreateResource(Device& device, VkRen
     VkPipelineLayout layout,
     const GraphicsPipelineSettings& settings,
     const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
-    const VertexBuffer* vertexbuffer)
+    const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
+    const std::vector<VkVertexInputBindingDescription>& bindingDesc)
 {
-    return device.createPipeline(renderPass, layout, settings, shaderStages, vertexbuffer);
+    return device.createPipeline(renderPass, layout, settings, shaderStages, attributeDesc, bindingDesc);
 }
 
 void GraphicsPipelineResourceHandler::DestroyResource(Device& device, VkPipeline& resource)
