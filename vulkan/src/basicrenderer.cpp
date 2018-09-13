@@ -229,20 +229,20 @@ void BasicRenderer::draw()
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
 }
 
-void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer)
+void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer, const VkSemaphore* waitSemaphore, const VkSemaphore* signalSemaphore, VkFence* submitFence)
 {
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = m_swapChain.getImageAvailableSemaphore();
+    submitInfo.waitSemaphoreCount = waitSemaphore ? 1 : 0;
+    submitInfo.pWaitSemaphores = waitSemaphore;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = m_swapChain.getRenderFinishedSemaphore();
+    submitInfo.signalSemaphoreCount = signalSemaphore ? 1 : 0;
+    submitInfo.pSignalSemaphores = signalSemaphore;
 
-    VK_CHECK_RESULT(vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, m_frameResources[m_frameResourceId].frameCompleteFence));
+    VK_CHECK_RESULT(vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, submitFence ? *submitFence : nullptr));
 }
 
 void BasicRenderer::updateMVPUniform()

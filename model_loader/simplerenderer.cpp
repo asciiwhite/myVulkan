@@ -62,5 +62,5 @@ void SimpleRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuf
 void SimpleRenderer::render(const FrameData& frameData)
 {
     fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer);
-    submitCommandBuffer(frameData.resources.graphicsCommandBuffer);
+    submitCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapChain.getImageAvailableSemaphore(), nullptr, nullptr);
 }
