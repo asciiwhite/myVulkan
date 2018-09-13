@@ -7,6 +7,7 @@
 #include "texture.h"
 
 #include <array>
+#include <cstring>
 
 bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidationLayers)
 {
@@ -433,6 +434,47 @@ Texture Device::createDepthBuffer(const VkExtent2D& extend, VkFormat format) con
         format,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+    return texture;
+}
+
+Texture Device::createImageFromData(uint32_t width, uint32_t height, unsigned char* pixelData, VkFormat format) const
+{
+    assert(format == VK_FORMAT_R8G8B8A8_UNORM);
+
+    const uint32_t imageSize = width * height * 4;
+
+    Texture texture;
+    Buffer stagingBuffer = createBuffer(imageSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    void* data = mapBuffer(stagingBuffer, imageSize, 0);
+    std::memcpy(data, pixelData, static_cast<size_t>(imageSize));
+    unmapBuffer(stagingBuffer);
+
+    createImage(width, height,
+        format,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        texture.image, texture.imageMemory);
+
+    transitionImageLayout(texture.image,
+        format,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    copyBufferToImage(stagingBuffer, texture.image, width, height);
+
+    transitionImageLayout(texture.image,
+        format,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    destroyBuffer(stagingBuffer);
+
+    createImageView(texture.image, format, texture.imageView, VK_IMAGE_ASPECT_COLOR_BIT);
 
     return texture;
 }

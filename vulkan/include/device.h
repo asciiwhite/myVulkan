@@ -35,6 +35,7 @@ public:
     void destroyPipeline(VkPipeline& pipeline);
 
     Texture createDepthBuffer(const VkExtent2D& extend, VkFormat format) const;
+    Texture createImageFromData(uint32_t width, uint32_t height, unsigned char* pixelData, VkFormat format) const;
     void destroyTexture(Texture& texture) const;
 
     VkSampler createSampler() const;
