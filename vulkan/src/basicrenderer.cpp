@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 
 #include <vector>
+#include <array>
 #include <iostream>
 #include <algorithm>
 
@@ -35,7 +36,11 @@ bool BasicRenderer::init(GLFWwindow* window)
 
     m_swapChainDepthBuffer = m_device.createDepthBuffer(m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
 
-    m_renderPass = m_device.createRenderPass(m_swapChain.getImageFormat(), m_swapChainDepthBufferFormat);
+    static const std::array<RenderPassAttachmentData, 2> defaultAttachmentData{ {
+        { m_swapChain.getImageFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
+        { m_swapChainDepthBufferFormat, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL } } };
+
+    m_renderPass = m_device.createRenderPass(defaultAttachmentData);
     createSwapChainFramebuffers();
 
     m_cameraUniformBuffer = m_device.createBuffer(sizeof(glm::mat4),

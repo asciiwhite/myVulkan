@@ -2,11 +2,21 @@
 
 #include <vulkan/vulkan.h>
 #include <vector>
+#include <array>
 
 struct Texture;
 struct Buffer;
 struct GraphicsPipelineSettings;
 class VertexBuffer;
+
+struct RenderPassAttachmentData
+{
+    VkFormat            format;
+    VkAttachmentLoadOp  loadOp;
+    VkAttachmentStoreOp storeOp;
+    VkImageLayout       initialLayout;
+    VkImageLayout       finalLayout;
+};
 
 class Device
 {
@@ -19,7 +29,7 @@ public:
     void unmapBuffer(const Buffer& buffer) const;
     void destroyBuffer(Buffer& buffer) const;
 
-    VkRenderPass createRenderPass(VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat) const;
+    VkRenderPass createRenderPass(const std::array<RenderPassAttachmentData, 2>& attachmentData) const;
     void destroyRenderPass(VkRenderPass& renderPass) const;
 
     VkFramebuffer createFramebuffer(VkRenderPass renderPass, const std::vector<VkImageView>& attachments, VkExtent2D extent) const;

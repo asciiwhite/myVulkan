@@ -264,28 +264,27 @@ void Device::unmapBuffer(const Buffer& buffer) const
     vkUnmapMemory(m_device, buffer.memory);
 }
 
-
-VkRenderPass Device::createRenderPass(VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat) const
+VkRenderPass Device::createRenderPass(const std::array<RenderPassAttachmentData, 2>& attachmentData) const
 {
     VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = colorAttachmentFormat;
+    colorAttachment.format = attachmentData[0].format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.loadOp = attachmentData[0].loadOp;
+    colorAttachment.storeOp = attachmentData[0].storeOp;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
+    colorAttachment.initialLayout = attachmentData[0].initialLayout;
+    colorAttachment.finalLayout = attachmentData[0].finalLayout;
+ 
     VkAttachmentDescription depthAttachment = {};
-    depthAttachment.format = depthAttachmentFormat;
+    depthAttachment.format = attachmentData[1].format;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.loadOp = attachmentData[1].loadOp;
+    depthAttachment.storeOp = attachmentData[1].storeOp;
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depthAttachment.initialLayout = attachmentData[1].initialLayout;
+    depthAttachment.finalLayout = attachmentData[1].finalLayout;
 
     VkAttachmentReference colorAttachmentRef = {};
     colorAttachmentRef.attachment = 0;
