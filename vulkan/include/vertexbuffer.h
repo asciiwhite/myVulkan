@@ -57,6 +57,9 @@ public:
     const std::vector<VkVertexInputBindingDescription>& getBindingDescriptions() const;
     const std::vector<VkVertexInputAttributeDescription>& getAttributeDescriptions() const;
 
+    const uint32_t numVertices() const { return m_numVertices; }
+    const uint32_t numIndices() const { return m_numIndices; }
+
     operator VkBuffer() const { return m_vertexBuffer; }
 
 private:
