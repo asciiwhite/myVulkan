@@ -260,7 +260,7 @@ void Renderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer fr
 void Renderer::render(const FrameData& frameData)
 {
     // compute part
-    m_computeMappedInputBuffer->timeDelta = static_cast<float>(m_stats.getLastFrameTime()) / 1000000;
+    m_computeMappedInputBuffer->timeDelta = m_stats.getDeltaTime();
 
 
     buildComputeCommandBuffer(m_computeCommandBuffers[m_frameResourceId]);

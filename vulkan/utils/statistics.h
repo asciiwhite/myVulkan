@@ -1,27 +1,35 @@
 #pragma once
 
-#include <stdint.h>
+#include <chrono>
+#include <array>
+
+using HistogramData = std::array<float, 10>;
 
 class Statistics
 {
 public:
     Statistics();
 
-    void startFrame();
-    bool endFrame();
-    void reset();
+    float getTime() const;
+    float getDeltaTime() const;
+    float getAverageDeltaTime() const;
+    float getAverageFPS() const;
 
-    uint64_t getMin() const;
-    uint64_t getMax() const;
-    uint64_t getAvg() const;
-    uint64_t getLastFrameTime() const;
+    void update();
+
+    HistogramData const & getDeltaTimeHistogram() const;
+    HistogramData const & getFPSHistogram() const;
 
 private:
-    uint64_t m_frameStartTime;
-    uint64_t m_minFrameTime;
-    uint64_t m_maxFrameTime;
-    uint64_t m_avgFrameTime;
-    uint64_t m_totalTime;
-    uint64_t m_lastFrameTime;
-    uint32_t m_frameCount;
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_time;
+    std::chrono::duration<float> m_deltaTime;
+
+    float m_floatTime;
+    float m_floatDeltaTime;
+    float m_averageDeltaTime;
+    float m_averageFPS;
+    float m_currentSecondFPS;
+
+    HistogramData m_deltaTimeHistogram;
+    HistogramData m_FPSHistogram;
 };

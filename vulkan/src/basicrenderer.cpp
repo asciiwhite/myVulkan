@@ -203,7 +203,7 @@ void BasicRenderer::destroyFrameResources()
 
 void BasicRenderer::draw()
 {
-    m_stats.startFrame();
+    m_stats.update();
 
     m_frameResourceId = (m_frameResourceId + 1) % m_frameResourceCount;
 
@@ -222,12 +222,6 @@ void BasicRenderer::draw()
 
     if (!m_swapChain.present(swapChainImageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
-
-    if (m_stats.endFrame())
-    {
-        std::cout << "Min/Max/Avg: " << m_stats.getMin() << " " << m_stats.getMax() << " " << m_stats.getAvg() << std::endl;
-        m_stats.reset();
-    }
 }
 
 void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer)

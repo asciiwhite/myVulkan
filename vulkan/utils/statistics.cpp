@@ -1,62 +1,77 @@
 #include "statistics.h"
-#include "timer.h"
-
-#include <algorithm>
 
 Statistics::Statistics()
+    : m_time(std::chrono::high_resolution_clock::now())
+    , m_deltaTime(std::chrono::high_resolution_clock::now() - std::chrono::high_resolution_clock::now())
+    , m_floatDeltaTime(10.0f)
+    , m_averageDeltaTime(10.0f)
+    , m_averageFPS(10.0f)
+    , m_currentSecondFPS(10.0f)
 {
-    reset();
+    m_FPSHistogram.fill(0.f);
+    m_deltaTimeHistogram.fill(0.0f);
+
+    update();
 }
 
-void Statistics::reset()
+float Statistics::getTime() const
 {
-    m_minFrameTime = std::numeric_limits<uint64_t>::max();
-    m_maxFrameTime = 0u;
-    m_avgFrameTime = 0u;
-    m_totalTime = 0u;
-    m_lastFrameTime = 0u;
-    m_frameCount = 0u;
+    return m_floatTime;
 }
 
-void Statistics::startFrame()
+float Statistics::getDeltaTime() const
 {
-    m_frameStartTime = Timer::getMicroseconds();
+    return m_floatDeltaTime;
 }
 
-bool Statistics::endFrame()
+float Statistics::getAverageDeltaTime() const
 {
-    m_lastFrameTime = Timer::getMicroseconds() - m_frameStartTime;
+    return m_averageDeltaTime;
+}
 
-    m_frameCount++;
-    m_minFrameTime = std::min(m_minFrameTime, m_lastFrameTime);
-    m_maxFrameTime = std::max(m_maxFrameTime, m_lastFrameTime);
-    m_totalTime += m_lastFrameTime;
+HistogramData const & Statistics::getDeltaTimeHistogram() const
+{
+    return m_deltaTimeHistogram;
+}
 
-    if (m_totalTime >= static_cast<uint64_t>(std::chrono::duration_cast<Timer::TimeUnit>(std::chrono::seconds(1)).count()))
+float Statistics::getAverageFPS() const
+{
+    return m_averageFPS;
+}
+
+HistogramData const & Statistics::getFPSHistogram() const
+{
+    return m_FPSHistogram;
+}
+
+void Statistics::update()
+{
+    auto previousTime = m_time;
+    m_time = std::chrono::high_resolution_clock::now();
+    m_deltaTime = std::chrono::high_resolution_clock::now() - previousTime;
+
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(m_time.time_since_epoch()).count();
+    m_floatTime = static_cast<float>(milliseconds * 0.001f);
+    m_floatDeltaTime = m_deltaTime.count();
+
+    static size_t previous_second = 0;
+    size_t current_second = static_cast<size_t>(m_floatTime) % (2);
+
+    if (current_second != previous_second)
     {
-        m_avgFrameTime = m_totalTime / m_frameCount;
-        return true;
+        m_averageFPS = m_currentSecondFPS;
+        for (size_t i = 1; i < m_FPSHistogram.size(); ++i)
+        {
+            m_averageFPS += m_FPSHistogram[i];
+            m_FPSHistogram[i - 1] = m_FPSHistogram[i];
+            m_deltaTimeHistogram[i - 1] = m_deltaTimeHistogram[i];
+        }
+        m_FPSHistogram[9] = m_currentSecondFPS;
+        m_deltaTimeHistogram[9] = 1000.0f / m_currentSecondFPS;
+        m_averageFPS *= 0.1f;
+        m_averageDeltaTime = 1000.0f / m_averageFPS;
+        m_currentSecondFPS = 0.0f;
     }
-
-    return false;
-}
-
-uint64_t Statistics::getMin() const
-{
-    return m_minFrameTime;
-}
-
-uint64_t Statistics::getMax() const
-{
-    return m_maxFrameTime;
-}
-
-uint64_t Statistics::getAvg() const
-{
-    return m_avgFrameTime;
-}
-
-uint64_t Statistics::getLastFrameTime() const
-{
-    return m_lastFrameTime;
+    m_currentSecondFPS += 1.0f;
+    previous_second = current_second;
 }
