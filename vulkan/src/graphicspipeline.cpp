@@ -108,6 +108,12 @@ GraphicsPipelineSettings& GraphicsPipelineSettings::setAlphaBlending(bool blend)
     return *this;
 }
 
+GraphicsPipelineSettings& GraphicsPipelineSettings::setDepthTesting(bool depth)
+{
+    depthStencil.depthTestEnable = depth ? VK_TRUE : VK_FALSE;
+    return *this;
+}
+
 GraphicsPipelineSettings& GraphicsPipelineSettings::setCullMode(VkCullModeFlags mode)
 {
     rasterizer.cullMode = mode;

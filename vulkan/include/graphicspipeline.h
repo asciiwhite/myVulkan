@@ -11,6 +11,7 @@ public:
 
     GraphicsPipelineSettings& setPrimitiveTopology(VkPrimitiveTopology topology);
     GraphicsPipelineSettings& setAlphaBlending(bool blend);
+    GraphicsPipelineSettings& setDepthTesting(bool depth);
     GraphicsPipelineSettings& setCullMode(VkCullModeFlags mode);
 
     VkPipelineViewportStateCreateInfo viewportState = {};
