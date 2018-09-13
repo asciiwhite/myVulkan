@@ -18,3 +18,21 @@ set_property(TARGET gmock      PROPERTY FOLDER "externals")
 set_property(TARGET gmock_main PROPERTY FOLDER "externals")
 set_property(TARGET gtest      PROPERTY FOLDER "externals")
 set_property(TARGET gtest_main PROPERTY FOLDER "externals")
+
+# imgui
+add_library(imgui
+    imgui/imgui.cpp
+    imgui/imgui.h
+    imgui/imgui_draw.cpp
+    imgui/imgui_widgets.cpp
+    imgui/imgui_internal.h
+    imgui/imconfig.h
+    imgui/imstb_rectpack.h
+    imgui/imstb_textedit.h
+    imgui/imstb_truetype.h
+)
+target_include_directories(imgui
+    PUBLIC
+        imgui
+)
+set_property(TARGET imgui PROPERTY FOLDER "externals")
