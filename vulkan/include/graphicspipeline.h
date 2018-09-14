@@ -3,6 +3,7 @@
 #include "resourcemanager.h"
 
 #include <vulkan/vulkan.h>
+#include <vector>
 
 struct GraphicsPipelineSettings
 {
