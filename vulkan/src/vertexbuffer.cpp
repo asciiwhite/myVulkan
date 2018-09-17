@@ -200,4 +200,11 @@ void VertexBuffer::destroy()
 
     if (m_indexBuffer.isValid())
         m_device->destroyBuffer(m_indexBuffer);
+
+    m_bindingDescriptions.clear();
+    m_attributesDescriptions.clear();
+    m_bindingOffsets.clear();
+    m_numVertices = 0;
+    m_numIndices = 0;
+    m_device = nullptr;
 }
