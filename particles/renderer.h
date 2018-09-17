@@ -22,6 +22,7 @@ private:
     bool createComputeCommandBuffer();
     void buildComputeCommandBuffer(VkCommandBuffer commandBuffer);
     void renderParticles(VkCommandBuffer commandBuffer) const;
+    void updateParticleCount();
     void createGUIContent() override;
 
     VertexBuffer m_vertexBuffer;
@@ -45,6 +46,8 @@ private:
         float timeDelta;
     };
     ComputeInput* m_computeMappedInputBuffer = nullptr;
+    int m_particleCount = 0u;
+    uint32_t m_groupCount = 0u;
 
     DescriptorPool m_descriptorPool;
 };

@@ -375,3 +375,9 @@ void BasicRenderer::mouseMove(double x, double y)
         updateMVPUniform();
     }    
 }
+
+void BasicRenderer::waitForAllFrames() const
+{
+    for (const auto& frameResource : m_frameResources)
+        vkWaitForFences(m_device, 1, &frameResource.frameCompleteFence, VK_TRUE, UINT64_MAX);
+}

@@ -14,10 +14,7 @@ const uint32_t BINDING_ID_GROUND = 0;
 const uint32_t BINDING_ID_COMPUTE_PARTICLES = 0;
 const uint32_t BINDING_ID_COMPUTE_INPUT = 1;
 
-const uint32_t NUM_PARTICLES = 4000;
-
 const uint32_t WORKGROUP_SIZE = 512;
-const uint32_t GROUP_COUNT = static_cast<uint32_t>(std::ceil(static_cast<float>(NUM_PARTICLES) / WORKGROUP_SIZE));
 
 bool Renderer::setup()
 {
@@ -35,6 +32,9 @@ bool Renderer::setup()
     m_descriptorPool.init(m_device, 2,
         { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
           { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 } });
+
+    m_particleCount = 20000;
+    m_groupCount = static_cast<uint32_t>(std::ceil(static_cast<float>(m_particleCount) / WORKGROUP_SIZE));
 
     setupCameraDescriptorSet();
     setupParticleVertexBuffer();
@@ -68,14 +68,14 @@ void Renderer::setupParticleVertexBuffer()
         glm::vec4 age;
     };
 
-    std::vector<ParticleData> particles(NUM_PARTICLES, { {0,0},{0,0}, {0,0,0,0} });
+    std::vector<ParticleData> particles(m_particleCount, { {0,0},{0,0}, {0,0,0,0} });
 
     const std::vector<VertexBuffer::InterleavedAttributeDescription> vertexDesc{
         { 0, 2, offsetof(ParticleData, pos) },
         { 1, 4, offsetof(ParticleData, age) }
     }; 
 
-    m_vertexBuffer.createFromInterleavedAttributes(&m_device, NUM_PARTICLES, sizeof(ParticleData), &particles.front().pos.x, vertexDesc, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    m_vertexBuffer.createFromInterleavedAttributes(&m_device, m_particleCount, sizeof(ParticleData), &particles.front().pos.x, vertexDesc, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 }
 
 void Renderer::setupGraphicsPipeline()
@@ -98,7 +98,7 @@ void Renderer::setupComputePipeline()
 {
     m_computeInputBuffer = m_device.createBuffer(sizeof(ComputeInput), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     m_computeMappedInputBuffer = static_cast<ComputeInput*>(m_device.mapBuffer(m_computeInputBuffer));
-    m_computeMappedInputBuffer->particleCount = NUM_PARTICLES;
+    m_computeMappedInputBuffer->particleCount = m_particleCount;
     m_computeMappedInputBuffer->timeDelta = 0.f;
 
     m_computeDescriptorSetLayout.init(m_device,
@@ -201,7 +201,7 @@ void Renderer::buildComputeCommandBuffer(VkCommandBuffer commandBuffer)
     VkDescriptorSet descriptorSets{ m_computeDescriptorSet };
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout, 0, 1, &descriptorSets, 0, 0);
 
-    vkCmdDispatch(commandBuffer, GROUP_COUNT, 1, 1);
+    vkCmdDispatch(commandBuffer, m_groupCount, 1, 1);
 
     // Add memory barrier to ensure that compute shader has finished writing to the buffer
     // Without this the (rendering) vertex shader may display incomplete results (partial data from last frame) 
@@ -281,7 +281,25 @@ void Renderer::render(const FrameData& frameData)
 
 void Renderer::createGUIContent()
 {
-    ImGui::Begin("", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
-    ImGui::Text("Num particles: %u", NUM_PARTICLES);
+    ImGui::Begin("", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
+
+    if (ImGui::SliderInt("particle count", &m_particleCount, 1000, 99999))
+        updateParticleCount();
+
     ImGui::End();
+}
+
+void Renderer::updateParticleCount()
+{
+    // finish all frames so vertexbuffer is not not used anymore and we can update it
+    waitForAllFrames();
+
+    m_computeMappedInputBuffer->particleCount = m_particleCount;
+    m_groupCount = static_cast<uint32_t>(std::ceil(static_cast<float>(m_particleCount) / WORKGROUP_SIZE));
+
+    m_vertexBuffer.destroy();
+    setupParticleVertexBuffer();
+
+    m_computeDescriptorSet.setStorageBuffer(BINDING_ID_COMPUTE_PARTICLES, m_vertexBuffer);
+    m_computeDescriptorSet.update(m_device);
 }

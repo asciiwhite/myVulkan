@@ -32,6 +32,7 @@ protected:
     void submitCommandBuffer(VkCommandBuffer commandBuffer, const VkSemaphore* waitSemaphore, const VkSemaphore* signalSemaphore, VkFence* submitFence);
     void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir);
     void updateMVPUniform();
+    void waitForAllFrames() const;
     virtual void createGUIContent() {};
 
     struct BaseFrameResources
