@@ -347,7 +347,7 @@ void TextureArrayMesh::loadMaterials()
         std::memcpy(static_cast<char*>(data) + 8 * sizeof(float), &material.emission, 3 * sizeof(float));
         m_device->unmapBuffer(desc.material);
 
-        desc.descriptorSet.addUniformBuffer(BINDING_ID_MATERIAL, desc.material);
+        desc.descriptorSet.setUniformBuffer(BINDING_ID_MATERIAL, desc.material);
 
         if (!textureFilename.empty())
         {
@@ -425,7 +425,7 @@ void TextureArrayMesh::sortShapesByMaterialTransparency()
 
 void TextureArrayMesh::addCameraUniformBuffer(VkBuffer uniformBuffer)
 {
-    m_cameraUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, uniformBuffer);
+    m_cameraUniformDescriptorSet.setUniformBuffer(BINDING_ID_CAMERA, uniformBuffer);
 }
 
 bool TextureArrayMesh::finalize(VkRenderPass renderPass)
@@ -443,19 +443,18 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
     m_cameraDescriptorSetLayout.init(*m_device,
     { { BINDING_ID_CAMERA, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
 
-    m_cameraUniformDescriptorSet.finalize(*m_device, m_cameraDescriptorSetLayout, m_mainDescriptorPool);
-
+    m_cameraUniformDescriptorSet.allocateAndUpdate(*m_device, m_cameraDescriptorSetLayout, m_mainDescriptorPool);
+    
     m_texturesDescriptorSetLayout.init(*m_device,
     { { BINDING_ID_SAMPLER, 1, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT },
       { BINDING_ID_TEXTURES, sampledImageCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT } });
 
-    m_texturesDescriptorSet.addSampler(BINDING_ID_SAMPLER, m_sampler);
-    m_texturesDescriptorSet.addImageArray(BINDING_ID_TEXTURES, m_imageViews);
-    m_texturesDescriptorSet.finalize(*m_device, m_texturesDescriptorSetLayout, m_mainDescriptorPool);
+    m_texturesDescriptorSet.setSampler(BINDING_ID_SAMPLER, m_sampler);
+    m_texturesDescriptorSet.setImageArray(BINDING_ID_TEXTURES, m_imageViews);
+    m_texturesDescriptorSet.allocateAndUpdate(*m_device, m_texturesDescriptorSetLayout, m_mainDescriptorPool);
 
     m_materialDescriptorSetLayout.init(*m_device,
         { { BINDING_ID_MATERIAL, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
-
 
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.offset = 0;
@@ -466,7 +465,7 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
 
     for (auto& desc : m_materialDescs)
     {
-        desc.descriptorSet.finalize(*m_device, m_materialDescriptorSetLayout, m_mainDescriptorPool);
+        desc.descriptorSet.allocateAndUpdate(*m_device, m_materialDescriptorSetLayout, m_mainDescriptorPool);
 
         auto isTransparent = desc.diffuseTexture && desc.diffuseTexture.hasTranspareny();
 

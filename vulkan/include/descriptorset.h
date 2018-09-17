@@ -47,13 +47,15 @@ private:
 class DescriptorSet
 {
 public:
-    void addImageSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler);
-    void addSampler(uint32_t bindingId, VkSampler sampler);
-    void addImageArray(uint32_t bindingId, const std::vector<VkImageView>& imageViews);
-    void addUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer);
-    void addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
+    void setImageSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler);
+    void setSampler(uint32_t bindingId, VkSampler sampler);
+    void setImageArray(uint32_t bindingId, const std::vector<VkImageView>& imageViews);
+    void setUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer);
+    void setStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
 
-    void finalize(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool);
+    void allocate(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool);
+    void allocateAndUpdate(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool);
+    void update(VkDevice device);
 
     void bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t setId) const;
     static void bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t firstSet, const std::vector<VkDescriptorSet>& descriptorSets);

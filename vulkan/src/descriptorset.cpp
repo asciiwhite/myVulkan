@@ -48,7 +48,7 @@ void DescriptorPool::destroy(VkDevice device)
 
 //////////////////////////////////////////////////////////////////////////
 
-void DescriptorSet::addImageSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler)
+void DescriptorSet::setImageSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler)
 {
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -65,8 +65,7 @@ void DescriptorSet::addImageSampler(uint32_t bindingId, VkImageView textureImage
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
-
-void DescriptorSet::addSampler(uint32_t bindingId, VkSampler sampler)
+void DescriptorSet::setSampler(uint32_t bindingId, VkSampler sampler)
 {
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -83,7 +82,7 @@ void DescriptorSet::addSampler(uint32_t bindingId, VkSampler sampler)
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
-void DescriptorSet::addImageArray(uint32_t bindingId, const std::vector<VkImageView>& imageViews)
+void DescriptorSet::setImageArray(uint32_t bindingId, const std::vector<VkImageView>& imageViews)
 {
     std::vector<VkDescriptorImageInfo> imageInfos(imageViews.size());
     for (uint32_t i = 0u; i < imageViews.size(); i++)
@@ -103,7 +102,7 @@ void DescriptorSet::addImageArray(uint32_t bindingId, const std::vector<VkImageV
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
-void DescriptorSet::addUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer)
+void DescriptorSet::setUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer)
 {
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = uniformBuffer;
@@ -120,7 +119,7 @@ void DescriptorSet::addUniformBuffer(uint32_t bindingId, VkBuffer uniformBuffer)
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
-void DescriptorSet::addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, VkDeviceSize offset, VkDeviceSize size)
+void DescriptorSet::setStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer, VkDeviceSize offset, VkDeviceSize size)
 {
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = storageBuffer;
@@ -137,8 +136,10 @@ void DescriptorSet::addStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer,
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
-void DescriptorSet::finalize(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool)
+void DescriptorSet::allocate(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool)
 {
+    assert(m_descriptorSet == VK_NULL_HANDLE);
+
     const VkDescriptorSetLayout descriptorSetLayout{ layout };
 
     VkDescriptorSetAllocateInfo allocInfo = {};
@@ -147,6 +148,11 @@ void DescriptorSet::finalize(VkDevice device, const DescriptorSetLayout& layout,
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &descriptorSetLayout;
     VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_descriptorSet));
+}
+
+void DescriptorSet::update(VkDevice device)
+{
+    assert(m_descriptorSet != VK_NULL_HANDLE);
 
     auto bufferIter = m_bufferInfos.begin();
     auto imageIter = m_imageInfos.begin();
@@ -175,8 +181,15 @@ void DescriptorSet::finalize(VkDevice device, const DescriptorSetLayout& layout,
     m_descriptorWrites.clear();
 }
 
+void DescriptorSet::allocateAndUpdate(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool)
+{
+    allocate(device, layout, pool);
+    update(device);
+}
+
 void DescriptorSet::bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t setId) const
 {
+    assert(m_descriptorSet != VK_NULL_HANDLE);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setId, 1, &m_descriptorSet, 0, nullptr);
 }
 

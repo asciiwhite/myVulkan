@@ -245,8 +245,8 @@ void GUI::createDescriptorResources()
     m_resources.descriptorSetLayout.init(m_device,
         { { GUI_PARAMETER_BINDING_ID, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT } });
 
-    m_resources.descriptorSet.addImageSampler(GUI_PARAMETER_BINDING_ID, m_resources.image.imageView, m_resources.sampler);
-    m_resources.descriptorSet.finalize(m_device, m_resources.descriptorSetLayout, m_resources.descriptorPool);
+    m_resources.descriptorSet.setImageSampler(GUI_PARAMETER_BINDING_ID, m_resources.image.imageView, m_resources.sampler);
+    m_resources.descriptorSet.allocateAndUpdate(m_device, m_resources.descriptorSetLayout, m_resources.descriptorPool);
 }
 
 bool GUI::createGraphicsPipeline()

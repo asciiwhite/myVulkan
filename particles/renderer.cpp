@@ -55,8 +55,8 @@ void Renderer::setupCameraDescriptorSet()
     m_cameraDescriptorSetLayout.init(m_device,
         { { BINDING_ID_CAMERA, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
 
-    m_cameraUniformDescriptorSet.addUniformBuffer(BINDING_ID_CAMERA, m_cameraUniformBuffer);
-    m_cameraUniformDescriptorSet.finalize(m_device, m_cameraDescriptorSetLayout, m_descriptorPool);
+    m_cameraUniformDescriptorSet.setUniformBuffer(BINDING_ID_CAMERA, m_cameraUniformBuffer);
+    m_cameraUniformDescriptorSet.allocateAndUpdate(m_device, m_cameraDescriptorSetLayout, m_descriptorPool);
 }
 
 void Renderer::setupParticleVertexBuffer()
@@ -105,9 +105,10 @@ void Renderer::setupComputePipeline()
         { { BINDING_ID_COMPUTE_PARTICLES, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT },
           { BINDING_ID_COMPUTE_INPUT, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT } });
 
-    m_computeDescriptorSet.addStorageBuffer(BINDING_ID_COMPUTE_PARTICLES, m_vertexBuffer);
-    m_computeDescriptorSet.addStorageBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer);
-    m_computeDescriptorSet.finalize(m_device, m_computeDescriptorSetLayout, m_descriptorPool);
+    m_computeDescriptorSet.allocate(m_device, m_computeDescriptorSetLayout, m_descriptorPool);
+    m_computeDescriptorSet.setStorageBuffer(BINDING_ID_COMPUTE_PARTICLES, m_vertexBuffer);
+    m_computeDescriptorSet.setStorageBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer);
+    m_computeDescriptorSet.update(m_device);
 
     m_computePipelineLayout = m_device.createPipelineLayout({ m_computeDescriptorSetLayout });
 
