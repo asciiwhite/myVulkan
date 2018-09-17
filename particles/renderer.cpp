@@ -281,9 +281,9 @@ void Renderer::render(const FrameData& frameData)
 
 void Renderer::createGUIContent()
 {
-    ImGui::Begin("", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
+    ImGui::Begin("GPU particle collision", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
 
-    if (ImGui::SliderInt("particle count", &m_particleCount, 1000, 99999))
+    if (ImGui::SliderInt("num particles", &m_particleCount, 1000, 99999))
         updateParticleCount();
 
     ImGui::End();

@@ -348,6 +348,9 @@ void BasicRenderer::mouseMove(double x, double y)
     m_mousePositionX = x;
     m_mousePositionY = y;
 
+    if (ImGui::IsAnyItemActive())
+        return;
+
     if ((m_leftMouseButtonDown ||
         m_middleMouseButtonDown ||
         m_rightMouseButtonDown) && 
