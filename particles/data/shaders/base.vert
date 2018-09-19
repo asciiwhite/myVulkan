@@ -19,7 +19,13 @@ out gl_PerVertex {
 
 void main()
 {
-    outColor = vec4(age.x, 0, 0, 1.0);
+    float opacity = 0.0;
+    if (age.x > 0.0)
+        opacity = 1.0 - age.x;
+
+    float hitCount = age.y;
+
+    outColor = vec4(1, hitCount, hitCount - 1, opacity);
 
     gl_PointSize = 4.0;
     gl_Position = camera.mvp * vec4(positions, 0.0, 1.0);

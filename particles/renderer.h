@@ -43,10 +43,21 @@ private:
     struct ComputeInput
     {
         int particleCount;
-        float timeDelta;
+        float timeDeltaInSeconds;
+        float particleLifetimeInSeconds;
+        float particleSpeed;
+        float gravityForce;
+        float collisionDamping;
+        glm::vec2 emitterPos;
     };
     ComputeInput* m_computeMappedInputBuffer = nullptr;
+
     int m_particleCount = 0u;
+    int m_particlesPerSecond = 2000u;
+    float m_particleLifetimeInSeconds = 4.f;
+    float m_particleSpeed = 10.f;
+    glm::vec2 m_emitterPosition = { 0.f, 8.0f };
+    
     uint32_t m_groupCount = 0u;
 
     DescriptorPool m_descriptorPool;

@@ -3,6 +3,7 @@
 #include "shader.h"
 #include "imgui.h"
 
+#include <random>
 #include <array>
 
 const uint32_t SET_ID_CAMERA = 0;
@@ -33,7 +34,8 @@ bool Renderer::setup()
         { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
           { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 } });
 
-    m_particleCount = 20000;
+    
+    m_particleCount = static_cast<int>(m_particlesPerSecond * m_particleLifetimeInSeconds);
     m_groupCount = static_cast<uint32_t>(std::ceil(static_cast<float>(m_particleCount) / WORKGROUP_SIZE));
 
     setupCameraDescriptorSet();
@@ -68,7 +70,14 @@ void Renderer::setupParticleVertexBuffer()
         glm::vec4 age;
     };
 
-    std::vector<ParticleData> particles(m_particleCount, { {0,0},{0,0}, {0,0,0,0} });
+    std::vector<ParticleData> particles(m_particleCount);
+
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<float> ageDist(-1.0f, 0.0f);
+    std::uniform_real_distribution<float> velDist(-1.0f, 1.0f);
+
+    std::generate(particles.begin(), particles.end(), [&] { return ParticleData{ m_emitterPosition,{ velDist(mt),velDist(mt) },{ ageDist(mt),0,0,0 } }; });
 
     const std::vector<VertexBuffer::InterleavedAttributeDescription> vertexDesc{
         { 0, 2, offsetof(ParticleData, pos) },
@@ -83,7 +92,7 @@ void Renderer::setupGraphicsPipeline()
     m_graphicsPipelineLayout = m_device.createPipelineLayout({ m_cameraDescriptorSetLayout });
 
     GraphicsPipelineSettings settings;
-    settings.setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST).setAlphaBlending(true);
+    settings.setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST).setAlphaBlending(true).setDepthTesting(false);
 
     m_graphicsPipeline = GraphicsPipeline::Acquire(m_device,
         m_renderPass,
@@ -99,7 +108,12 @@ void Renderer::setupComputePipeline()
     m_computeInputBuffer = m_device.createBuffer(sizeof(ComputeInput), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     m_computeMappedInputBuffer = static_cast<ComputeInput*>(m_device.mapBuffer(m_computeInputBuffer));
     m_computeMappedInputBuffer->particleCount = m_particleCount;
-    m_computeMappedInputBuffer->timeDelta = 0.f;
+    m_computeMappedInputBuffer->particleLifetimeInSeconds = m_particleLifetimeInSeconds;
+    m_computeMappedInputBuffer->particleSpeed = m_particleSpeed;
+    m_computeMappedInputBuffer->gravityForce = -0.0005f;
+    m_computeMappedInputBuffer->collisionDamping = 0.7f;
+    m_computeMappedInputBuffer->emitterPos = m_emitterPosition;
+    m_computeMappedInputBuffer->timeDeltaInSeconds = 0.f;
 
     m_computeDescriptorSetLayout.init(m_device,
         { { BINDING_ID_COMPUTE_PARTICLES, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT },
@@ -262,7 +276,7 @@ void Renderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer fr
 void Renderer::render(const FrameData& frameData)
 {
     // compute part
-    m_computeMappedInputBuffer->timeDelta = m_stats.getDeltaTime();
+    m_computeMappedInputBuffer->timeDeltaInSeconds = m_stats.getDeltaTime();
 
 
     buildComputeCommandBuffer(m_computeCommandBuffers[m_frameResourceId]);
@@ -283,7 +297,16 @@ void Renderer::createGUIContent()
 {
     ImGui::Begin("GPU particle collision", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
 
-    if (ImGui::SliderInt("num particles", &m_particleCount, 1000, 99999))
+    bool updatePartices = false;
+    updatePartices |= ImGui::SliderInt("particles/s", &m_particlesPerSecond, 1, 10000);
+    updatePartices |= ImGui::SliderFloat("particle lifetime/s", &m_particleLifetimeInSeconds, 1.f, 10.f, "%.1f");
+    
+    ImGui::SliderFloat("particle speed", &m_computeMappedInputBuffer->particleSpeed, 0.f, 20.f, "%.1f");
+    ImGui::SliderFloat("gravity force", &m_computeMappedInputBuffer->gravityForce, -0.01f, 0.01f, "%.4f");
+    ImGui::SliderFloat("collision damping", &m_computeMappedInputBuffer->collisionDamping, 0.0f, 2.0f, "%.1f");
+    ImGui::SliderFloat2("emitter position", &m_computeMappedInputBuffer->emitterPos.x, -9.0f, 8.0f, "%.1f");
+        
+    if (updatePartices)
         updateParticleCount();
 
     ImGui::End();
@@ -294,7 +317,9 @@ void Renderer::updateParticleCount()
     // finish all frames so vertexbuffer is not not used anymore and we can update it
     waitForAllFrames();
 
+    m_particleCount = static_cast<int>(m_particlesPerSecond * m_particleLifetimeInSeconds);
     m_computeMappedInputBuffer->particleCount = m_particleCount;
+    m_computeMappedInputBuffer->particleLifetimeInSeconds = m_particleLifetimeInSeconds;
     m_groupCount = static_cast<uint32_t>(std::ceil(static_cast<float>(m_particleCount) / WORKGROUP_SIZE));
 
     m_vertexBuffer.destroy();

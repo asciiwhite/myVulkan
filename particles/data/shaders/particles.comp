@@ -17,18 +17,17 @@ layout(std430, binding = 0) buffer Particles
 layout(std140, binding = 1) buffer Input
 {
    int particleCount;
-   float timeDelta;
+   float timeDeltaInSeconds;
+   float lifeTimeInSeconds;
+   float speed;
+   float gravityForce;
+   float collisionDamping;
+   vec2 emitterPos;
 };
 
 #define WORKGROUP_SIZE 512
 
 layout (local_size_x = WORKGROUP_SIZE) in;
-
-vec2 emitterPos = vec2(0.0, 8.0);
-vec2 gravity = vec2(0.0, -0.0002);
-float speed = 10.0;
-float lifeTime = 0.1;
-float collisionDamping = 0.7;
 
 struct Box
 { 
@@ -102,40 +101,45 @@ void main()
         return;
 
     float age = particles[index].age.x;
-    age -= lifeTime * timeDelta;
-    if (age <= 0.0)
+    age += timeDeltaInSeconds / lifeTimeInSeconds;
+    if (age > 1.0)
     {
         float x = rand(index, -1.0, 1.0);
         float y = rand(particleCount - index, -1.0, 1.0);
         particles[index].pos = emitterPos;
         particles[index].vel = vec2(x, y);
-        particles[index].age.x = rand(2.2*index, 0.5, 1.0);
+        particles[index].age.x = 0.0;
+        particles[index].age.y = 0.0;
     }
     else
     {
         particles[index].age.x = age;
-        vec2 vPos = particles[index].pos;
-        vec2 vVel = particles[index].vel;
-
-        vPos += vVel * speed * timeDelta;
-
-        vec2 normal;
-        bool hasCollision = intersectPointFromInside(vPos, boxes[0], normal);
-
-        for (uint i = 1; i < boxes.length() && !hasCollision; i++)
+        if (age > 0.0)
         {
-           hasCollision = intersectPointFromOutside(vPos, boxes[i], normal);
-        }
+            vec2 vPos = particles[index].pos;
+            vec2 vVel = particles[index].vel;
 
-        if (hasCollision)
-        {
-            vVel = reflect(vVel, normal) * collisionDamping;
-        }
-        else
-        {
-            particles[index].pos = vPos;
-        }
+            vPos += vVel * speed * timeDeltaInSeconds;
 
-        particles[index].vel = vVel + gravity;
+            vec2 normal;
+            bool hasCollision = intersectPointFromInside(vPos, boxes[0], normal);
+
+            for (uint i = 1; i < boxes.length() && !hasCollision; i++)
+            {
+               hasCollision = intersectPointFromOutside(vPos, boxes[i], normal);
+            }
+
+            if (hasCollision)
+            {
+                vVel = reflect(vVel, normal) * collisionDamping;
+                particles[index].age.y += 0.2;
+            }
+            else
+            {
+                particles[index].pos = vPos;
+            }
+
+            particles[index].vel = vVel + vec2(0.0, gravityForce);
+        }
     }
 }
