@@ -12,6 +12,7 @@ SET(CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/externals/cmake-codecov/cmake
 )
 
+include(HandleResources)
 include(GNUInstallDirs)
 
 find_package(codecov)

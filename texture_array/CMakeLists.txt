@@ -6,10 +6,7 @@ set(SOURCES
     texturearraymesh.cpp
 )
 
-set(RESOURCE_DIR data)
-set(MESH_DIR ${RESOURCE_DIR}/meshes)
-
-include(CompileShaders)
+add_resources()
 
 add_executable(texture_array
     ${SOURCES}
@@ -23,8 +20,6 @@ target_link_libraries(texture_array
     PRIVATE
         vulkanBase
 )
-
-file(COPY ${MESH_DIR} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${RESOURCE_DIR})
 
 install(
   TARGETS texture_array

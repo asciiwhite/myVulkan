@@ -1,0 +1,15 @@
+include(CompileShaders)
+
+function(copy_meshes)
+    set(MESH_DIR "data/meshes")
+    get_filename_component(FULL_MESH_DIR ${MESH_DIR} REALPATH)
+    if (EXISTS ${FULL_MESH_DIR})
+        file(COPY ${MESH_DIR} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data)
+        #message(STATUS "Copying mesh dir " ${FULL_MESH_DIR})
+    endif()
+endfunction()
+
+MACRO(add_resources)
+    copy_meshes()
+    compile_and_add_shaders()
+endMACRO()

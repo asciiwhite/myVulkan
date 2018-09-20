@@ -4,9 +4,7 @@ set(SOURCES
     renderer.cpp
 )
 
-set(RESOURCE_DIR data)
-
-include(CompileShaders)
+add_resources()
 
 add_executable(particles
     ${SOURCES}
@@ -28,7 +26,7 @@ install(
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 )
 
-install(
-  DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${RESOURCE_DIR}
-  DESTINATION "${CMAKE_INSTALL_BINDIR}"
-)
+#install(
+#  DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${RESOURCE_DIR}
+#  DESTINATION "${CMAKE_INSTALL_BINDIR}"
+#)
