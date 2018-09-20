@@ -6,7 +6,7 @@ layout(set = 0, binding = 0) uniform Camera
     mat4 mvp;
 } camera;
 
-layout(set = 2, binding = 0) uniform Material 
+layout(set = 1, binding = 0) uniform Material 
 {
     vec4 ambient;
     vec4 diffuse;

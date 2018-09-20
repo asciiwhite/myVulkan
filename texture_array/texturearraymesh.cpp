@@ -13,10 +13,10 @@
 
 const uint32_t SET_ID_CAMERA = 0;
 const uint32_t BINDING_ID_CAMERA = 0;
-const uint32_t SET_ID_MATERIAL = 2;
+const uint32_t SET_ID_MATERIAL = 1;
 const uint32_t BINDING_ID_MATERIAL = 0;
 const uint32_t BINDING_ID_TEXTURE_DIFFUSE = 1;
-const uint32_t SET_ID_TEXTURES = 1;
+const uint32_t SET_ID_TEXTURES = 2;
 const uint32_t BINDING_ID_SAMPLER = 0;
 const uint32_t BINDING_ID_TEXTURES = 1;
 
@@ -461,7 +461,8 @@ bool TextureArrayMesh::finalize(VkRenderPass renderPass)
     pushConstantRange.size = sizeof(uint32_t);
     pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    m_pipelineLayout = m_device->createPipelineLayout({ m_cameraDescriptorSetLayout, m_texturesDescriptorSetLayout, m_materialDescriptorSetLayout }, { pushConstantRange });
+    // keep order of descriptor sets here regarding set id
+    m_pipelineLayout = m_device->createPipelineLayout({ m_cameraDescriptorSetLayout, m_materialDescriptorSetLayout, m_texturesDescriptorSetLayout }, { pushConstantRange });
 
     for (auto& desc : m_materialDescs)
     {
