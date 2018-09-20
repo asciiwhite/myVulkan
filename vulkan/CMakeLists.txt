@@ -66,9 +66,15 @@ set(UTILS_SOURCES
 
 source_group("utils" FILES ${UTILS_SOURCES})
 
+set(RESOURCE_DIR data)
+
+include(CompileShaders)
+
 add_library(vulkanBase
     ${VULKAN_SOURCES}
     ${UTILS_SOURCES}
+    ${SHADERS}
+    ${BINARY_SHADERS}
 )
 
 add_coverage(vulkanBase)

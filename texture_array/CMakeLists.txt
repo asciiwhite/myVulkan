@@ -17,12 +17,14 @@ add_executable(texture_array
     ${BINARY_SHADERS}
 )
 
+set_target_properties(texture_array PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+
 target_link_libraries(texture_array
     PRIVATE
         vulkanBase
 )
 
-file(COPY ${MESH_DIR} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/${RESOURCE_DIR})
+file(COPY ${MESH_DIR} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${RESOURCE_DIR})
 
 install(
   TARGETS texture_array
