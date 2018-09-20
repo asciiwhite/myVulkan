@@ -93,8 +93,8 @@ void VertexBuffer::createFromInterleavedAttributes(Device* device, uint32_t vert
         attribDesc.offset = desc.interleavedOffset;
     }
 
-    m_bindingDescriptions.push_back({ 0, vertexSize, VK_VERTEX_INPUT_RATE_VERTEX });
-    m_bindingOffsets.push_back(0);
+    m_bindingDescriptions.assign(1, { 0, vertexSize, VK_VERTEX_INPUT_RATE_VERTEX });
+    m_bindingOffsets.assign(1, 0);
     
     auto memcpyFunc = [&](void *mappedMemory)
     {
