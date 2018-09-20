@@ -56,6 +56,7 @@ public:
     void allocate(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool);
     void allocateAndUpdate(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool);
     void update(VkDevice device);
+    void free(VkDevice device, const DescriptorPool& pool);
 
     void bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t setId) const;
     static void bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t firstSet, const std::vector<VkDescriptorSet>& descriptorSets);

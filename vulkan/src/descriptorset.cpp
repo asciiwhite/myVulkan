@@ -197,3 +197,10 @@ void DescriptorSet::bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelin
 {
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, firstSet, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
 }
+
+void DescriptorSet::free(VkDevice device, const DescriptorPool& pool)
+{
+    assert(m_descriptorSet != VK_NULL_HANDLE);
+    vkFreeDescriptorSets(device, pool, 1, &m_descriptorSet);
+    m_descriptorSet = VK_NULL_HANDLE;
+}
