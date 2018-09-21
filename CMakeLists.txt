@@ -5,6 +5,8 @@ project(myVulkan LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 11)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(RESOURCE_SRC_DIR data)
+set(RESOURCE_DST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${RESOURCE_SRC_DIR})
 
 SET(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
@@ -31,6 +33,11 @@ add_subdirectory(vulkan)
 add_subdirectory(model_loader)
 add_subdirectory(texture_array)
 add_subdirectory(particles)
+
+install(
+  DIRECTORY ${RESOURCE_DST_DIR}
+  DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 
 list(APPEND LCOV_REMOVE_PATTERNS "'${CMAKE_SOURCE_DIR}/externals/*'")
 coverage_evaluate()

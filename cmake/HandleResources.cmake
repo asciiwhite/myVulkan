@@ -1,10 +1,10 @@
 include(CompileShaders)
 
 function(copy_meshes)
-    set(MESH_DIR "data/meshes")
+    set(MESH_DIR ${RESOURCE_SRC_DIR}/meshes)
     get_filename_component(FULL_MESH_DIR ${MESH_DIR} REALPATH)
     if (EXISTS ${FULL_MESH_DIR})
-        file(COPY ${MESH_DIR} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/data)
+        file(COPY ${MESH_DIR} DESTINATION ${RESOURCE_DST_DIR})
         #message(STATUS "Copying mesh dir " ${FULL_MESH_DIR})
     endif()
 endfunction()
