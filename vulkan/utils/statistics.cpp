@@ -1,17 +1,9 @@
 #include "statistics.h"
 
 Statistics::Statistics()
-    : m_time(std::chrono::high_resolution_clock::now())
-    , m_deltaTime(std::chrono::high_resolution_clock::now() - std::chrono::high_resolution_clock::now())
-    , m_floatDeltaTime(10.0f)
-    , m_averageDeltaTime(10.0f)
-    , m_averageFPS(10.0f)
-    , m_currentSecondFPS(10.0f)
 {
     m_FPSHistogram.fill(0.f);
     m_deltaTimeHistogram.fill(0.0f);
-
-    update();
 }
 
 float Statistics::getTime() const
@@ -48,6 +40,10 @@ void Statistics::update()
 {
     auto previousTime = m_time;
     m_time = std::chrono::high_resolution_clock::now();
+
+    if (m_frameId++ == 0)
+        return;
+
     m_deltaTime = std::chrono::high_resolution_clock::now() - previousTime;
 
     auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(m_time.time_since_epoch()).count();
@@ -57,7 +53,7 @@ void Statistics::update()
     static size_t previous_second = 0;
     size_t current_second = static_cast<size_t>(m_floatTime) % (2);
 
-    if (current_second != previous_second)
+    if (current_second != previous_second && m_currentSecondFPS > 0.f)
     {
         m_averageFPS = m_currentSecondFPS;
         for (size_t i = 1; i < m_FPSHistogram.size(); ++i)

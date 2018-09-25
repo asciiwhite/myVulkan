@@ -24,11 +24,12 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_time;
     std::chrono::duration<float> m_deltaTime;
 
-    float m_floatTime;
-    float m_floatDeltaTime;
-    float m_averageDeltaTime;
-    float m_averageFPS;
-    float m_currentSecondFPS;
+    float m_floatTime = 0.f;
+    float m_floatDeltaTime = 0.f;
+    float m_averageDeltaTime = 0.f;
+    float m_averageFPS = 0.f;
+    float m_currentSecondFPS = 0.f;
+    uint32_t m_frameId = 0;
 
     HistogramData m_deltaTimeHistogram;
     HistogramData m_FPSHistogram;
