@@ -29,7 +29,7 @@ void Mesh::destroy()
         if (desc.diffuseTexture)
             TextureManager::Release(*m_device, desc.diffuseTexture);
     }
-    m_materials.clear();
+    m_materialDescs.clear();
     m_cameraDescriptorSetLayout.destroy(*m_device);
     m_materialDescriptorSetLayout.destroy(*m_device);
     m_device->destroyPipelineLayout(m_pipelineLayout);
@@ -525,6 +525,11 @@ uint32_t Mesh::numVertices() const
 uint32_t Mesh::numIndices() const
 {
     return m_vertexBuffer.numIndices();
+}
+
+uint32_t Mesh::numShapes() const
+{
+    return static_cast<uint32_t>(m_shapeDescs.size());
 }
 
 const std::string& Mesh::fileName() const

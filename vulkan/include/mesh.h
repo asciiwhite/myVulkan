@@ -20,22 +20,22 @@ public:
     bool loadFromObj(Device& device, const std::string& filename);
     void destroy();
 
-    void render(VkCommandBuffer commandBuffer) const;
+    virtual void render(VkCommandBuffer commandBuffer) const;
+    virtual bool finalize(VkRenderPass renderPass, VkBuffer cameraUniformBuffer);
 
-    bool finalize(VkRenderPass renderPass, VkBuffer cameraUniformBuffer);
     void getBoundingbox(glm::vec3& min, glm::vec3& max) const;
-
     uint32_t numVertices() const;
     uint32_t numIndices() const;
+    uint32_t numShapes() const;
     const std::string& fileName() const;
 
-private:
+protected:
     bool hasUniqueVertexAttributes() const;
     void createSeparateVertexAttributes();
     void createInterleavedVertexAttributes();
-    Shader selectShaderFromAttributes(bool useTexture);
+    virtual Shader selectShaderFromAttributes(bool useTexture);
     void calculateBoundingBox();
-    void loadMaterials();
+    virtual void loadMaterials();
     void createDefaultMaterial();
     void mergeShapesByMaterial();
     void sortShapesByMaterialTransparency();
