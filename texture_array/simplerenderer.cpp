@@ -9,8 +9,7 @@ bool SimpleRenderer::setup()
     if (!m_mesh.loadFromObj(m_device, "data/meshes/sponza.obj"))
         return false;
 
-    m_mesh.addCameraUniformBuffer(m_cameraUniformBuffer);
-    if (!m_mesh.finalize(m_renderPass))
+    if (!m_mesh.finalize(m_renderPass, m_cameraUniformBuffer))
         return false;
 
     glm::vec3 min, max;

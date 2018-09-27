@@ -22,8 +22,7 @@ public:
 
     void render(VkCommandBuffer commandBuffer) const;
 
-    void addCameraUniformBuffer(VkBuffer uniformBuffer);
-    bool finalize(VkRenderPass renderPass);
+    bool finalize(VkRenderPass renderPass, VkBuffer cameraUniformBuffer);
     void getBoundingbox(glm::vec3& min, glm::vec3& max) const;
 
     uint32_t numVertices() const;

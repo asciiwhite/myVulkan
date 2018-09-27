@@ -423,13 +423,10 @@ void TextureArrayMesh::sortShapesByMaterialTransparency()
                 (b.materialId * transparencyPenaltyB); });
 }
 
-void TextureArrayMesh::addCameraUniformBuffer(VkBuffer uniformBuffer)
+bool TextureArrayMesh::finalize(VkRenderPass renderPass, VkBuffer cameraUniformBuffer)
 {
-    m_cameraUniformDescriptorSet.setUniformBuffer(BINDING_ID_CAMERA, uniformBuffer);
-}
+    m_cameraUniformDescriptorSet.setUniformBuffer(BINDING_ID_CAMERA, cameraUniformBuffer);
 
-bool TextureArrayMesh::finalize(VkRenderPass renderPass)
-{
     const auto descriptorSetCount = static_cast<uint32_t>(m_materialDescs.size()) + 1 + 1; // camera set + texture set
     const auto uniformBufferCount = static_cast<uint32_t>(m_materialDescs.size()) + 1; // + camera set
     const auto samplerCount = 1u;

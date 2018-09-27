@@ -420,13 +420,10 @@ void Mesh::sortShapesByMaterialTransparency()
                 (b.materialId * transparencyPenaltyB); });
 }
 
-void Mesh::addCameraUniformBuffer(VkBuffer uniformBuffer)
+bool Mesh::finalize(VkRenderPass renderPass, VkBuffer cameraUniformBuffer)
 {
-    m_cameraUniformDescriptorSet.setUniformBuffer(BINDING_ID_CAMERA, uniformBuffer);
-}
+    m_cameraUniformDescriptorSet.setUniformBuffer(BINDING_ID_CAMERA, cameraUniformBuffer);
 
-bool Mesh::finalize(VkRenderPass renderPass)
-{
     m_cameraDescriptorPool.init(*m_device, 1,
     { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 } });
 
