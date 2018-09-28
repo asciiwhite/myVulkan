@@ -45,22 +45,6 @@ namespace std
         {
             return fnv1a_hash_bytes(reinterpret_cast<const unsigned char*>(&in), sizeof(T));        }
     };
-
-    template<>
-    struct hash<GraphicsPipelineSettings> : public BitwiseHash<GraphicsPipelineSettings>
-    {};
-
-    template<>
-    struct hash<VkPipelineShaderStageCreateInfo> : public BitwiseHash<VkPipelineShaderStageCreateInfo>
-    {};
-
-    template<>
-    struct hash<VkVertexInputBindingDescription> : public BitwiseHash<VkVertexInputBindingDescription>
-    {};
-
-    template<>
-    struct hash<VkVertexInputAttributeDescription> : public BitwiseHash<VkVertexInputAttributeDescription>
-    {};
 }
 
 class Hasher

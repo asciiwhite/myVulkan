@@ -3,6 +3,24 @@
 #include "device.h"
 #include "../utils/hasher.h"
 
+namespace std
+{
+    template<>
+    struct hash<GraphicsPipelineSettings> : public BitwiseHash<GraphicsPipelineSettings>
+    {};
+
+    template<>
+    struct hash<VkPipelineShaderStageCreateInfo> : public BitwiseHash<VkPipelineShaderStageCreateInfo>
+    {};
+
+    template<>
+    struct hash<VkVertexInputBindingDescription> : public BitwiseHash<VkVertexInputBindingDescription>
+    {};
+
+    template<>
+    struct hash<VkVertexInputAttributeDescription> : public BitwiseHash<VkVertexInputAttributeDescription>
+    {};
+}
 
 VkDynamicState GraphicsPipelineSettings::dynamicStates[] = {
     VK_DYNAMIC_STATE_VIEWPORT,
