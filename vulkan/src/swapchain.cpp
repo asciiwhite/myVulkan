@@ -6,9 +6,8 @@
 #include <iostream>
 #include <stdexcept>
 
-void SwapChain::init(VkInstance instance, VkSurfaceKHR surface, Device& device)
+void SwapChain::init(VkSurfaceKHR surface, Device& device)
 {
-    m_instance = instance;
     m_surface = surface;
     m_device = &device;
 }

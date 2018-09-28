@@ -8,7 +8,7 @@ class Device;
 class SwapChain
 {
 public:
-    void init(VkInstance instance, VkSurfaceKHR surface, Device& device);
+    void init(VkSurfaceKHR surface, Device& device);
     bool create(bool vsync = false);
     void destroy();
 
@@ -39,7 +39,6 @@ private:
 
     Device* m_device;
 
-    VkInstance m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
     std::vector<VkImage> m_images;

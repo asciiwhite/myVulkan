@@ -103,7 +103,7 @@ bool BasicRenderer::createInstance()
 
 bool BasicRenderer::createSwapChain()
 {
-    m_swapChain.init(m_instance, m_surface, m_device);
+    m_swapChain.init(m_surface, m_device);
     return m_swapChain.create();
 }
 
