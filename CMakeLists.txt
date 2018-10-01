@@ -31,7 +31,6 @@ enable_testing()
 
 add_subdirectory(vulkan)
 add_subdirectory(model_loader)
-add_subdirectory(texture_array)
 add_subdirectory(particles)
 
 install(
