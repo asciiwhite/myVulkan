@@ -133,15 +133,16 @@ namespace
 
     void mergeShapesByMaterials(MeshDescription& meshDesc)
     {
-        if (meshDesc.shapes.size() <= 2)
+        // no need for merging if every shape has an unique material
+        std::sort(meshDesc.shapes.begin(), meshDesc.shapes.end(), [](const ShapeDescription& a, const ShapeDescription& b) { return a.materialId < b.materialId; });
+        auto iter = std::adjacent_find(meshDesc.shapes.begin(), meshDesc.shapes.end(), [](const ShapeDescription& a, const ShapeDescription& b) { return a.materialId == b.materialId; });
+        if (iter == meshDesc.shapes.end())
             return;
 
         ScopedTimeLog log("Merging shapes by material");
 
         std::vector<uint32_t> mergesIndicies(meshDesc.geometry.indices.size());
         std::vector<ShapeDescription> mergesShapes;
-
-        std::sort(meshDesc.shapes.begin(), meshDesc.shapes.end(), [](const ShapeDescription& a, const ShapeDescription& b) { return a.materialId < b.materialId; });
 
         auto currentMaterialId = meshDesc.shapes.front().materialId;
         mergesShapes.push_back({ 0, 0, currentMaterialId });
