@@ -1,20 +1,22 @@
 #include "simplerenderer.h"
 #include "vulkanhelper.h"
 #include "imgui.h"
+#include "objfileloader.h"
 
 #include <array>
 
 bool SimpleRenderer::setup()
 {
-    if (!m_mesh.loadFromObj(m_device, "data/meshes/bunny.obj"))
+    meshFilename = "data/meshes/bunny.obj";
+
+    MeshDescription meshDesc;
+    if (!ObjFileLoader::read(meshFilename, meshDesc))
         return false;
 
-    if (!m_mesh.finalize(m_renderPass, m_cameraUniformBuffer))
+    if (!m_mesh.init(m_device, meshDesc, m_cameraUniformBuffer, m_renderPass))
         return false;
 
-    glm::vec3 min, max;
-    m_mesh.getBoundingbox(min, max);
-    setCameraFromBoundingBox(min, max, glm::vec3(0,1,1));
+    setCameraFromBoundingBox(meshDesc.boundingBox.min, meshDesc.boundingBox.max, glm::vec3(0,1,1));
 
     return true;
 }
@@ -67,11 +69,11 @@ void SimpleRenderer::render(const FrameData& frameData)
 
 void SimpleRenderer::createGUIContent()
 {
-    const auto baseFileName = m_mesh.fileName().substr(m_mesh.fileName().find_last_of("/\\") + 1, m_mesh.fileName().size());
+    const auto baseFileName = meshFilename.substr(meshFilename.find_last_of("/\\") + 1, meshFilename.size());
 
     ImGui::Begin("Mesh loader", nullptr, ImGuiWindowFlags_NoResize);
     ImGui::Text("File: %s", baseFileName.c_str());
     ImGui::Text("#vertices: %u", m_mesh.numVertices());
-    ImGui::Text("#indices: %u", m_mesh.numIndices());
+    ImGui::Text("#triangles: %u", m_mesh.numTriangles());
     ImGui::End();
 }

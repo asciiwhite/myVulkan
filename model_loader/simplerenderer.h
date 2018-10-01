@@ -12,5 +12,6 @@ private:
     void fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer);
     void createGUIContent() override;
 
+    std::string meshFilename;
     Mesh m_mesh;
 };

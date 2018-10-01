@@ -28,7 +28,6 @@ set(VULKAN_SOURCES
     include/graphicspipeline.h
     include/vertexbuffer.h
     include/texture.h
-    include/mesh.h
     include/window.h
     include/buffer.h
     include/resourcemanager.h
@@ -42,7 +41,6 @@ set(VULKAN_SOURCES
     src/graphicspipeline.cpp
     src/vertexbuffer.cpp
     src/texture.cpp
-    src/mesh.cpp
     src/window.cpp
     src/buffer.cpp
 )
@@ -62,6 +60,11 @@ set(UTILS_SOURCES
     utils/flythrough_camera.cpp
     utils/gui.h
     utils/gui.cpp
+    utils/objfileloader.h
+    utils/objfileloader.cpp
+    utils/meshdescription.h
+    utils/mesh.h
+    utils/mesh.cpp
 )
 
 source_group("utils" FILES ${UTILS_SOURCES})
