@@ -32,6 +32,9 @@ bool Mesh::init(Device& device, const MeshDescription& meshDesc, VkBuffer camera
 
 void Mesh::destroy()
 {
+    if (!m_device)
+        return;
+
     m_shapes.clear();
     
     for (auto& desc : m_materials)
@@ -47,6 +50,7 @@ void Mesh::destroy()
     m_materialDescriptorSetLayout.destroy(*m_device);
     m_device->destroyPipelineLayout(m_pipelineLayout);
     m_materialDescriptorPool.destroy(*m_device);
+    m_cameraUniformDescriptorSet.free(*m_device, m_cameraDescriptorPool);
     m_cameraDescriptorPool.destroy(*m_device);
 
     m_vertexBuffer.destroy();
