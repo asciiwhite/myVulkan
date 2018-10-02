@@ -18,6 +18,12 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
+BasicRenderer::BasicRenderer()
+    : m_inputHandler(m_cameraHandler)
+{
+
+}
+
 bool BasicRenderer::init(GLFWwindow* window)
 {
     createInstance();
@@ -221,8 +227,7 @@ void BasicRenderer::draw()
     m_stats.update();
 
     // gui frame start
-    const MouseInputState mouseState{ { m_leftMouseButtonDown, m_middleMouseButtonDown, m_rightMouseButtonDown }, { static_cast<float>(m_mousePositionX), static_cast<float>(m_mousePositionY) } };
-    m_gui->startFrame(m_stats, mouseState);
+    m_gui->startFrame(m_stats, m_inputHandler.getMouseInputState());
     createGUIContent();
 
     // wait for previous frame completion
@@ -265,13 +270,8 @@ void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer, const VkS
 
 void BasicRenderer::updateMVPUniform()
 {
-    const auto lookVec = m_observerCameraMode ? m_cameraTarget : m_cameraPosition + m_cameraLook;
-
-    const glm::mat4 view = glm::lookAt(m_cameraPosition, lookVec, m_cameraUp);
-    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height), 0.01f, m_sceneBoundingBoxDiameter * 20.f);
-    const glm::mat4 mvp = projection * view;
-    const uint32_t bufferSize = sizeof(mvp);
-
+    const auto mvp = m_cameraHandler.mvp(m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height));
+    const auto bufferSize = sizeof(mvp);
     void* data = m_device.mapBuffer(m_cameraUniformBuffer, bufferSize);
     std::memcpy(data, &mvp, bufferSize);
     m_device.unmapBuffer(m_cameraUniformBuffer);
@@ -279,104 +279,26 @@ void BasicRenderer::updateMVPUniform()
 
 void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir)
 {
-    const auto size = max - min;
-    const auto center = (min + max) / 2.f;
-    m_sceneBoundingBoxDiameter = std::max(std::max(size.x, size.y), size.z);
-    const auto cameraDistance = m_sceneBoundingBoxDiameter * 1.5f;
-
-    m_cameraPosition = glm::vec3(cameraDistance) * glm::normalize(lookDir) - center;
-    m_cameraTarget = center;
-    m_cameraLook = glm::normalize(m_cameraTarget - m_cameraPosition);
-    m_cameraUp = glm::vec3(0, -1, 0);
-
+    m_cameraHandler.setCameraFromBoundingBox(min, max, lookDir);
     updateMVPUniform();
 }
 
 void BasicRenderer::update()
 {
-    if ((m_leftMouseButtonDown ||
-        m_middleMouseButtonDown ||
-        m_rightMouseButtonDown) && 
-        !m_observerCameraMode)
-    {
-        const auto stepSize = 0.05f * m_sceneBoundingBoxDiameter;
-
-        const auto deltaX = static_cast<int>(m_mousePositionX - m_lastMousePositionX);
-        const auto deltaY = static_cast<int>(m_mousePositionY - m_lastMousePositionY);
-
-        flythrough_camera_update(
-            glm::value_ptr(m_cameraPosition),
-            glm::value_ptr(m_cameraLook),
-            glm::value_ptr(m_cameraUp),
-            nullptr,
-            0.01f,
-            stepSize,
-            0.5f,
-            80.0f,
-            deltaX, deltaY,
-            m_rightMouseButtonDown,
-            m_middleMouseButtonDown,
-            0,
-            0,
-            0, 0, 0);
-
-        m_cameraTarget += m_cameraLook;
-        
+    if (m_inputHandler.update())
         updateMVPUniform();
-
-        m_lastMousePositionX = m_mousePositionX;
-        m_lastMousePositionY = m_mousePositionY;
-    }
 }
 
 void BasicRenderer::mouseButton(int button, int action, int mods)
 {
-    m_observerCameraMode = (mods & GLFW_MOD_CONTROL) == 0;
-
-    if (button == GLFW_MOUSE_BUTTON_1)
-        m_leftMouseButtonDown = action == GLFW_PRESS;
-    else if (button == GLFW_MOUSE_BUTTON_3)
-        m_middleMouseButtonDown = action == GLFW_PRESS;
-    else if (button == GLFW_MOUSE_BUTTON_2)
-        m_rightMouseButtonDown = action == GLFW_PRESS;
+    m_inputHandler.button(button, action, mods);
 }
 
 void BasicRenderer::mouseMove(double x, double y)
 {
-    m_lastMousePositionX = m_mousePositionX;
-    m_lastMousePositionY = m_mousePositionY;
-    m_mousePositionX = x;
-    m_mousePositionY = y;
-
-    if (ImGui::IsAnyItemActive())
-        return;
-
-    if ((m_leftMouseButtonDown ||
-        m_middleMouseButtonDown ||
-        m_rightMouseButtonDown) && 
-        m_observerCameraMode)
-    {
-        const auto stepSize = 0.005f * m_sceneBoundingBoxDiameter;
-
-        arcball_camera_update(
-            glm::value_ptr(m_cameraPosition),
-            glm::value_ptr(m_cameraTarget),
-            glm::value_ptr(m_cameraUp),
-            nullptr,
-            0.01f,
-            stepSize, 100.0f, 5.0f,
-            m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height,
-            static_cast<int>(m_lastMousePositionX), static_cast<int>(m_mousePositionX),
-            static_cast<int>(m_mousePositionY), static_cast<int>(m_lastMousePositionY),  // inverse axis for correct rotation direction
-            m_rightMouseButtonDown,
-            m_leftMouseButtonDown,
-            m_middleMouseButtonDown ? static_cast<int>(m_mousePositionY - m_lastMousePositionY) : 0,
-            0);
-
-        m_cameraLook = glm::normalize(m_cameraTarget - m_cameraPosition);
-            
+    const auto disableCameraUpdate = ImGui::IsAnyItemActive();
+    if (m_inputHandler.move(static_cast<float>(x), static_cast<float>(y), m_stats.getDeltaTime(), m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, disableCameraUpdate))
         updateMVPUniform();
-    }    
 }
 
 void BasicRenderer::waitForAllFrames() const

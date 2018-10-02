@@ -31,14 +31,9 @@ struct GUIResources
     std::vector<FrameResources> frameResources;
 };
 
-struct MouseInputState
-{
-    bool buttonIsPressed[3];
-    float position[2];
-};
-
 class Statistics;
 class Device;
+struct MouseInputState;
 
 class GUI
 {

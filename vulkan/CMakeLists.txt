@@ -65,6 +65,10 @@ set(UTILS_SOURCES
     utils/meshdescription.h
     utils/mesh.h
     utils/mesh.cpp
+    utils/camerainputhandler.h
+    utils/camerainputhandler.cpp
+    utils/mouseinputhandler.h
+    utils/mouseinputhandler.cpp
 )
 
 source_group("utils" FILES ${UTILS_SOURCES})

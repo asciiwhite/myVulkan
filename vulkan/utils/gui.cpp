@@ -2,8 +2,9 @@
 #include "device.h"
 #include "graphicspipeline.h"
 #include "statistics.h"
+#include "mouseinputhandler.h"
+#include "vulkanhelper.h"
 
-#include <vulkanhelper.h>
 #include <imgui.h>
 #include <array>
 
@@ -77,8 +78,8 @@ void GUI::startFrame(const Statistics& stats, const MouseInputState& mouseState)
     io.DeltaTime = stats.getDeltaTime();
     io.Framerate = stats.getAverageFPS();
     io.MouseDown[0] = mouseState.buttonIsPressed[0];
-    io.MouseDown[1] = mouseState.buttonIsPressed[1];
-    io.MousePos = ImVec2( static_cast<float>(mouseState.position[0]), static_cast<float>(mouseState.position[1]) );
+    io.MouseDown[1] = mouseState.buttonIsPressed[2];
+    io.MousePos = ImVec2(mouseState.position[0], mouseState.position[1]);
 
     ImGui::NewFrame();
 
