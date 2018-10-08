@@ -41,8 +41,8 @@ public:
     VkPipeline createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const GraphicsPipelineSettings& settings,
         const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
         const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
-        const std::vector<VkVertexInputBindingDescription>& bindingDesc);
-    void destroyPipeline(VkPipeline& pipeline);
+        const std::vector<VkVertexInputBindingDescription>& bindingDesc) const;
+    void destroyPipeline(VkPipeline& pipeline) const;
 
     Texture createDepthBuffer(const VkExtent2D& extend, VkFormat format) const;
     Texture createImageFromData(uint32_t width, uint32_t height, unsigned char* pixelData, VkFormat format) const;

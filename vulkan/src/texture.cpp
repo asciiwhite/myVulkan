@@ -11,17 +11,17 @@ std::string TextureResourceHandler::CreateResourceKey(const std::string& filenam
     return filename;
 }
 
-Texture TextureResourceHandler::CreateResource(Device& device, const std::string& filename)
+Texture TextureResourceHandler::CreateResource(const Device& device, const std::string& filename)
 {
     return LoadFromFile(device, filename);
 }
 
-void TextureResourceHandler::DestroyResource(Device& device, Texture& texture)
+void TextureResourceHandler::DestroyResource(const Device& device, Texture& texture)
 {
     device.destroyTexture(texture);
 }
 
-Texture TextureResourceHandler::LoadFromFile(Device& device, const std::string& filename)
+Texture TextureResourceHandler::LoadFromFile(const Device& device, const std::string& filename)
 {
     int texWidth, texHeight, numChannels;
     stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &numChannels, STBI_rgb_alpha);

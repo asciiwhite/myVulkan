@@ -11,7 +11,7 @@ class ResourceManager
 {
 public:
     template<typename... Args>
-    static typename ResourceHandler::ResourceType Acquire(Device& device, Args... args)
+    static typename ResourceHandler::ResourceType Acquire(const Device& device, Args... args)
     {
         const auto resourceKey = ResourceHandler::CreateResourceKey(args...);
         if (m_createdResources.count(resourceKey) == 0)
@@ -29,7 +29,7 @@ public:
         return entry.resource;
     }
 
-    static void Release(Device& device, typename ResourceHandler::ResourceType& resource)
+    static void Release(const Device& device, typename ResourceHandler::ResourceType& resource)
     {
         auto iter = std::find_if(m_createdResources.begin(), m_createdResources.end(), [=](const typename ResourceMap::value_type& resourcePair) { return resourcePair.second.resource == resource; });
         assert(iter != m_createdResources.end());

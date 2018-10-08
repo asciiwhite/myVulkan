@@ -378,7 +378,7 @@ void Device::destroyPipelineLayout(VkPipelineLayout& pipelineLayout) const
 VkPipeline Device::createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const GraphicsPipelineSettings& settings,
     const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
     const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
-    const std::vector<VkVertexInputBindingDescription>& bindingDesc)
+    const std::vector<VkVertexInputBindingDescription>& bindingDesc) const
 {
     assert(!shaderStages.empty());
 
@@ -412,7 +412,7 @@ VkPipeline Device::createPipeline(VkRenderPass renderPass, VkPipelineLayout layo
     return pipeline;
 }
 
-void Device::destroyPipeline(VkPipeline& pipeline)
+void Device::destroyPipeline(VkPipeline& pipeline) const
 {
     vkDestroyPipeline(m_device, pipeline, nullptr);
     pipeline = VK_NULL_HANDLE;

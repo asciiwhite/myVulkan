@@ -35,11 +35,11 @@ public:
     using ResourceType = Texture;
 
     static ResourceKey CreateResourceKey(const std::string& filename);
-    static ResourceType CreateResource(Device& device, const std::string& filename);
-    static void DestroyResource(Device& device, ResourceType& resource);
+    static ResourceType CreateResource(const Device& device, const std::string& filename);
+    static void DestroyResource(const Device& device, ResourceType& resource);
 
 private:
-    static Texture LoadFromFile(Device& device, const std::string& filename);
+    static Texture LoadFromFile(const Device& device, const std::string& filename);
 };
 
 using TextureManager = ResourceManager<TextureResourceHandler>;

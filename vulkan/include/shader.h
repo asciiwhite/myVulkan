@@ -34,12 +34,12 @@ public:
     using ShaderModulesDescription = std::vector<ModuleDesc>;
 
     static ResourceKey CreateResourceKey(const ShaderModulesDescription& modules);
-    static ResourceType CreateResource(Device& device, const ShaderModulesDescription& modules);
-    static void DestroyResource(Device& device, ResourceType& resource);
+    static ResourceType CreateResource(const Device& device, const ShaderModulesDescription& modules);
+    static void DestroyResource(const Device& device, ResourceType& resource);
 
 private:
-    static Shader CreateFromFiles(Device& device, const ShaderModulesDescription& modules);
-    static VkShaderModule CreateShaderModule(Device& device, const std::string& filename);
+    static Shader CreateFromFiles(const Device& device, const ShaderModulesDescription& modules);
+    static VkShaderModule CreateShaderModule(const Device& device, const std::string& filename);
 };
 
 using ShaderManager = ResourceManager<ShaderResourceHandler>;

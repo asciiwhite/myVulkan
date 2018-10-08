@@ -43,14 +43,14 @@ public:
         const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
         const std::vector<VkVertexInputBindingDescription>& bindingDesc);
 
-    static ResourceType CreateResource(Device& device, VkRenderPass renderPass,
+    static ResourceType CreateResource(const Device& device, VkRenderPass renderPass,
         VkPipelineLayout layout,
         const GraphicsPipelineSettings& settings,
         const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
         const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
         const std::vector<VkVertexInputBindingDescription>& bindingDesc);
 
-    static void DestroyResource(Device& device, ResourceType& resource);
+    static void DestroyResource(const Device& device, ResourceType& resource);
 };
 
 using GraphicsPipeline = ResourceManager<GraphicsPipelineResourceHandler>;

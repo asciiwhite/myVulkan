@@ -156,7 +156,7 @@ size_t GraphicsPipelineResourceHandler::CreateResourceKey(VkRenderPass renderPas
     return hasher.get();
 }
 
-VkPipeline GraphicsPipelineResourceHandler::CreateResource(Device& device, VkRenderPass renderPass,
+VkPipeline GraphicsPipelineResourceHandler::CreateResource(const Device& device, VkRenderPass renderPass,
     VkPipelineLayout layout,
     const GraphicsPipelineSettings& settings,
     const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
@@ -166,7 +166,7 @@ VkPipeline GraphicsPipelineResourceHandler::CreateResource(Device& device, VkRen
     return device.createPipeline(renderPass, layout, settings, shaderStages, attributeDesc, bindingDesc);
 }
 
-void GraphicsPipelineResourceHandler::DestroyResource(Device& device, VkPipeline& resource)
+void GraphicsPipelineResourceHandler::DestroyResource(const Device& device, VkPipeline& resource)
 {
     device.destroyPipeline(resource);
 }

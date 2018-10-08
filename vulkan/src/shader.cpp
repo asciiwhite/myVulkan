@@ -15,12 +15,12 @@ std::string ShaderResourceHandler::CreateResourceKey(const ShaderModulesDescript
     return combindedShaderFilenames;
 }
 
-Shader ShaderResourceHandler::CreateResource(Device& device, const ShaderModulesDescription& modules)
+Shader ShaderResourceHandler::CreateResource(const Device& device, const ShaderModulesDescription& modules)
 {
     return CreateFromFiles(device, modules);
 }
 
-void ShaderResourceHandler::DestroyResource(Device& device, Shader& shader)
+void ShaderResourceHandler::DestroyResource(const Device& device, Shader& shader)
 {
     for (auto& shaderModule : shader.shaderModules)
     {
@@ -29,7 +29,7 @@ void ShaderResourceHandler::DestroyResource(Device& device, Shader& shader)
     }
 }
 
-Shader ShaderResourceHandler::CreateFromFiles(Device& device, const ShaderModulesDescription& modules)
+Shader ShaderResourceHandler::CreateFromFiles(const Device& device, const ShaderModulesDescription& modules)
 {
     Shader shader;
 
@@ -53,7 +53,7 @@ Shader ShaderResourceHandler::CreateFromFiles(Device& device, const ShaderModule
     return shader;
 }
 
-VkShaderModule ShaderResourceHandler::CreateShaderModule(Device& device, const std::string& filename)
+VkShaderModule ShaderResourceHandler::CreateShaderModule(const Device& device, const std::string& filename)
 {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     if (!file.is_open())
