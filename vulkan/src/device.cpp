@@ -52,6 +52,9 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
+    VkPhysicalDeviceFeatures requiredFeatures = {};
+    requiredFeatures.robustBufferAccess = enableValidationLayers;
+
     VkDeviceCreateInfo deviceCreateInfo = {
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,           // VkStructureType                    sType
         nullptr,                                        // const void                        *pNext
@@ -62,7 +65,7 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
         nullptr,                                        // const char * const                *ppEnabledLayerNames
         static_cast<uint32_t>(extensions.size()),       // uint32_t                           enabledExtensionCount
         &extensions[0],                                 // const char * const                *ppEnabledExtensionNames
-        nullptr                                         // const VkPhysicalDeviceFeatures    *pEnabledFeatures
+        &requiredFeatures                                // const VkPhysicalDeviceFeatures    *pEnabledFeatures
     };
 
     if (enableValidationLayers)
