@@ -1,5 +1,8 @@
 #pragma once
 
+#include "devicedestroy.h"
+#include "deviceref.h"
+
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <array>
@@ -57,6 +60,12 @@ public:
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const;
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
 
+    VkDescriptorSetLayout createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) const;
+    void destroyDescriptorSetLayout(VkDescriptorSetLayout& layout) const;
+
+    VkDescriptorPool createDescriptorPool(uint32_t count, const std::vector<VkDescriptorPoolSize>& sizes) const;
+    void destroyDescriptorPool(VkDescriptorPool& pool) const;
+
     void transitionImageLayout(VkImage image, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
@@ -73,6 +82,12 @@ public:
 
     VkCommandPool getGraphicsCommandPool() const { return m_graphicsCommandPool; };
     VkCommandPool getComputeCommandPool() const { return m_computeCommandPool; };
+
+    template<typename T>
+    void destroy(T t) const
+    {
+        detail::destroy(*this, t);
+    }
 
 private:
     bool checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
@@ -95,3 +110,9 @@ private:
     VkCommandPool m_graphicsCommandPool = VK_NULL_HANDLE;
     VkCommandPool m_computeCommandPool = VK_NULL_HANDLE;
 };
+
+template<typename T>
+void DeviceRef::destroy(T t) const
+{
+    device().destroy(t);
+}

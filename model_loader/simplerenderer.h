@@ -13,5 +13,5 @@ private:
     void createGUIContent() override;
 
     std::string meshFilename;
-    Mesh m_mesh;
+    std::unique_ptr<Mesh> m_mesh;
 };

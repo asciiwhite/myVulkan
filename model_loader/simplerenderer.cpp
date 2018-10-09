@@ -13,7 +13,9 @@ bool SimpleRenderer::setup()
     if (!ObjFileLoader::read(meshFilename, meshDesc))
         return false;
 
-    if (!m_mesh.init(m_device, meshDesc, m_cameraUniformBuffer, m_renderPass))
+    m_mesh.reset(new Mesh(m_device));
+
+    if (!m_mesh->init(meshDesc, m_cameraUniformBuffer, m_renderPass))
         return false;
 
     setCameraFromBoundingBox(meshDesc.boundingBox.min, meshDesc.boundingBox.max, glm::vec3(0,1,1));
@@ -23,7 +25,7 @@ bool SimpleRenderer::setup()
 
 void SimpleRenderer::shutdown()
 {
-    m_mesh.destroy();
+    m_mesh.reset();
 }
 
 void SimpleRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer)
@@ -54,7 +56,7 @@ void SimpleRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuf
     VkRect2D scissor = { {0, 0}, m_swapChain.getImageExtent() };
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    m_mesh.render(commandBuffer);
+    m_mesh->render(commandBuffer);
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -73,7 +75,7 @@ void SimpleRenderer::createGUIContent()
 
     ImGui::Begin("Mesh loader", nullptr, ImGuiWindowFlags_NoResize);
     ImGui::Text("File: %s", baseFileName.c_str());
-    ImGui::Text("#vertices: %u", m_mesh.numVertices());
-    ImGui::Text("#triangles: %u", m_mesh.numTriangles());
+    ImGui::Text("#vertices: %u", m_mesh->numVertices());
+    ImGui::Text("#triangles: %u", m_mesh->numTriangles());
     ImGui::End();
 }

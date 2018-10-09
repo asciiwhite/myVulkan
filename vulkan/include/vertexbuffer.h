@@ -1,6 +1,7 @@
 #pragma once
 
 #include "buffer.h"
+#include "deviceref.h"
 
 #include <vulkan/vulkan.h>
 #include <vector>
@@ -8,8 +9,7 @@
 
 class Device;
 
-
-class VertexBuffer
+class VertexBuffer : public DeviceRef
 {
 public:
     struct AttributeDescription
@@ -45,9 +45,11 @@ public:
         uint32_t interleavedOffset = 0;
     };
 
-    void createFromSeparateAttributes(Device* device, const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
-    void createFromInterleavedAttributes(Device* device, uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
-    void destroy();
+    VertexBuffer(Device& device);
+    ~VertexBuffer();
+
+    void createFromSeparateAttributes(const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
+    void createFromInterleavedAttributes(uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
 
     void setIndices(const uint16_t *indices, uint32_t numIndices);
     void setIndices(const uint32_t *indices, uint32_t numIndices);
@@ -68,7 +70,6 @@ private:
     void createIndexBuffer(const void *indices, uint32_t numIndices, VkIndexType indexType);
     void mapMemory(Buffer& buffer, const MemcpyFunc& memcpyFunc);
 
-    Device* m_device = nullptr;
     Buffer m_vertexBuffer;
     Buffer m_indexBuffer;
     VkIndexType m_indexType = VK_INDEX_TYPE_UINT16;

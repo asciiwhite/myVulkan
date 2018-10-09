@@ -23,12 +23,30 @@ namespace
     }
 }
 
-void VertexBuffer::createFromSeparateAttributes(Device* device, const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
+VertexBuffer::VertexBuffer(Device& device)
+    : DeviceRef(device)
+{
+}
+
+VertexBuffer::~VertexBuffer()
+{
+    destroy(m_vertexBuffer);
+
+    if (m_indexBuffer.isValid())
+        destroy(m_indexBuffer);
+
+    m_bindingDescriptions.clear();
+    m_attributesDescriptions.clear();
+    m_bindingOffsets.clear();
+    m_numVertices = 0;
+    m_numIndices = 0;
+}
+
+void VertexBuffer::createFromSeparateAttributes(const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
 {
     if (descriptions.empty())
         return;
 
-    m_device = device;
     m_numVertices = descriptions[0].attributeCount;
 
     auto totalSize = 0;
@@ -72,13 +90,12 @@ void VertexBuffer::createFromSeparateAttributes(Device* device, const std::vecto
     createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | additionalUsageFlags, totalSize, m_vertexBuffer, memcpyFunc);
 }
 
-void VertexBuffer::createFromInterleavedAttributes(Device* device, uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
+void VertexBuffer::createFromInterleavedAttributes(uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
 {
     if (vertexCount == 0 || descriptions.empty() || attributeData == nullptr)
         return;
 
-    m_device = device;
-    m_numVertices = vertexCount;
+     m_numVertices = vertexCount;
 
     const auto totalSize = vertexCount * vertexSize;
     m_attributesDescriptions.resize(descriptions.size());
@@ -110,23 +127,23 @@ void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer&
     if (useStaging)
     {
         // TODO: use single persistent staging buffer?
-        Buffer stagingBuffer = m_device->createBuffer(size,
+        Buffer stagingBuffer = device().createBuffer(size,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         mapMemory(stagingBuffer, memcpyFunc);
 
-        buffer = m_device->createBuffer(size,
+        buffer = device().createBuffer(size,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        m_device->copyBuffer(stagingBuffer, buffer, size);
+        device().copyBuffer(stagingBuffer, buffer, size);
 
-        m_device->destroyBuffer(stagingBuffer);
+        device().destroyBuffer(stagingBuffer);
     }
     else
     {
-        buffer = m_device->createBuffer(size,
+        buffer = device().createBuffer(size,
             usage,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
@@ -136,9 +153,9 @@ void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer&
 
 void VertexBuffer::mapMemory(Buffer& buffer, const MemcpyFunc& memcpyFunc)
 {
-    void* mappedMemory = m_device->mapBuffer(buffer);
+    void* mappedMemory = device().mapBuffer(buffer);
     memcpyFunc(mappedMemory);
-    m_device->unmapBuffer(buffer);
+    device().unmapBuffer(buffer);
 }
 
 void VertexBuffer::setIndices(const uint16_t *indices, uint32_t numIndices)
@@ -192,19 +209,4 @@ const std::vector<VkVertexInputAttributeDescription>& VertexBuffer::getAttribute
 const std::vector<VkVertexInputBindingDescription>& VertexBuffer::getBindingDescriptions() const
 {
     return m_bindingDescriptions;
-}
-
-void VertexBuffer::destroy()
-{
-    m_device->destroyBuffer(m_vertexBuffer);
-
-    if (m_indexBuffer.isValid())
-        m_device->destroyBuffer(m_indexBuffer);
-
-    m_bindingDescriptions.clear();
-    m_attributesDescriptions.clear();
-    m_bindingOffsets.clear();
-    m_numVertices = 0;
-    m_numIndices = 0;
-    m_device = nullptr;
 }

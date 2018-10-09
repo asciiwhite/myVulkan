@@ -20,8 +20,8 @@ const bool enableValidationLayers = true;
 
 BasicRenderer::BasicRenderer()
     : m_inputHandler(m_cameraHandler)
+    , m_swapChain(m_device)
 {
-
 }
 
 bool BasicRenderer::init(GLFWwindow* window)
@@ -109,7 +109,7 @@ bool BasicRenderer::createInstance()
 
 bool BasicRenderer::createSwapChain()
 {
-    m_swapChain.init(m_surface, m_device);
+    m_swapChain.init(m_surface);
     return m_swapChain.create();
 }
 
@@ -166,9 +166,9 @@ void BasicRenderer::destroy()
     
     m_gui.reset();
 
-    m_device.destroyBuffer(m_cameraUniformBuffer);
-    m_device.destroyTexture(m_swapChainDepthBuffer);
-    m_device.destroyRenderPass(m_renderPass);
+    m_device.destroy(m_cameraUniformBuffer);
+    m_device.destroy(m_swapChainDepthBuffer);
+    m_device.destroy(m_renderPass);
     destroyFramebuffers();
     destroyFrameResources();
     m_swapChain.destroy();
@@ -191,7 +191,7 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
 
     if (m_swapChain.create())
     {
-        m_device.destroyTexture(m_swapChainDepthBuffer);
+        m_device.destroy(m_swapChainDepthBuffer);
         destroyFramebuffers();
         m_swapChainDepthBuffer = m_device.createDepthBuffer(m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
         createSwapChainFramebuffers();
@@ -208,7 +208,7 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
 void BasicRenderer::destroyFramebuffers()
 {
     for (auto& framebuffer : m_framebuffers)
-        m_device.destroyFramebuffer(framebuffer);
+        m_device.destroy(framebuffer);
 }
 
 void BasicRenderer::destroyFrameResources()

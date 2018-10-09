@@ -12,7 +12,7 @@ const static uint32_t GUI_PARAMETER_SET_ID = 0;
 const static uint32_t GUI_PARAMETER_BINDING_ID = 0;
 
 GUI::GUI(Device &device)
-: m_device(device)
+    : DeviceRef(device)
 {
 }
 
@@ -21,20 +21,20 @@ GUI::~GUI()
     if (ImGui::GetCurrentContext())
         ImGui::DestroyContext();
 
-    m_device.destroySampler(m_resources.sampler);
-    m_device.destroyTexture(m_resources.image);
-    m_device.destroyRenderPass(m_resources.renderPass);
-    m_device.destroyPipelineLayout(m_resources.pipelineLayout);
-    m_resources.descriptorPool.destroy(m_device);
-    m_resources.descriptorSetLayout.destroy(m_device);
+    destroy(m_resources.sampler);
+    destroy(m_resources.image);
+    destroy(m_resources.renderPass);
+    destroy(m_resources.pipelineLayout);
+    destroy(m_resources.descriptorPool);
+    destroy(m_resources.descriptorSetLayout);
 
-    GraphicsPipeline::Release(m_device, m_resources.pipeline);
-    ShaderManager::Release(m_device, m_resources.shader);
+    GraphicsPipeline::Release(device(), m_resources.pipeline);
+    ShaderManager::Release(device(), m_resources.shader);
     
     for (auto& resources : m_resources.frameResources)
     {
-        m_device.destroyBuffer(resources.indices.buffer);
-        m_device.destroyBuffer(resources.vertices.buffer);
+        destroy(resources.indices.buffer);
+        destroy(resources.vertices.buffer);
     }
 }
 
@@ -59,7 +59,7 @@ void GUI::setup(size_t resource_count, uint32_t width, uint32_t height, VkFormat
         { colorAttachmentFormat, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR },
         { swapChainDepthBufferFormat, VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL } } };
 
-    m_resources.renderPass = m_device.createRenderPass(attachmentData);
+    m_resources.renderPass = device().createRenderPass(attachmentData);
 
     createTexture();
     createDescriptorResources();
@@ -152,11 +152,11 @@ void GUI::resizeBufferIfNecessary(GUIResources::FrameResources::BufferParam& buf
 {
     if (bufferParam.count < entryCount)
     {
-        m_device.destroyBuffer(bufferParam.buffer);
+        destroy(bufferParam.buffer);
 
         const auto bufferSize = sizeOfEntry * entryCount;
-        bufferParam.buffer = m_device.createBuffer(static_cast<uint32_t>(bufferSize), usageFlags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-        bufferParam.data = m_device.mapBuffer(bufferParam.buffer, bufferSize, 0);
+        bufferParam.buffer = device().createBuffer(static_cast<uint32_t>(bufferSize), usageFlags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        bufferParam.data = device().mapBuffer(bufferParam.buffer, bufferSize, 0);
         bufferParam.count = entryCount;
     }
 }
@@ -192,7 +192,7 @@ void GUI::drawFrameData(VkCommandBuffer commandBuffer, GUIResources::FrameResour
         { VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, nullptr, frameResources.indices.buffer.memory, 0, VK_WHOLE_SIZE }
     };
 
-    vkFlushMappedMemoryRanges(m_device, 2, memoryRanges.data());
+    vkFlushMappedMemoryRanges(device(), 2, memoryRanges.data());
 
     // Bind vertex and index buffers
     VkBuffer buffer{ frameResources.vertices.buffer };
@@ -234,20 +234,18 @@ void GUI::createTexture()
     unsigned char* pixels = nullptr;
     ImGui::GetIO().Fonts->GetTexDataAsRGBA32( &pixels, &w, &h );
 
-    m_resources.image = m_device.createImageFromData(static_cast<uint32_t>(w), static_cast<uint32_t>(h), pixels, VK_FORMAT_R8G8B8A8_UNORM);
-    m_resources.sampler = m_device.createSampler(); // maybe use clamp to edge 
+    m_resources.image = device().createImageFromData(static_cast<uint32_t>(w), static_cast<uint32_t>(h), pixels, VK_FORMAT_R8G8B8A8_UNORM);
+    m_resources.sampler = device().createSampler(); // maybe use clamp to edge 
 }
 
 void GUI::createDescriptorResources()
 {
-    m_resources.descriptorPool.init(m_device,
-        1, { { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 } });
+    m_resources.descriptorPool = device().createDescriptorPool(1, { { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 } });
 
-    m_resources.descriptorSetLayout.init(m_device,
-        { { GUI_PARAMETER_BINDING_ID, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT } });
+    m_resources.descriptorSetLayout = device().createDescriptorSetLayout({ { GUI_PARAMETER_BINDING_ID, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } });
 
     m_resources.descriptorSet.setImageSampler(GUI_PARAMETER_BINDING_ID, m_resources.image.imageView, m_resources.sampler);
-    m_resources.descriptorSet.allocateAndUpdate(m_device, m_resources.descriptorSetLayout, m_resources.descriptorPool);
+    m_resources.descriptorSet.allocateAndUpdate(device(), m_resources.descriptorSetLayout, m_resources.descriptorPool);
 }
 
 bool GUI::createGraphicsPipeline()
@@ -256,7 +254,7 @@ bool GUI::createGraphicsPipeline()
         { VK_SHADER_STAGE_VERTEX_BIT,  "data/shaders/gui.vert.spv" },
         { VK_SHADER_STAGE_FRAGMENT_BIT, "data/shaders/gui.frag.spv" } };
 
-    m_resources.shader = ShaderManager::Acquire(m_device, shaderDesc);
+    m_resources.shader = ShaderManager::Acquire(device(), shaderDesc);
     if (!m_resources.shader)
         return false;
 
@@ -265,7 +263,7 @@ bool GUI::createGraphicsPipeline()
     pushConstantRange.size = sizeof(float) * 4;
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-    m_resources.pipelineLayout = m_device.createPipelineLayout({ m_resources.descriptorSetLayout }, { pushConstantRange });
+    m_resources.pipelineLayout = device().createPipelineLayout({ m_resources.descriptorSetLayout }, { pushConstantRange });
 
     GraphicsPipelineSettings settings;
     settings.setAlphaBlending(true).setDepthTesting(false);
@@ -276,7 +274,7 @@ bool GUI::createGraphicsPipeline()
         { 1, vertexBindingDesc[0].binding, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, uv) },
         { 2, vertexBindingDesc[0].binding, VK_FORMAT_R8G8B8A8_UNORM, offsetof(ImDrawVert, col) } };
 
-    m_resources.pipeline = GraphicsPipeline::Acquire(m_device,
+    m_resources.pipeline = GraphicsPipeline::Acquire(device(),
         m_resources.renderPass,
         m_resources.pipelineLayout,
         settings,

@@ -1,53 +1,6 @@
 #include "descriptorset.h"
 #include "vulkanhelper.h"
 
-void DescriptorSetLayout::init(VkDevice device, std::initializer_list<BindingDesc> bindingDescs)
-{
-    std::vector<VkDescriptorSetLayoutBinding> bindings(bindingDescs.size());
-    auto bindingIter = bindings.begin();
-    for (const auto& desc : bindingDescs)
-    {
-        bindingIter->binding = desc.bindingId;
-        bindingIter->descriptorCount = desc.count;
-        bindingIter->descriptorType = desc.descriptorType;
-        bindingIter->pImmutableSamplers = nullptr;
-        bindingIter->stageFlags = desc.stageFlags;
-        bindingIter++;
-    }
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    layoutInfo.pBindings = bindings.data();
-    VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_layout));
-}
-
-void DescriptorSetLayout::destroy(VkDevice device)
-{
-    vkDestroyDescriptorSetLayout(device, m_layout, nullptr);
-    m_layout = VK_NULL_HANDLE;
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-void DescriptorPool::init(VkDevice device, uint32_t count, const std::vector<VkDescriptorPoolSize>& sizes)
-{
-    VkDescriptorPoolCreateInfo poolInfo = {};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = static_cast<uint32_t>(sizes.size());
-    poolInfo.pPoolSizes = sizes.data();
-    poolInfo.maxSets = count;
-    VK_CHECK_RESULT(vkCreateDescriptorPool(device, &poolInfo, nullptr, &m_descriptorPool));
-}
-
-void DescriptorPool::destroy(VkDevice device)
-{
-    vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
-    m_descriptorPool = VK_NULL_HANDLE;
-}
-
-//////////////////////////////////////////////////////////////////////////
-
 void DescriptorSet::setImageSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler)
 {
     VkDescriptorImageInfo imageInfo = {};
@@ -136,7 +89,7 @@ void DescriptorSet::setStorageBuffer(uint32_t bindingId, VkBuffer storageBuffer,
     m_descriptorWrites.push_back(descriptorWrite);
 }
 
-void DescriptorSet::allocate(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool)
+void DescriptorSet::allocate(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool)
 {
     assert(m_descriptorSet == VK_NULL_HANDLE);
 
@@ -181,7 +134,7 @@ void DescriptorSet::update(VkDevice device)
     m_descriptorWrites.clear();
 }
 
-void DescriptorSet::allocateAndUpdate(VkDevice device, const DescriptorSetLayout& layout, const DescriptorPool& pool)
+void DescriptorSet::allocateAndUpdate(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool)
 {
     allocate(device, layout, pool);
     update(device);
@@ -198,7 +151,7 @@ void DescriptorSet::bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelin
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, firstSet, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
 }
 
-void DescriptorSet::free(VkDevice device, const DescriptorPool& pool)
+void DescriptorSet::free(VkDevice device, VkDescriptorPool pool)
 {
     assert(m_descriptorSet != VK_NULL_HANDLE);
     vkFreeDescriptorSets(device, pool, 1, &m_descriptorSet);

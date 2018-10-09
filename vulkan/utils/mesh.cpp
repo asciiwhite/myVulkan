@@ -13,11 +13,39 @@ const uint32_t SET_ID_MATERIAL = 1;
 const uint32_t BINDING_ID_MATERIAL = 0;
 const uint32_t BINDING_ID_TEXTURE_DIFFUSE = 1;
 
-bool Mesh::init(Device& device, const MeshDescription& meshDesc, VkBuffer cameraUniformBuffer, VkRenderPass renderPass)
+
+Mesh::Mesh(Device& device)
+    : DeviceRef(device)
+    , m_vertexBuffer(device)
 {
-    m_device = &device;
+}
+
+Mesh::~Mesh()
+{
+    m_shapes.clear();
+
+    for (auto& desc : m_materials)
+    {
+        destroy(desc.material);
+        GraphicsPipeline::Release(device(), desc.pipeline);
+        ShaderManager::Release(device(), desc.shader);
+        if (desc.diffuseTexture)
+            TextureManager::Release(device(), desc.diffuseTexture);
+    }
+    m_materials.clear();
+
+    destroy(m_cameraDescriptorSetLayout);
+    destroy(m_materialDescriptorSetLayout);
+    destroy(m_pipelineLayout);
+    destroy(m_materialDescriptorPool);
+    destroy(m_cameraDescriptorPool);
+    destroy(m_sampler);  
+}
+
+bool Mesh::init(const MeshDescription& meshDesc, VkBuffer cameraUniformBuffer, VkRenderPass renderPass)
+{
     m_shapes = meshDesc.shapes;
-    m_sampler = m_device->createSampler();
+    m_sampler = device().createSampler();
 
     if (!loadMaterials(meshDesc.materials))
         return false;
@@ -28,34 +56,6 @@ bool Mesh::init(Device& device, const MeshDescription& meshDesc, VkBuffer camera
         return false;
 
     return true;
-}
-
-void Mesh::destroy()
-{
-    if (!m_device)
-        return;
-
-    m_shapes.clear();
-    
-    for (auto& desc : m_materials)
-    {
-        m_device->destroyBuffer(desc.material);
-        GraphicsPipeline::Release(*m_device, desc.pipeline);
-        ShaderManager::Release(*m_device, desc.shader);
-        if (desc.diffuseTexture)
-            TextureManager::Release(*m_device, desc.diffuseTexture);
-    }
-    m_materials.clear();
-    m_cameraDescriptorSetLayout.destroy(*m_device);
-    m_materialDescriptorSetLayout.destroy(*m_device);
-    m_device->destroyPipelineLayout(m_pipelineLayout);
-    m_materialDescriptorPool.destroy(*m_device);
-    m_cameraUniformDescriptorSet.free(*m_device, m_cameraDescriptorPool);
-    m_cameraDescriptorPool.destroy(*m_device);
-
-    m_vertexBuffer.destroy();
-    m_device->destroySampler(m_sampler);
-    m_device = nullptr;
 }
 
 bool Mesh::loadMaterials(const std::vector<MaterialDescription>& materials)
@@ -77,21 +77,21 @@ bool Mesh::loadMaterials(const std::vector<MaterialDescription>& materials)
 
         const uint32_t uboSize = sizeof(glm::vec4) + sizeof(glm::vec4) + sizeof(glm::vec4);
 
-        desc.material = m_device->createBuffer(uboSize,
+        desc.material = device().createBuffer(uboSize,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        void* data = m_device->mapBuffer(desc.material, uboSize, 0);
+        void* data = device().mapBuffer(desc.material, uboSize, 0);
         std::memcpy(data, &material.ambient, 3 * sizeof(float));
         std::memcpy(static_cast<char*>(data) + 4 * sizeof(float), &material.diffuse, 3 * sizeof(float));
         std::memcpy(static_cast<char*>(data) + 8 * sizeof(float), &material.emission, 3 * sizeof(float));
-        m_device->unmapBuffer(desc.material);
+        device().unmapBuffer(desc.material);
 
         desc.descriptorSet.setUniformBuffer(BINDING_ID_MATERIAL, desc.material);
 
         if (!material.textureFilename.empty())
         {
-            auto texture = TextureManager::Acquire(*m_device, material.textureFilename);
+            auto texture = TextureManager::Acquire(device(), material.textureFilename);
             if (texture)
             {
                 desc.diffuseTexture = texture;
@@ -122,7 +122,7 @@ Shader Mesh::selectShaderFromAttributes(bool useTexture)
     const auto vertexShaderFilename = shaderPath + vertexShaderName + ".vert.spv";
     const auto fragmentShaderFilename = shaderPath + fragmemtShaderName + ".frag.spv";
 
-    return ShaderManager::Acquire(*m_device, ShaderResourceHandler::ShaderModulesDescription
+    return ShaderManager::Acquire(device(), ShaderResourceHandler::ShaderModulesDescription
         { { VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFilename },
           { VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderFilename} });
 }
@@ -133,11 +133,11 @@ void Mesh::createVertexBuffer(const MeshDescription::Geometry& geometry)
 
     if (!geometry.vertexAttribs.empty())
     {
-        m_vertexBuffer.createFromSeparateAttributes(m_device, geometry.vertexAttribs);
+        m_vertexBuffer.createFromSeparateAttributes(geometry.vertexAttribs);
     }
     else
     {
-        m_vertexBuffer.createFromInterleavedAttributes(m_device, geometry.vertexCount, geometry.vertexSize * sizeof(float), const_cast<float*>(geometry.vertices.data()), geometry.interleavedVertexAttribs);
+        m_vertexBuffer.createFromInterleavedAttributes(geometry.vertexCount, geometry.vertexSize * sizeof(float), const_cast<float*>(geometry.vertices.data()), geometry.interleavedVertexAttribs);
     }
 
     m_vertexBuffer.setIndices(geometry.indices.data(), static_cast<uint32_t>(geometry.indices.size()));
@@ -147,39 +147,37 @@ void Mesh::createDescriptors(VkBuffer cameraUniformBuffer)
 {
     m_cameraUniformDescriptorSet.setUniformBuffer(BINDING_ID_CAMERA, cameraUniformBuffer);
 
-    m_cameraDescriptorPool.init(*m_device, 1,
-        { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 } });
+    m_cameraDescriptorPool = device().createDescriptorPool(1, { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 } });
 
-    m_cameraDescriptorSetLayout.init(*m_device,
-        { { BINDING_ID_CAMERA, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT } });
+    m_cameraDescriptorSetLayout = device().createDescriptorSetLayout({ { BINDING_ID_CAMERA, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT } });
 
-    m_cameraUniformDescriptorSet.allocateAndUpdate(*m_device, m_cameraDescriptorSetLayout, m_cameraDescriptorPool);
+    m_cameraUniformDescriptorSet.allocateAndUpdate(device(), m_cameraDescriptorSetLayout, m_cameraDescriptorPool);
 
     const auto materialDescriptorCount = static_cast<uint32_t>(m_materials.size());
 
-    m_materialDescriptorPool.init(*m_device, materialDescriptorCount,
+    m_materialDescriptorPool = device().createDescriptorPool(materialDescriptorCount,
         { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, materialDescriptorCount },
           { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, materialDescriptorCount } });
 
-    m_materialDescriptorSetLayout.init(*m_device,
-        { { BINDING_ID_MATERIAL, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT },
-          { BINDING_ID_TEXTURE_DIFFUSE, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT } });
+    m_materialDescriptorSetLayout = device().createDescriptorSetLayout( 
+        { { BINDING_ID_MATERIAL, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT },
+          { BINDING_ID_TEXTURE_DIFFUSE, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } });
 }
 
 bool Mesh::createPipelines(VkRenderPass renderPass)
 {
-    m_pipelineLayout = m_device->createPipelineLayout({ m_cameraDescriptorSetLayout, m_materialDescriptorSetLayout });
+    m_pipelineLayout = device().createPipelineLayout({ m_cameraDescriptorSetLayout, m_materialDescriptorSetLayout });
 
     for (auto& desc : m_materials)
     {
-        desc.descriptorSet.allocateAndUpdate(*m_device, m_materialDescriptorSetLayout, m_materialDescriptorPool);
+        desc.descriptorSet.allocateAndUpdate(device(), m_materialDescriptorSetLayout, m_materialDescriptorPool);
 
         auto isTransparent = desc.diffuseTexture && desc.diffuseTexture.hasTranspareny();
 
         GraphicsPipelineSettings settings;
         settings.setAlphaBlending(isTransparent).setCullMode(isTransparent ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT);
 
-        desc.pipeline = GraphicsPipeline::Acquire(*m_device,
+        desc.pipeline = GraphicsPipeline::Acquire(device(),
             renderPass,
             m_pipelineLayout,
             settings,

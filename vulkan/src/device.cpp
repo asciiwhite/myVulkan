@@ -418,6 +418,45 @@ void Device::destroyPipeline(VkPipeline& pipeline) const
     pipeline = VK_NULL_HANDLE;
 }
 
+void Device::destroyDescriptorSetLayout(VkDescriptorSetLayout& layout) const
+{
+    vkDestroyDescriptorSetLayout(m_device, layout, nullptr);
+    layout = VK_NULL_HANDLE;
+}
+
+VkDescriptorSetLayout Device::createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) const
+{
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+    VkDescriptorSetLayout layout;
+    VK_CHECK_RESULT(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &layout));
+
+    return layout;
+}
+
+VkDescriptorPool Device::createDescriptorPool(uint32_t count, const std::vector<VkDescriptorPoolSize>& sizes) const
+{
+    VkDescriptorPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(sizes.size());
+    poolInfo.pPoolSizes = sizes.data();
+    poolInfo.maxSets = count;
+
+    VkDescriptorPool descriptorPool;
+    VK_CHECK_RESULT(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &descriptorPool));
+
+    return descriptorPool;
+}
+
+void Device::destroyDescriptorPool(VkDescriptorPool& pool) const
+{
+    vkDestroyDescriptorPool(m_device, pool, nullptr);
+    pool = VK_NULL_HANDLE;
+}
+
 
 Texture Device::createDepthBuffer(const VkExtent2D& extend, VkFormat format) const
 {

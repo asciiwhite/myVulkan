@@ -4,6 +4,7 @@
 #include "texture.h"
 #include "shader.h"
 #include "descriptorset.h"
+#include "deviceref.h"
 
 struct GUIResources
 {
@@ -22,8 +23,8 @@ struct GUIResources
     Texture image;
     Shader shader;
     VkSampler sampler = VK_NULL_HANDLE;
-    DescriptorPool descriptorPool;
-    DescriptorSetLayout descriptorSetLayout;
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     DescriptorSet descriptorSet;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline pipeline = VK_NULL_HANDLE;
@@ -35,7 +36,7 @@ class Statistics;
 class Device;
 struct MouseInputState;
 
-class GUI
+class GUI : public DeviceRef
 {
 public:
     GUI(Device &device);
@@ -48,7 +49,6 @@ public:
     void draw(uint32_t resource_index, VkCommandBuffer commandBuffer, VkFramebuffer framebuffer);
 
 private:
-    Device &m_device;
     GUIResources m_resources;
 
     void resizeBufferIfNecessary(GUIResources::FrameResources::BufferParam& bufferParam, VkBufferUsageFlagBits usageFlags, int entryCount, int sizeOfEntry) const;

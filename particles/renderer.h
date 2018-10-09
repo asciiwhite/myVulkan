@@ -25,18 +25,18 @@ private:
     void updateParticleCount();
     void createGUIContent() override;
 
-    VertexBuffer m_vertexBuffer;
+    std::unique_ptr<VertexBuffer> m_vertexBuffer;
     Shader m_shader;
     VkPipeline m_graphicsPipeline;
     VkPipelineLayout m_graphicsPipelineLayout;
-    DescriptorSetLayout m_cameraDescriptorSetLayout;
+    VkDescriptorSetLayout m_cameraDescriptorSetLayout = VK_NULL_HANDLE;
     DescriptorSet m_cameraUniformDescriptorSet;
 
     VkCommandPool m_computeCommandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> m_computeCommandBuffers;
     VkPipeline m_computePipeline;
     VkPipelineLayout m_computePipelineLayout;
-    DescriptorSetLayout m_computeDescriptorSetLayout;
+    VkDescriptorSetLayout m_computeDescriptorSetLayout = VK_NULL_HANDLE;
     DescriptorSet m_computeDescriptorSet;
     Shader m_computeShader;
     Buffer m_computeInputBuffer;
@@ -60,5 +60,5 @@ private:
     
     uint32_t m_groupCount = 0u;
 
-    DescriptorPool m_descriptorPool;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 };

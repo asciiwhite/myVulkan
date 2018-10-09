@@ -8,12 +8,13 @@
 class Device;
 struct Buffer;
 
-class Mesh
+class Mesh : public DeviceRef
 {
 public:
-    bool init(Device& device, const MeshDescription& meshDesc, VkBuffer cameraUniformBuffer, VkRenderPass renderPass);
-    void destroy();
+    Mesh(Device& device);
+    ~Mesh();
 
+    bool init(const MeshDescription& meshDesc, VkBuffer cameraUniformBuffer, VkRenderPass renderPass);
     void render(VkCommandBuffer commandBuffer) const;
 
     uint32_t numVertices() const;
@@ -22,21 +23,20 @@ public:
 protected:
     void createVertexBuffer(const MeshDescription::Geometry& geometry);
 
-    virtual Shader selectShaderFromAttributes(bool useTexture);
-    virtual bool loadMaterials(const std::vector<MaterialDescription>& materials);
-    virtual void createDescriptors(VkBuffer cameraUniformBuffer);
-    virtual bool createPipelines(VkRenderPass renderPass);
+    Shader selectShaderFromAttributes(bool useTexture);
+    bool loadMaterials(const std::vector<MaterialDescription>& materials);
+    void createDescriptors(VkBuffer cameraUniformBuffer);
+    bool createPipelines(VkRenderPass renderPass);
 
-    Device* m_device = nullptr;
     VkSampler m_sampler = VK_NULL_HANDLE;
     VertexBuffer m_vertexBuffer;
 
-    DescriptorSetLayout m_cameraDescriptorSetLayout;
-    DescriptorPool m_cameraDescriptorPool;
+    VkDescriptorSetLayout m_cameraDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool m_cameraDescriptorPool = VK_NULL_HANDLE;
     DescriptorSet m_cameraUniformDescriptorSet;
-    DescriptorSetLayout m_materialDescriptorSetLayout;
-    DescriptorPool m_materialDescriptorPool;   
-    VkPipelineLayout m_pipelineLayout;
+    VkDescriptorSetLayout m_materialDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool m_materialDescriptorPool = VK_NULL_HANDLE;
+    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
     struct MaterialDesc
     {

@@ -166,7 +166,7 @@ VkPipeline GraphicsPipelineResourceHandler::CreateResource(const Device& device,
     return device.createPipeline(renderPass, layout, settings, shaderStages, attributeDesc, bindingDesc);
 }
 
-void GraphicsPipelineResourceHandler::DestroyResource(const Device& device, VkPipeline& resource)
+void GraphicsPipelineResourceHandler::DestroyResource(const Device& device, VkPipeline& pipeline)
 {
-    device.destroyPipeline(resource);
+    device.destroy(pipeline);
 }

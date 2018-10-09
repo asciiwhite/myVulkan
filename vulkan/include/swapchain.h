@@ -1,14 +1,18 @@
 #pragma once
 
+#include "deviceref.h"
+
 #include <vulkan/vulkan.h>
 #include <vector>
 
 class Device;
 
-class SwapChain
+class SwapChain : public DeviceRef
 {
 public:
-    void init(VkSurfaceKHR surface, Device& device);
+    SwapChain(Device& device);
+
+    void init(VkSurfaceKHR surface);
     bool create(bool vsync = false);
     void destroy();
 
@@ -36,8 +40,6 @@ private:
     VkCompositeAlphaFlagBitsKHR     getCompositeAlphaFlags(VkSurfaceCapabilitiesKHR &surfaceCaps);
     VkSurfaceFormatKHR              getSwapChainFormat(std::vector<VkSurfaceFormatKHR> &surfaceFormats);
     VkPresentModeKHR                getSwapChainPresentMode(std::vector<VkPresentModeKHR> &presentModes, bool vsync);
-
-    Device* m_device;
 
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;

@@ -23,6 +23,8 @@ set(VULKAN_SOURCES
     include/vulkanhelper.h
     include/debug.h
     include/device.h
+    include/deviceref.h
+    include/devicedestroy.h
     include/shader.h
     include/descriptorset.h
     include/graphicspipeline.h
@@ -36,6 +38,8 @@ set(VULKAN_SOURCES
     src/vulkanhelper.cpp
     src/debug.cpp
     src/device.cpp
+    src/deviceref.cpp
+    src/devicedestroy.cpp
     src/shader.cpp    
     src/descriptorset.cpp    
     src/graphicspipeline.cpp
