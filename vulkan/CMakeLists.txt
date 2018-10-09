@@ -22,6 +22,7 @@ set(VULKAN_SOURCES
     include/swapchain.h
     include/vulkanhelper.h
     include/debug.h
+    include/barrier.h
     include/device.h
     include/deviceref.h
     include/devicedestroy.h
@@ -37,6 +38,7 @@ set(VULKAN_SOURCES
     src/swapchain.cpp
     src/vulkanhelper.cpp
     src/debug.cpp
+    src/barrier.cpp
     src/device.cpp
     src/deviceref.cpp
     src/devicedestroy.cpp
