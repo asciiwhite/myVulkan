@@ -19,6 +19,7 @@ public:
 
     uint32_t numVertices() const;
     uint32_t numTriangles() const;
+    uint32_t numShapes() const;
 
 protected:
     void createVertexBuffer(const MeshDescription::Geometry& geometry);

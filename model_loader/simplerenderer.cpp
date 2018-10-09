@@ -77,5 +77,6 @@ void SimpleRenderer::createGUIContent()
     ImGui::Text("File: %s", baseFileName.c_str());
     ImGui::Text("#vertices: %u", m_mesh->numVertices());
     ImGui::Text("#triangles: %u", m_mesh->numTriangles());
+    ImGui::Text("#shapes: %u", m_mesh->numShapes());
     ImGui::End();
 }

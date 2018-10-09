@@ -228,3 +228,8 @@ uint32_t Mesh::numTriangles() const
 {
     return m_vertexBuffer.numIndices() / 3;
 }
+
+uint32_t Mesh::numShapes() const
+{
+    return static_cast<uint32_t>(m_shapes.size());
+}
