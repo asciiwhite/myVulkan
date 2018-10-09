@@ -97,7 +97,6 @@ private:
     void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
     static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
-    static bool hasStencilComponent(VkFormat format);
 
     VkDevice m_device = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
