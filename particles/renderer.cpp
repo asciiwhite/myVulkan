@@ -162,6 +162,7 @@ void Renderer::renderParticles(VkCommandBuffer commandBuffer) const
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
+    m_vertexBuffer->bind(commandBuffer);
     m_vertexBuffer->draw(commandBuffer);
 }
 

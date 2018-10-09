@@ -54,7 +54,9 @@ public:
     void setIndices(const uint16_t *indices, uint32_t numIndices);
     void setIndices(const uint32_t *indices, uint32_t numIndices);
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t indexCount = 0) const;
+    void bind(VkCommandBuffer commandBuffer) const;
+    void draw(VkCommandBuffer commandBuffer, uint32_t instanceCount = 1) const;
+    void drawIndexed(VkCommandBuffer commandBuffer, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t indexCount = 0) const;
 
     const std::vector<VkVertexInputBindingDescription>& getBindingDescriptions() const;
     const std::vector<VkVertexInputAttributeDescription>& getAttributeDescriptions() const;

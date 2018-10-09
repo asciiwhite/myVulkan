@@ -182,7 +182,7 @@ void VertexBuffer::createIndexBuffer(const void *indices, uint32_t numIndices, V
     createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, size, m_indexBuffer, memcpyFunc);
 }
 
-void VertexBuffer::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstIndex, uint32_t indexCount) const
+void VertexBuffer::bind(VkCommandBuffer commandBuffer) const
 {
     for (auto i = 0u; i < m_bindingDescriptions.size(); i++)
     {
@@ -193,12 +193,19 @@ void VertexBuffer::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount, u
     if (m_indexBuffer.isValid())
     {
         vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, m_indexType);
-        vkCmdDrawIndexed(commandBuffer, indexCount == 0 ? m_numIndices : indexCount, instanceCount, firstIndex, 0, 0);
     }
-    else
-    {
-        vkCmdDraw(commandBuffer, m_numVertices, instanceCount, 0, 0);
-    }
+}
+
+void VertexBuffer::drawIndexed(VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstIndex, uint32_t indexCount) const
+{
+    assert(m_indexBuffer.isValid());
+    vkCmdDrawIndexed(commandBuffer, indexCount == 0 ? m_numIndices : indexCount, instanceCount, firstIndex, 0, 0);
+}
+
+void VertexBuffer::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount) const
+{
+    assert(!m_indexBuffer.isValid());
+    vkCmdDraw(commandBuffer, m_numVertices, instanceCount, 0, 0);
 }
 
 const std::vector<VkVertexInputAttributeDescription>& VertexBuffer::getAttributeDescriptions() const

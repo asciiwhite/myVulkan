@@ -198,6 +198,8 @@ void Mesh::render(VkCommandBuffer commandBuffer) const
 {
     VkPipeline currentPipeline = VK_NULL_HANDLE;
 
+    m_vertexBuffer.bind(commandBuffer);
+
     m_cameraUniformDescriptorSet.bind(commandBuffer, m_pipelineLayout, SET_ID_CAMERA);
 
     for (const auto& shape : m_shapes)
@@ -213,7 +215,7 @@ void Mesh::render(VkCommandBuffer commandBuffer) const
 
         materialDesc.descriptorSet.bind(commandBuffer, m_pipelineLayout, SET_ID_MATERIAL);
 
-        m_vertexBuffer.draw(commandBuffer, 1, shape.startIndex, shape.indexCount);
+        m_vertexBuffer.drawIndexed(commandBuffer, 1, shape.startIndex, shape.indexCount);
     }
 }
 
