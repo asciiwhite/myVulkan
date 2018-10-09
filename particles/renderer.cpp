@@ -31,8 +31,8 @@ bool Renderer::setup()
         return false;
 
     m_descriptorPool = m_device.createDescriptorPool(2, 
-        { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
-          { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 } });
+        { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 },
+          { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 } });
     
     m_particleCount = static_cast<int>(m_particlesPerSecond * m_particleLifetimeInSeconds);
     m_groupCount = static_cast<uint32_t>(std::ceil(static_cast<float>(m_particleCount) / WORKGROUP_SIZE));
@@ -104,7 +104,7 @@ void Renderer::setupGraphicsPipeline()
 
 void Renderer::setupComputePipeline()
 {
-    m_computeInputBuffer = m_device.createBuffer(sizeof(ComputeInput), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    m_computeInputBuffer = m_device.createBuffer(sizeof(ComputeInput), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     m_computeMappedInputBuffer = static_cast<ComputeInput*>(m_device.mapBuffer(m_computeInputBuffer));
     m_computeMappedInputBuffer->particleCount = m_particleCount;
     m_computeMappedInputBuffer->particleLifetimeInSeconds = m_particleLifetimeInSeconds;
@@ -116,11 +116,11 @@ void Renderer::setupComputePipeline()
 
     m_computeDescriptorSetLayout = m_device.createDescriptorSetLayout(
         { { BINDING_ID_COMPUTE_PARTICLES, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT },
-          { BINDING_ID_COMPUTE_INPUT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT } });
+          { BINDING_ID_COMPUTE_INPUT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT } });
 
     m_computeDescriptorSet.allocate(m_device, m_computeDescriptorSetLayout, m_descriptorPool);
     m_computeDescriptorSet.setStorageBuffer(BINDING_ID_COMPUTE_PARTICLES, *m_vertexBuffer);
-    m_computeDescriptorSet.setStorageBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer);
+    m_computeDescriptorSet.setUniformBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer);
     m_computeDescriptorSet.update(m_device);
 
     m_computePipelineLayout = m_device.createPipelineLayout({ m_computeDescriptorSetLayout });
