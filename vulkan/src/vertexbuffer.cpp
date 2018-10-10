@@ -139,7 +139,7 @@ void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer&
 
         device().copyBuffer(stagingBuffer, buffer, size);
 
-        device().destroyBuffer(stagingBuffer);
+        destroy(stagingBuffer);
     }
     else
     {

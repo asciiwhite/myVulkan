@@ -30,29 +30,22 @@ public:
     Buffer createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) const;
     void* mapBuffer(const Buffer& buffer, uint64_t size = VK_WHOLE_SIZE, uint64_t offset = 0u) const;
     void unmapBuffer(const Buffer& buffer) const;
-    void destroyBuffer(Buffer& buffer) const;
 
     VkRenderPass createRenderPass(const std::array<RenderPassAttachmentData, 2>& attachmentData) const;
-    void destroyRenderPass(VkRenderPass& renderPass) const;
 
     VkFramebuffer createFramebuffer(VkRenderPass renderPass, const std::vector<VkImageView>& attachments, VkExtent2D extent) const;
-    void destroyFramebuffer(VkFramebuffer& framebuffer) const;
 
     VkPipelineLayout createPipelineLayout(const std::vector<VkDescriptorSetLayout>& layouts = {}, const std::vector<VkPushConstantRange>& pushConstants = {}) const;
-    void destroyPipelineLayout(VkPipelineLayout& pipelineLayout) const;
 
     VkPipeline createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const GraphicsPipelineSettings& settings,
         const std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
         const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
         const std::vector<VkVertexInputBindingDescription>& bindingDesc) const;
-    void destroyPipeline(VkPipeline& pipeline) const;
 
     Texture createDepthBuffer(const VkExtent2D& extend, VkFormat format) const;
     Texture createImageFromData(uint32_t width, uint32_t height, unsigned char* pixelData, VkFormat format) const;
-    void destroyTexture(Texture& texture) const;
 
     VkSampler createSampler() const;
-    void destroySampler(VkSampler& sampler) const;
 
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
     void createImageView(VkImage image, VkFormat format, VkImageView& imageView, VkImageAspectFlags aspectFlags) const;
@@ -61,10 +54,8 @@ public:
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
 
     VkDescriptorSetLayout createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) const;
-    void destroyDescriptorSetLayout(VkDescriptorSetLayout& layout) const;
 
     VkDescriptorPool createDescriptorPool(uint32_t count, const std::vector<VkDescriptorPoolSize>& sizes) const;
-    void destroyDescriptorPool(VkDescriptorPool& pool) const;
 
     void transitionImageLayout(VkImage image, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 

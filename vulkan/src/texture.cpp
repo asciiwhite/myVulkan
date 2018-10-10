@@ -18,7 +18,7 @@ Texture TextureResourceHandler::CreateResource(const Device& device, const std::
 
 void TextureResourceHandler::DestroyResource(const Device& device, Texture& texture)
 {
-    device.destroyTexture(texture);
+    device.destroy(texture);
 }
 
 Texture TextureResourceHandler::LoadFromFile(const Device& device, const std::string& filename)

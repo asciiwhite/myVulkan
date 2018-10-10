@@ -247,15 +247,6 @@ Buffer Device::createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPro
     return resultBuffer;
 }
 
-void Device::destroyBuffer(Buffer& buffer) const
-{
-    vkDestroyBuffer(m_device, buffer.buffer, nullptr);
-    vkFreeMemory(m_device, buffer.memory, nullptr);
-
-    buffer.buffer = VK_NULL_HANDLE;
-    buffer.memory = VK_NULL_HANDLE;
-}
-
 void* Device::mapBuffer(const Buffer& buffer, uint64_t size, uint64_t offset) const
 {
     void* data;
@@ -325,12 +316,6 @@ VkRenderPass Device::createRenderPass(const std::array<RenderPassAttachmentData,
     return renderPass;
 }
 
-void Device::destroyRenderPass(VkRenderPass& renderPass) const
-{
-    vkDestroyRenderPass(m_device, renderPass, nullptr);
-    renderPass = VK_NULL_HANDLE;
-}
-
 VkFramebuffer Device::createFramebuffer(VkRenderPass renderPass, const std::vector<VkImageView>& attachments, VkExtent2D extent) const
 {
     VkFramebufferCreateInfo framebufferInfo = {};
@@ -348,12 +333,6 @@ VkFramebuffer Device::createFramebuffer(VkRenderPass renderPass, const std::vect
     return frameBuffer;
 }
 
-void Device::destroyFramebuffer(VkFramebuffer& framebuffer) const
-{
-    vkDestroyFramebuffer(m_device, framebuffer, nullptr);
-    framebuffer = VK_NULL_HANDLE;
-}
-
 VkPipelineLayout Device::createPipelineLayout(const std::vector<VkDescriptorSetLayout>& layouts, const std::vector<VkPushConstantRange>& pushConstants) const
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -368,12 +347,6 @@ VkPipelineLayout Device::createPipelineLayout(const std::vector<VkDescriptorSetL
     VK_CHECK_RESULT(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &pipelineLayout));
 
     return pipelineLayout;
-}
-
-void Device::destroyPipelineLayout(VkPipelineLayout& pipelineLayout) const
-{
-    vkDestroyPipelineLayout(m_device, pipelineLayout, nullptr);
-    pipelineLayout = VK_NULL_HANDLE;
 }
 
 VkPipeline Device::createPipeline(VkRenderPass renderPass, VkPipelineLayout layout, const GraphicsPipelineSettings& settings,
@@ -413,18 +386,6 @@ VkPipeline Device::createPipeline(VkRenderPass renderPass, VkPipelineLayout layo
     return pipeline;
 }
 
-void Device::destroyPipeline(VkPipeline& pipeline) const
-{
-    vkDestroyPipeline(m_device, pipeline, nullptr);
-    pipeline = VK_NULL_HANDLE;
-}
-
-void Device::destroyDescriptorSetLayout(VkDescriptorSetLayout& layout) const
-{
-    vkDestroyDescriptorSetLayout(m_device, layout, nullptr);
-    layout = VK_NULL_HANDLE;
-}
-
 VkDescriptorSetLayout Device::createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) const
 {
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -451,13 +412,6 @@ VkDescriptorPool Device::createDescriptorPool(uint32_t count, const std::vector<
 
     return descriptorPool;
 }
-
-void Device::destroyDescriptorPool(VkDescriptorPool& pool) const
-{
-    vkDestroyDescriptorPool(m_device, pool, nullptr);
-    pool = VK_NULL_HANDLE;
-}
-
 
 Texture Device::createDepthBuffer(const VkExtent2D& extend, VkFormat format) const
 {
@@ -514,23 +468,11 @@ Texture Device::createImageFromData(uint32_t width, uint32_t height, unsigned ch
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    destroyBuffer(stagingBuffer);
+    destroy(stagingBuffer);
 
     createImageView(texture.image, format, texture.imageView, VK_IMAGE_ASPECT_COLOR_BIT);
 
     return texture;
-}
-
-void Device::destroyTexture(Texture& texture) const
-{
-    vkDestroyImageView(m_device, texture.imageView, nullptr);
-    texture.imageView = VK_NULL_HANDLE;
-
-    vkDestroyImage(m_device, texture.image, nullptr);
-    texture.image = VK_NULL_HANDLE;
-
-    vkFreeMemory(m_device, texture.imageMemory, nullptr);
-    texture.imageMemory = VK_NULL_HANDLE;
 }
 
 void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const
@@ -587,12 +529,6 @@ VkSampler Device::createSampler() const
     VkSampler sampler;
     VK_CHECK_RESULT(vkCreateSampler(m_device, &samplerInfo, nullptr, &sampler));
     return sampler;
-}
-
-void Device::destroySampler(VkSampler& sampler) const
-{
-    vkDestroySampler(m_device, sampler, nullptr);
-    sampler = VK_NULL_HANDLE;
 }
 
 uint32_t Device::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
