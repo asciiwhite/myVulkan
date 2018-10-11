@@ -8,7 +8,6 @@
 #include <array>
 
 struct Texture;
-struct Buffer;
 struct GraphicsPipelineSettings;
 class VertexBuffer;
 
@@ -26,10 +25,6 @@ class Device
 public:
     bool init(VkInstance instance, VkSurfaceKHR surface, bool enableValidationLayers);
     void destroy();
-
-    Buffer createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) const;
-    void* mapBuffer(const Buffer& buffer, uint64_t size = VK_WHOLE_SIZE, uint64_t offset = 0u) const;
-    void unmapBuffer(const Buffer& buffer) const;
 
     VkRenderPass createRenderPass(const std::array<RenderPassAttachmentData, 2>& attachmentData) const;
 
@@ -60,6 +55,7 @@ public:
     void transitionImageLayout(VkImage image, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
     operator VkDevice() const { return m_device; }
 
@@ -104,5 +100,6 @@ private:
 template<typename T>
 void DeviceRef::destroy(T t) const
 {
-    device().destroy(t);
+    if (m_device != nullptr)
+        device().destroy(t);
 }

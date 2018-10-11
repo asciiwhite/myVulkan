@@ -1,14 +1,17 @@
 #include "device.h"
 
-#include "buffer.h"
 #include "texture.h"
 
 namespace detail
 {
-    void destroy(const Device& device, Buffer& buffer)
+    void destroy(const Device& device, VkBuffer buffer)
     {
-        vkDestroyBuffer(device, buffer.buffer, nullptr);
-        vkFreeMemory(device, buffer.memory, nullptr);
+        vkDestroyBuffer(device, buffer, nullptr);
+    }
+
+    void destroy(const Device& device, VkDeviceMemory memory)
+    {
+        vkFreeMemory(device, memory, nullptr);
     }
 
     void destroy(const Device& device, Texture& texture)
@@ -18,37 +21,37 @@ namespace detail
         vkFreeMemory(device, texture.imageMemory, nullptr);
     }
 
-    void destroy(const Device& device, VkSampler& sampler)
+    void destroy(const Device& device, VkSampler sampler)
     {
         vkDestroySampler(device, sampler, nullptr);
     }
 
-    void destroy(const Device& device, VkPipelineLayout& layout)
+    void destroy(const Device& device, VkPipelineLayout layout)
     {
         vkDestroyPipelineLayout(device, layout, nullptr);
     }
 
-    void destroy(const Device& device, VkPipeline& pipeline)
+    void destroy(const Device& device, VkPipeline pipeline)
     {
         vkDestroyPipeline(device, pipeline, nullptr);
     }
 
-    void destroy(const Device& device, VkRenderPass& renderpass)
+    void destroy(const Device& device, VkRenderPass renderpass)
     {
         vkDestroyRenderPass(device, renderpass, nullptr);
     }
 
-    void destroy(const Device& device, VkFramebuffer& framebuffer)
+    void destroy(const Device& device, VkFramebuffer framebuffer)
     {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
 
-    void destroy(const Device& device, VkDescriptorSetLayout& layout)
+    void destroy(const Device& device, VkDescriptorSetLayout layout)
     {
         vkDestroyDescriptorSetLayout(device, layout, nullptr);
     }
 
-    void destroy(const Device& device, VkDescriptorPool& pool)
+    void destroy(const Device& device, VkDescriptorPool pool)
     {
         vkDestroyDescriptorPool(device, pool, nullptr);
     }

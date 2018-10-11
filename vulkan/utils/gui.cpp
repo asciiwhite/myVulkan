@@ -30,12 +30,6 @@ GUI::~GUI()
 
     GraphicsPipeline::Release(device(), m_resources.pipeline);
     ShaderManager::Release(device(), m_resources.shader);
-    
-    for (auto& resources : m_resources.frameResources)
-    {
-        destroy(resources.indices.buffer);
-        destroy(resources.vertices.buffer);
-    }
 }
 
 void GUI::setup(size_t resource_count, uint32_t width, uint32_t height, VkFormat colorAttachmentFormat, VkFormat swapChainDepthBufferFormat)
@@ -148,19 +142,6 @@ void GUI::draw(uint32_t resource_index, VkCommandBuffer commandBuffer, VkFramebu
     VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
-void GUI::resizeBufferIfNecessary(GUIResources::FrameResources::BufferParam& bufferParam, VkBufferUsageFlagBits usageFlags, int entryCount, int sizeOfEntry) const
-{
-    if (bufferParam.count < entryCount)
-    {
-        destroy(bufferParam.buffer);
-
-        const auto bufferSize = sizeOfEntry * entryCount;
-        bufferParam.buffer = device().createBuffer(static_cast<uint32_t>(bufferSize), usageFlags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-        bufferParam.data = device().mapBuffer(bufferParam.buffer, bufferSize, 0);
-        bufferParam.count = entryCount;
-    }
-}
-
 void GUI::drawFrameData(VkCommandBuffer commandBuffer, GUIResources::FrameResources& frameResources)
 {
     ImGui::Render();
@@ -169,11 +150,11 @@ void GUI::drawFrameData(VkCommandBuffer commandBuffer, GUIResources::FrameResour
     if( drawData->TotalVtxCount == 0 )
         return;
 
-    resizeBufferIfNecessary(frameResources.vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, drawData->TotalVtxCount, sizeof(ImDrawVert));
-    resizeBufferIfNecessary(frameResources.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, drawData->TotalIdxCount, sizeof(ImDrawIdx));
+    resizeBufferIfNecessary(frameResources.vertices, drawData->TotalVtxCount, sizeof(ImDrawVert));
+    resizeBufferIfNecessary(frameResources.indices, drawData->TotalIdxCount, sizeof(ImDrawIdx));
 
-    auto vertexPointer = reinterpret_cast<ImDrawVert*>(frameResources.vertices.data);
-    auto indexPointer = reinterpret_cast<ImDrawIdx*>(frameResources.indices.data);
+    auto vertexPointer = reinterpret_cast<ImDrawVert*>(frameResources.vertices.map());
+    auto indexPointer = reinterpret_cast<ImDrawIdx*>(frameResources.indices.map());
 
     for( int i = 0; i < drawData->CmdListsCount; i++ )
     {
@@ -186,19 +167,14 @@ void GUI::drawFrameData(VkCommandBuffer commandBuffer, GUIResources::FrameResour
         indexPointer += cmdList->IdxBuffer.Size;
     }
 
-    // only flush the copied area
-    const std::vector<VkMappedMemoryRange> memoryRanges {
-        { VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, nullptr, frameResources.vertices.buffer.memory, 0, VK_WHOLE_SIZE },
-        { VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, nullptr, frameResources.indices.buffer.memory, 0, VK_WHOLE_SIZE }
-    };
-
-    vkFlushMappedMemoryRanges(device(), 2, memoryRanges.data());
+    frameResources.vertices.unmap();
+    frameResources.indices.unmap();
 
     // Bind vertex and index buffers
-    VkBuffer buffer{ frameResources.vertices.buffer };
+    VkBuffer buffer{ frameResources.vertices.buffer() };
     VkDeviceSize offset{ 0 };
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, &offset);
-    vkCmdBindIndexBuffer(commandBuffer, frameResources.indices.buffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(commandBuffer, frameResources.indices.buffer(), 0, VK_INDEX_TYPE_UINT16);
 
     // Setup scale and translation: xy scale, xy translation
     const std::vector<float> scale_and_translation{ 2.0f / ImGui::GetIO().DisplaySize.x, 2.0f / ImGui::GetIO().DisplaySize.y, -1.0f, -1.0f };

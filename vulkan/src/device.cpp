@@ -221,44 +221,6 @@ void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
     endSingleTimeCommands(commandBuffer);
 }
 
-Buffer Device::createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) const
-{
-    Buffer resultBuffer;
-
-    VkBufferCreateInfo bufferInfo = {};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    vkCreateBuffer(m_device, &bufferInfo, nullptr, &resultBuffer.buffer);
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_device, resultBuffer.buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(m_physicalDevice, memRequirements.memoryTypeBits, properties);
-
-    vkAllocateMemory(m_device, &allocInfo, nullptr, &resultBuffer.memory);
-    vkBindBufferMemory(m_device, resultBuffer.buffer, resultBuffer.memory, 0);
-
-    return resultBuffer;
-}
-
-void* Device::mapBuffer(const Buffer& buffer, uint64_t size, uint64_t offset) const
-{
-    void* data;
-    VK_CHECK_RESULT(vkMapMemory(m_device, buffer.memory, offset, size, 0, &data));
-    return data;
-}
-
-void Device::unmapBuffer(const Buffer& buffer) const
-{
-    vkUnmapMemory(m_device, buffer.memory);
-}
-
 VkRenderPass Device::createRenderPass(const std::array<RenderPassAttachmentData, 2>& attachmentData) const
 {
     VkAttachmentDescription colorAttachment = {};
@@ -441,13 +403,10 @@ Texture Device::createImageFromData(uint32_t width, uint32_t height, unsigned ch
     const uint32_t imageSize = width * height * 4;
 
     Texture texture;
-    Buffer stagingBuffer = createBuffer(imageSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    void* data = mapBuffer(stagingBuffer, imageSize, 0);
+    StagingBuffer stagingBuffer(*this, imageSize);
+    void* data = stagingBuffer.map();
     std::memcpy(data, pixelData, static_cast<size_t>(imageSize));
-    unmapBuffer(stagingBuffer);
+    stagingBuffer.unmap();
 
     createImage(width, height,
         format,
@@ -467,8 +426,6 @@ Texture Device::createImageFromData(uint32_t width, uint32_t height, unsigned ch
         format,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    destroy(stagingBuffer);
 
     createImageView(texture.image, format, texture.imageView, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -529,6 +486,11 @@ VkSampler Device::createSampler() const
     VkSampler sampler;
     VK_CHECK_RESULT(vkCreateSampler(m_device, &samplerInfo, nullptr, &sampler));
     return sampler;
+}
+
+uint32_t Device::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
+{
+    return findMemoryType(m_physicalDevice, typeFilter, properties);
 }
 
 uint32_t Device::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)

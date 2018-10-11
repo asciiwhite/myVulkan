@@ -1,5 +1,7 @@
 #pragma once
 
+#include "buffer.h"
+
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <list>
@@ -7,6 +9,12 @@
 class DescriptorSet
 {
 public:
+    template<MemoryType Memory>
+    void setBuffer(uint32_t bindingId, const Buffer<BufferUsage::UniformBit, Memory>& buffer)
+    {
+        setUniformBuffer(bindingId, buffer.buffer());
+    }
+
     void setImageSampler(uint32_t bindingId, VkImageView textureImageView, VkSampler sampler);
     void setSampler(uint32_t bindingId, VkSampler sampler);
     void setImageArray(uint32_t bindingId, const std::vector<VkImageView>& imageViews);

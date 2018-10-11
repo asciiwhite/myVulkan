@@ -39,7 +39,7 @@ private:
     VkDescriptorSetLayout m_computeDescriptorSetLayout = VK_NULL_HANDLE;
     DescriptorSet m_computeDescriptorSet;
     Shader m_computeShader;
-    Buffer m_computeInputBuffer;
+    UniformBuffer m_computeInputBuffer;
     struct ComputeInput
     {
         int particleCount;

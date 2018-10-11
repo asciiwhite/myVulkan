@@ -6,7 +6,6 @@
 #include "meshdescription.h"
 
 class Device;
-struct Buffer;
 
 class Mesh : public DeviceRef
 {
@@ -41,7 +40,7 @@ protected:
 
     struct MaterialDesc
     {
-        Buffer material;
+        UniformBuffer material;
         Shader shader;
         Texture diffuseTexture;
         VkPipeline pipeline;

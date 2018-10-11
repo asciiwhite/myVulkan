@@ -48,9 +48,7 @@ bool BasicRenderer::init(GLFWwindow* window)
     m_renderPass = m_device.createRenderPass(defaultAttachmentData);
     createSwapChainFramebuffers();
 
-    m_cameraUniformBuffer = m_device.createBuffer(sizeof(glm::mat4),
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    m_cameraUniformBuffer = UniformBuffer(m_device, sizeof(glm::mat4));
 
     const auto frameResourceCount = 2u;
 
@@ -166,7 +164,7 @@ void BasicRenderer::destroy()
     
     m_gui.reset();
 
-    m_device.destroy(m_cameraUniformBuffer);
+    m_cameraUniformBuffer = UniformBuffer();
     m_device.destroy(m_swapChainDepthBuffer);
     m_device.destroy(m_renderPass);
     destroyFramebuffers();
@@ -272,9 +270,10 @@ void BasicRenderer::updateMVPUniform()
 {
     const auto mvp = m_cameraHandler.mvp(m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height));
     const auto bufferSize = sizeof(mvp);
-    void* data = m_device.mapBuffer(m_cameraUniformBuffer, bufferSize);
+
+    void* data = m_cameraUniformBuffer.map();
     std::memcpy(data, &mvp, bufferSize);
-    m_device.unmapBuffer(m_cameraUniformBuffer);
+    m_cameraUniformBuffer.unmap();
 }
 
 void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir)

@@ -10,10 +10,12 @@ public:
     template<typename T>
     void destroy(T t) const;
 
+    void swap(DeviceRef& device);
+
 protected:
-    DeviceRef() = delete;
-    DeviceRef(Device& device);
+    DeviceRef();
+    DeviceRef(const Device& device);
 
 private:
-    const Device& m_device;
+    const Device* m_device;
 };

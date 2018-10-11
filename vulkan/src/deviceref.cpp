@@ -1,10 +1,23 @@
 #include "deviceref.h"
 
-DeviceRef::DeviceRef(Device& device)
-    : m_device(device)
+#include <assert.h>
+#include <utility>
+
+DeviceRef::DeviceRef(const Device& device)
+    : m_device(&device)
+{}
+
+DeviceRef::DeviceRef()
+    : m_device(nullptr)
 {}
 
 const Device& DeviceRef::device() const
 {
-    return m_device;
+    assert(m_device != nullptr);
+    return *m_device;
+}
+
+void DeviceRef::swap(DeviceRef& other)
+{
+    std::swap(m_device, other.m_device);
 }

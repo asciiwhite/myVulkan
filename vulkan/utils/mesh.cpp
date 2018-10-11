@@ -26,7 +26,6 @@ Mesh::~Mesh()
 
     for (auto& desc : m_materials)
     {
-        destroy(desc.material);
         GraphicsPipeline::Release(device(), desc.pipeline);
         ShaderManager::Release(device(), desc.shader);
         if (desc.diffuseTexture)
@@ -77,15 +76,12 @@ bool Mesh::loadMaterials(const std::vector<MaterialDescription>& materials)
 
         const uint32_t uboSize = sizeof(glm::vec4) + sizeof(glm::vec4) + sizeof(glm::vec4);
 
-        desc.material = device().createBuffer(uboSize,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        void* data = device().mapBuffer(desc.material, uboSize, 0);
+        desc.material = UniformBuffer(device(), uboSize);
+        void* data = desc.material.map();
         std::memcpy(data, &material.ambient, 3 * sizeof(float));
         std::memcpy(static_cast<char*>(data) + 4 * sizeof(float), &material.diffuse, 3 * sizeof(float));
         std::memcpy(static_cast<char*>(data) + 8 * sizeof(float), &material.emission, 3 * sizeof(float));
-        device().unmapBuffer(desc.material);
+        desc.material.unmap();
 
         desc.descriptorSet.setUniformBuffer(BINDING_ID_MATERIAL, desc.material);
 

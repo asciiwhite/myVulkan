@@ -59,7 +59,7 @@ protected:
     Device m_device;
     SwapChain m_swapChain;
     VkRenderPass m_renderPass;
-    Buffer m_cameraUniformBuffer;
+    UniformBuffer m_cameraUniformBuffer;
     Statistics m_stats;
 
 private:

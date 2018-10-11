@@ -33,6 +33,7 @@ set(VULKAN_SOURCES
     include/texture.h
     include/window.h
     include/buffer.h
+    include/bufferbase.h
     include/resourcemanager.h
     src/basicrenderer.cpp
     src/swapchain.cpp
@@ -48,7 +49,7 @@ set(VULKAN_SOURCES
     src/vertexbuffer.cpp
     src/texture.cpp
     src/window.cpp
-    src/buffer.cpp
+    src/bufferbase.cpp
 )
 
 set(UTILS_SOURCES

@@ -83,7 +83,7 @@ void Renderer::setupParticleVertexBuffer()
     }; 
 
     m_vertexBuffer.reset(new VertexBuffer(m_device));
-    m_vertexBuffer->createFromInterleavedAttributes(m_particleCount, sizeof(ParticleData), &particles.front().pos.x, vertexDesc, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    m_vertexBuffer->createFromInterleavedAttributes(m_particleCount, sizeof(ParticleData), &particles.front().pos.x, vertexDesc);
 }
 
 void Renderer::setupGraphicsPipeline()
@@ -104,8 +104,8 @@ void Renderer::setupGraphicsPipeline()
 
 void Renderer::setupComputePipeline()
 {
-    m_computeInputBuffer = m_device.createBuffer(sizeof(ComputeInput), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    m_computeMappedInputBuffer = static_cast<ComputeInput*>(m_device.mapBuffer(m_computeInputBuffer));
+    m_computeInputBuffer = UniformBuffer(m_device, sizeof(ComputeInput));
+    m_computeMappedInputBuffer = static_cast<ComputeInput*>(m_computeInputBuffer.map());
     m_computeMappedInputBuffer->particleCount = m_particleCount;
     m_computeMappedInputBuffer->particleLifetimeInSeconds = m_particleLifetimeInSeconds;
     m_computeMappedInputBuffer->particleSpeed = m_particleSpeed;
@@ -120,7 +120,7 @@ void Renderer::setupComputePipeline()
 
     m_computeDescriptorSet.allocate(m_device, m_computeDescriptorSetLayout, m_descriptorPool);
     m_computeDescriptorSet.setStorageBuffer(BINDING_ID_COMPUTE_PARTICLES, *m_vertexBuffer);
-    m_computeDescriptorSet.setUniformBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer);
+    m_computeDescriptorSet.setBuffer(BINDING_ID_COMPUTE_INPUT, m_computeInputBuffer);
     m_computeDescriptorSet.update(m_device);
 
     m_computePipelineLayout = m_device.createPipelineLayout({ m_computeDescriptorSetLayout });
@@ -146,7 +146,7 @@ void Renderer::shutdown()
 
     vkFreeCommandBuffers(m_device, m_device.getComputeCommandPool(), static_cast<uint32_t>(m_computeCommandBuffers.size()), m_computeCommandBuffers.data());
 
-    m_device.destroy(m_computeInputBuffer);
+    m_computeInputBuffer = UniformBuffer();
     m_device.destroy(m_computeDescriptorSetLayout);
     m_device.destroy(m_computePipeline);
     m_device.destroy(m_computePipelineLayout);

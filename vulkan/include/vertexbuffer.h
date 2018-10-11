@@ -48,8 +48,8 @@ public:
     VertexBuffer(Device& device);
     ~VertexBuffer();
 
-    void createFromSeparateAttributes(const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
-    void createFromInterleavedAttributes(uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags = 0);
+    void createFromSeparateAttributes(const std::vector<AttributeDescription>& descriptions);
+    void createFromInterleavedAttributes(uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions);
 
     void setIndices(const uint16_t *indices, uint32_t numIndices);
     void setIndices(const uint32_t *indices, uint32_t numIndices);
@@ -68,12 +68,20 @@ public:
 
 private:
     using MemcpyFunc = std::function<void(void*)>;
-    void createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer& buffer, const MemcpyFunc& memcpyFunc);
     void createIndexBuffer(const void *indices, uint32_t numIndices, VkIndexType indexType);
-    void mapMemory(Buffer& buffer, const MemcpyFunc& memcpyFunc);
+    void mapMemory(BufferBase& buffer, const MemcpyFunc& memcpyFunc);
 
-    Buffer m_vertexBuffer;
-    Buffer m_indexBuffer;
+    template<BufferUsage Usage>
+    void fillBuffer(Buffer<Usage, MemoryType::DeviceLocal>& buffer, const MemcpyFunc& memcpyFunc)
+    {
+        // TODO: use single persistent staging buffer?
+        StagingBuffer stagingBuffer(device(), buffer.size());
+        mapMemory(stagingBuffer, memcpyFunc);
+        device().copyBuffer(stagingBuffer, buffer, buffer.size());
+    }
+
+    GPUAttributeBuffer m_vertexBuffer;
+    GPUIndexBuffer m_indexBuffer;
     VkIndexType m_indexType = VK_INDEX_TYPE_UINT16;
 
     uint32_t m_numVertices = 0;

@@ -30,11 +30,6 @@ VertexBuffer::VertexBuffer(Device& device)
 
 VertexBuffer::~VertexBuffer()
 {
-    destroy(m_vertexBuffer);
-
-    if (m_indexBuffer.isValid())
-        destroy(m_indexBuffer);
-
     m_bindingDescriptions.clear();
     m_attributesDescriptions.clear();
     m_bindingOffsets.clear();
@@ -42,7 +37,7 @@ VertexBuffer::~VertexBuffer()
     m_numIndices = 0;
 }
 
-void VertexBuffer::createFromSeparateAttributes(const std::vector<AttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
+void VertexBuffer::createFromSeparateAttributes(const std::vector<AttributeDescription>& descriptions)
 {
     if (descriptions.empty())
         return;
@@ -87,10 +82,11 @@ void VertexBuffer::createFromSeparateAttributes(const std::vector<AttributeDescr
         }
     };
 
-    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | additionalUsageFlags, totalSize, m_vertexBuffer, memcpyFunc);
+    m_vertexBuffer = GPUAttributeStorageBuffer(device(), totalSize);
+    fillBuffer(m_vertexBuffer, memcpyFunc);
 }
 
-void VertexBuffer::createFromInterleavedAttributes(uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions, VkBufferUsageFlags additionalUsageFlags)
+void VertexBuffer::createFromInterleavedAttributes(uint32_t vertexCount, uint32_t vertexSize, float* attributeData, const std::vector<InterleavedAttributeDescription>& descriptions)
 {
     if (vertexCount == 0 || descriptions.empty() || attributeData == nullptr)
         return;
@@ -119,43 +115,15 @@ void VertexBuffer::createFromInterleavedAttributes(uint32_t vertexCount, uint32_
         std::memcpy(data, attributeData, totalSize);
     };
 
-    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | additionalUsageFlags, totalSize, m_vertexBuffer, memcpyFunc);
+    m_vertexBuffer = GPUAttributeStorageBuffer(device(), totalSize);
+    fillBuffer(m_vertexBuffer, memcpyFunc);
 }
 
-void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, Buffer& buffer, const MemcpyFunc& memcpyFunc)
+void VertexBuffer::mapMemory(BufferBase& buffer, const MemcpyFunc& memcpyFunc)
 {
-    if (useStaging)
-    {
-        // TODO: use single persistent staging buffer?
-        Buffer stagingBuffer = device().createBuffer(size,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        mapMemory(stagingBuffer, memcpyFunc);
-
-        buffer = device().createBuffer(size,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-        device().copyBuffer(stagingBuffer, buffer, size);
-
-        destroy(stagingBuffer);
-    }
-    else
-    {
-        buffer = device().createBuffer(size,
-            usage,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        mapMemory(buffer, memcpyFunc);
-    }
-}
-
-void VertexBuffer::mapMemory(Buffer& buffer, const MemcpyFunc& memcpyFunc)
-{
-    void* mappedMemory = device().mapBuffer(buffer);
+    void* mappedMemory = buffer.map();
     memcpyFunc(mappedMemory);
-    device().unmapBuffer(buffer);
+    buffer.unmap();
 }
 
 void VertexBuffer::setIndices(const uint16_t *indices, uint32_t numIndices)
@@ -179,7 +147,8 @@ void VertexBuffer::createIndexBuffer(const void *indices, uint32_t numIndices, V
         std::memcpy(mappedMemory, indices, size);
     };
 
-    createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, size, m_indexBuffer, memcpyFunc);
+    m_indexBuffer = GPUIndexBuffer(device(), size);
+    fillBuffer(m_indexBuffer, memcpyFunc);
 }
 
 void VertexBuffer::bind(VkCommandBuffer commandBuffer) const

@@ -10,14 +10,8 @@ struct GUIResources
 {
     struct FrameResources
     {
-        struct BufferParam
-        {
-            Buffer buffer;
-            int count = 0;
-            void* data = nullptr;
-        };
-        BufferParam vertices;
-        BufferParam indices;
+        CPUAttributeBuffer vertices;
+        CPUIndexBuffer indices;
     };
 
     Texture image;
@@ -51,7 +45,16 @@ public:
 private:
     GUIResources m_resources;
 
-    void resizeBufferIfNecessary(GUIResources::FrameResources::BufferParam& bufferParam, VkBufferUsageFlagBits usageFlags, int entryCount, int sizeOfEntry) const;
+    template<BufferUsage Usage>
+    void resizeBufferIfNecessary(Buffer<Usage, MemoryType::CpuVisible>& buffer, int entryCount, int sizeOfEntry) const
+    {
+        const auto bufferSize = sizeOfEntry * entryCount;
+        if (buffer.size() < bufferSize)
+        {
+            buffer = Buffer<Usage, MemoryType::CpuVisible>(device(), static_cast<uint64_t>(bufferSize));
+        }
+    }
+
     void drawFrameData(VkCommandBuffer commandBuffer, GUIResources::FrameResources &drawingResources);
     void createTexture();
     void createDescriptorResources();
