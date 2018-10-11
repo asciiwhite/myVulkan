@@ -4,12 +4,10 @@
 
 class Device;
 
-struct Texture;
-
 namespace detail
 {
-    void destroy(const Device& device, Texture& texture);
-
+    void destroy(const Device& device, VkImage image);
+    void destroy(const Device& device, VkImageView imageView);
     void destroy(const Device& device, VkBuffer buffer);
     void destroy(const Device& device, VkDeviceMemory memory);
     void destroy(const Device& device, VkSampler sampler);

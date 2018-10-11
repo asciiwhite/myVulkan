@@ -39,7 +39,7 @@ bool BasicRenderer::init(GLFWwindow* window)
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
     );
 
-    m_swapChainDepthBuffer = m_device.createDepthBuffer(m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
+    m_swapChainDepthAttachment = DepthStencilAttachment(m_device, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_swapChainDepthBufferFormat);
 
     static const std::array<RenderPassAttachmentData, 2> defaultAttachmentData{ {
         { m_swapChain.getImageFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
@@ -150,7 +150,7 @@ bool BasicRenderer::createSwapChainFramebuffers()
     {
         m_framebuffers[i] = m_device.createFramebuffer(
             m_renderPass,
-            { m_swapChain.getImageView(static_cast<uint32_t>(i)), m_swapChainDepthBuffer.imageView },
+            { m_swapChain.getImageView(static_cast<uint32_t>(i)), m_swapChainDepthAttachment.imageView() },
             m_swapChain.getImageExtent());
     }
 
@@ -165,7 +165,7 @@ void BasicRenderer::destroy()
     m_gui.reset();
 
     m_cameraUniformBuffer = UniformBuffer();
-    m_device.destroy(m_swapChainDepthBuffer);
+    m_swapChainDepthAttachment = DepthStencilAttachment();
     m_device.destroy(m_renderPass);
     destroyFramebuffers();
     destroyFrameResources();
@@ -189,9 +189,8 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
 
     if (m_swapChain.create())
     {
-        m_device.destroy(m_swapChainDepthBuffer);
         destroyFramebuffers();
-        m_swapChainDepthBuffer = m_device.createDepthBuffer(m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
+        m_swapChainDepthAttachment = DepthStencilAttachment(m_device, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_swapChainDepthBufferFormat);
         createSwapChainFramebuffers();
 
         m_gui->onResize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "buffer.h"
-#include "texture.h"
+#include "image.h"
 #include "shader.h"
 #include "descriptorset.h"
 #include "deviceref.h"

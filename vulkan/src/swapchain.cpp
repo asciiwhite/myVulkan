@@ -261,7 +261,7 @@ void SwapChain::createImageViews(uint32_t imageCount)
     m_imageViews.resize(imageCount);
     for (uint32_t i = 0; i < imageCount; i++)
     {
-        device().createImageView(m_images[i], m_surfaceFormat.format, m_imageViews[i], VK_IMAGE_ASPECT_COLOR_BIT);
+        m_imageViews[i] = ImageView(device(), m_surfaceFormat.format, m_images[i]);
     }
 }
 
@@ -343,10 +343,7 @@ void SwapChain::destroySwapChain(VkSwapchainKHR& swapChain)
 {
     if (swapChain != VK_NULL_HANDLE)
     {
-        for (auto& imageView : m_imageViews)
-        {
-            vkDestroyImageView(device(), imageView, nullptr);
-        }
+        m_imageViews.clear();
         vkDestroySwapchainKHR(device(), swapChain, nullptr);
         swapChain = VK_NULL_HANDLE;
     }

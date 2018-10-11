@@ -2,7 +2,7 @@
 #include "graphicspipeline.h"
 #include "descriptorset.h"
 #include "shader.h"
-#include "texture.h"
+#include "image.h"
 #include "meshdescription.h"
 
 class Device;

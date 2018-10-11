@@ -1,6 +1,7 @@
 #pragma once
 
 #include "deviceref.h"
+#include "imageview.h"
 
 #include <vulkan/vulkan.h>
 #include <vector>
@@ -18,7 +19,7 @@ public:
 
     uint32_t getImageCount() const { return static_cast<uint32_t>(m_images.size()); }
     VkExtent2D getImageExtent() const { return m_extent; }
-    VkImageView getImageView(uint32_t imageViewId) const { return m_imageViews[imageViewId]; }
+    VkImageView getImageView(uint32_t imageViewId) const { return m_imageViews[imageViewId].imageView(); }
     VkFormat getImageFormat() const { return m_surfaceFormat.format; }
 
     const VkSemaphore* getImageAvailableSemaphore() const { return &m_semaphores[m_currentImageId].first; }
@@ -44,7 +45,7 @@ private:
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
     std::vector<VkImage> m_images;
-    std::vector<VkImageView> m_imageViews;
+    std::vector<ImageView> m_imageViews;
     std::vector<std::pair<VkSemaphore, VkSemaphore>> m_semaphores;
     VkExtent2D m_extent = { 0, 0 };
     VkSurfaceFormatKHR m_surfaceFormat = { VK_FORMAT_UNDEFINED, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };

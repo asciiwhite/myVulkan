@@ -2,7 +2,7 @@
 
 #include "swapchain.h"
 #include "device.h"
-#include "texture.h"
+#include "image.h"
 #include "buffer.h"
 
 #include "../utils/camerainputhandler.h"
@@ -80,7 +80,7 @@ private:
 
     VkInstance m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
-    Texture m_swapChainDepthBuffer;
+    DepthStencilAttachment m_swapChainDepthAttachment;
     VkFormat m_swapChainDepthBufferFormat = VK_FORMAT_UNDEFINED;
 
 protected:

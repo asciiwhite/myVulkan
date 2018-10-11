@@ -7,7 +7,6 @@
 #include <vector>
 #include <array>
 
-struct Texture;
 struct GraphicsPipelineSettings;
 class VertexBuffer;
 
@@ -37,13 +36,7 @@ public:
         const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
         const std::vector<VkVertexInputBindingDescription>& bindingDesc) const;
 
-    Texture createDepthBuffer(const VkExtent2D& extend, VkFormat format) const;
-    Texture createImageFromData(uint32_t width, uint32_t height, unsigned char* pixelData, VkFormat format) const;
-
     VkSampler createSampler() const;
-
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
-    void createImageView(VkImage image, VkFormat format, VkImageView& imageView, VkImageAspectFlags aspectFlags) const;
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const;
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;

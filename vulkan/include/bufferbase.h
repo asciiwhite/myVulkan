@@ -1,19 +1,13 @@
 #pragma once
 
 #include "deviceref.h"
+#include "noncopyable.h"
 
 #include <vulkan/vulkan.h>
 
-struct NonCopyable
-{
-    constexpr NonCopyable() {}
-    NonCopyable(const NonCopyable &) = delete;
-    NonCopyable& operator=(const NonCopyable &) = delete;
-};
-
 class Device;
 
-struct BufferBase : public DeviceRef, NonCopyable
+class BufferBase : public DeviceRef, NonCopyable
 {
 public:
     ~BufferBase();

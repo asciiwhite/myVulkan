@@ -2,12 +2,11 @@
 
 #include "buffer.h"
 #include "deviceref.h"
+#include "device.h"
 
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <functional>
-
-class Device;
 
 class VertexBuffer : public DeviceRef
 {

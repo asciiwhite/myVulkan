@@ -1,7 +1,5 @@
 #include "device.h"
 
-#include "texture.h"
-
 namespace detail
 {
     void destroy(const Device& device, VkBuffer buffer)
@@ -14,11 +12,14 @@ namespace detail
         vkFreeMemory(device, memory, nullptr);
     }
 
-    void destroy(const Device& device, Texture& texture)
+    void destroy(const Device& device, VkImage image)
     {
-        vkDestroyImageView(device, texture.imageView, nullptr);
-        vkDestroyImage(device, texture.image, nullptr);
-        vkFreeMemory(device, texture.imageMemory, nullptr);
+        vkDestroyImage(device, image, nullptr);
+    }
+
+    void destroy(const Device& device, VkImageView imageView)
+    {
+        vkDestroyImageView(device, imageView, nullptr);
     }
 
     void destroy(const Device& device, VkSampler sampler)

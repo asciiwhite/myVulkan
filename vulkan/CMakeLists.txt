@@ -30,11 +30,12 @@ set(VULKAN_SOURCES
     include/descriptorset.h
     include/graphicspipeline.h
     include/vertexbuffer.h
-    include/texture.h
+    include/image.h
+    include/imagebase.h
+    include/imageview.h
     include/window.h
     include/buffer.h
     include/bufferbase.h
-    include/resourcemanager.h
     src/basicrenderer.cpp
     src/swapchain.cpp
     src/vulkanhelper.cpp
@@ -47,7 +48,9 @@ set(VULKAN_SOURCES
     src/descriptorset.cpp    
     src/graphicspipeline.cpp
     src/vertexbuffer.cpp
-    src/texture.cpp
+    src/image.cpp
+    src/imagebase.cpp
+    src/imageview.cpp
     src/window.cpp
     src/bufferbase.cpp
 )
@@ -69,6 +72,8 @@ set(UTILS_SOURCES
     utils/gui.cpp
     utils/objfileloader.h
     utils/objfileloader.cpp
+    utils/imageloader.h
+    utils/imageloader.cpp
     utils/meshdescription.h
     utils/mesh.h
     utils/mesh.cpp

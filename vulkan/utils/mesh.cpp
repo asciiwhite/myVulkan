@@ -1,7 +1,8 @@
 #include "mesh.h"
 #include "device.h"
 #include "shader.h"
-#include "texture.h"
+#include "image.h"
+#include "imageloader.h"
 #include "../utils/scopedtimelog.h"
 
 #include <algorithm>
@@ -28,8 +29,6 @@ Mesh::~Mesh()
     {
         GraphicsPipeline::Release(device(), desc.pipeline);
         ShaderManager::Release(device(), desc.shader);
-        if (desc.diffuseTexture)
-            TextureManager::Release(device(), desc.diffuseTexture);
     }
     m_materials.clear();
 
@@ -87,11 +86,10 @@ bool Mesh::loadMaterials(const std::vector<MaterialDescription>& materials)
 
         if (!material.textureFilename.empty())
         {
-            auto texture = TextureManager::Acquire(device(), material.textureFilename);
-            if (texture)
+            desc.diffuseTexture = ImageLoader::load(device(), material.textureFilename);
+            if (desc.diffuseTexture)
             {
-                desc.diffuseTexture = texture;
-                desc.descriptorSet.setImageSampler(BINDING_ID_TEXTURE_DIFFUSE, texture.imageView, m_sampler);
+                desc.descriptorSet.setImageSampler(BINDING_ID_TEXTURE_DIFFUSE, desc.diffuseTexture.imageView(), m_sampler);
             }
         }
 

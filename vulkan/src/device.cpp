@@ -4,7 +4,6 @@
 #include "debug.h"
 #include "vertexbuffer.h"
 #include "graphicspipeline.h"
-#include "texture.h"
 #include "barrier.h"
 
 #include <array>
@@ -375,94 +374,6 @@ VkDescriptorPool Device::createDescriptorPool(uint32_t count, const std::vector<
     return descriptorPool;
 }
 
-Texture Device::createDepthBuffer(const VkExtent2D& extend, VkFormat format) const
-{
-    Texture texture;
-
-    createImage(extend.width, extend.height,
-        format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        texture.image, texture.imageMemory);
-
-    createImageView(texture.image, format, texture.imageView, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-    transitionImageLayout(texture.image,
-        format,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-    return texture;
-}
-
-Texture Device::createImageFromData(uint32_t width, uint32_t height, unsigned char* pixelData, VkFormat format) const
-{
-    assert(format == VK_FORMAT_R8G8B8A8_UNORM);
-
-    const uint32_t imageSize = width * height * 4;
-
-    Texture texture;
-    StagingBuffer stagingBuffer(*this, imageSize);
-    void* data = stagingBuffer.map();
-    std::memcpy(data, pixelData, static_cast<size_t>(imageSize));
-    stagingBuffer.unmap();
-
-    createImage(width, height,
-        format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        texture.image, texture.imageMemory);
-
-    transitionImageLayout(texture.image,
-        format,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-    copyBufferToImage(stagingBuffer, texture.image, width, height);
-
-    transitionImageLayout(texture.image,
-        format,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    createImageView(texture.image, format, texture.imageView, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    return texture;
-}
-
-void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const
-{
-    VkImageCreateInfo imageInfo = {};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent.width = width;
-    imageInfo.extent.height = height;
-    imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
-    imageInfo.format = format;
-    imageInfo.tiling = tiling;
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = usage;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VK_CHECK_RESULT(vkCreateImage(m_device, &imageInfo, nullptr, &image));
-
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(m_device, image, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(m_physicalDevice, memRequirements.memoryTypeBits, properties);
-
-    VK_CHECK_RESULT(vkAllocateMemory(m_device, &allocInfo, nullptr, &imageMemory));
-    VK_CHECK_RESULT(vkBindImageMemory(m_device, image, imageMemory, 0));
-}
-
 VkSampler Device::createSampler() const
 {
     VkSamplerCreateInfo samplerInfo = {};
@@ -603,30 +514,6 @@ void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
     VK_CHECK_RESULT(vkQueueWaitIdle(m_graphicsQueue));
 
     vkFreeCommandBuffers(m_device, m_graphicsCommandPool, 1, &commandBuffer);
-}
-
-void Device::createImageView(VkImage image, VkFormat format, VkImageView& imageView, VkImageAspectFlags aspectFlags) const
-{
-    VkImageViewCreateInfo viewInfo = {};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.pNext = nullptr;
-    viewInfo.format = format;
-    viewInfo.components = {
-        VK_COMPONENT_SWIZZLE_IDENTITY,
-        VK_COMPONENT_SWIZZLE_IDENTITY,
-        VK_COMPONENT_SWIZZLE_IDENTITY,
-        VK_COMPONENT_SWIZZLE_IDENTITY
-    };
-    viewInfo.subresourceRange.aspectMask = aspectFlags;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.flags = 0;
-    viewInfo.image = image;
-
-    VK_CHECK_RESULT(vkCreateImageView(m_device, &viewInfo, nullptr, &imageView));
 }
 
 void Device::destroy()

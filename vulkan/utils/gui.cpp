@@ -22,7 +22,6 @@ GUI::~GUI()
         ImGui::DestroyContext();
 
     destroy(m_resources.sampler);
-    destroy(m_resources.image);
     destroy(m_resources.renderPass);
     destroy(m_resources.pipelineLayout);
     destroy(m_resources.descriptorPool);
@@ -210,7 +209,7 @@ void GUI::createTexture()
     unsigned char* pixels = nullptr;
     ImGui::GetIO().Fonts->GetTexDataAsRGBA32( &pixels, &w, &h );
 
-    m_resources.image = device().createImageFromData(static_cast<uint32_t>(w), static_cast<uint32_t>(h), pixels, VK_FORMAT_R8G8B8A8_UNORM);
+    m_resources.image = Texture(device(), pixels, static_cast<uint32_t>(w), static_cast<uint32_t>(h), VK_FORMAT_R8G8B8A8_UNORM);
     m_resources.sampler = device().createSampler(); // maybe use clamp to edge 
 }
 
@@ -220,7 +219,7 @@ void GUI::createDescriptorResources()
 
     m_resources.descriptorSetLayout = device().createDescriptorSetLayout({ { GUI_PARAMETER_BINDING_ID, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } });
 
-    m_resources.descriptorSet.setImageSampler(GUI_PARAMETER_BINDING_ID, m_resources.image.imageView, m_resources.sampler);
+    m_resources.descriptorSet.setImageSampler(GUI_PARAMETER_BINDING_ID, m_resources.image.imageView(), m_resources.sampler);
     m_resources.descriptorSet.allocateAndUpdate(device(), m_resources.descriptorSetLayout, m_resources.descriptorPool);
 }
 
