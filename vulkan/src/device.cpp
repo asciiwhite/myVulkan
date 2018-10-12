@@ -441,26 +441,6 @@ VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, Vk
     return VK_FORMAT_UNDEFINED;
 }
 
-void Device::transitionImageLayout(VkImage image, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout) const
-{
-    const auto barrier = createImageMemoryBarrier(image, imageFormat, oldLayout, newLayout);
-    const auto sourceStage = getPipelineStageFlags(barrier.srcAccessMask);
-    const auto destinationStage = getPipelineStageFlags(barrier.dstAccessMask);
-
-    const auto commandBuffer = beginSingleTimeCommands();
-
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    endSingleTimeCommands(commandBuffer);
-}
-
 void Device::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();

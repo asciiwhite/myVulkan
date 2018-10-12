@@ -40,9 +40,20 @@ namespace
         return 0;
     }
 
-    bool hasStencilComponent(VkFormat format)
+    VkImageAspectFlags getImageAspect(VkFormat format)
     {
-        return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+        switch (format)
+        {
+        case VK_FORMAT_D16_UNORM:
+        case VK_FORMAT_D32_SFLOAT:
+            return VK_IMAGE_ASPECT_DEPTH_BIT;
+        case VK_FORMAT_D16_UNORM_S8_UINT:
+        case VK_FORMAT_D24_UNORM_S8_UINT:
+        case VK_FORMAT_D32_SFLOAT_S8_UINT:
+            return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        default:
+            return VK_IMAGE_ASPECT_COLOR_BIT;
+        }
     }
 }
 
@@ -84,20 +95,7 @@ VkImageMemoryBarrier createImageMemoryBarrier(VkImage image, VkFormat imageForma
     barrier.subresourceRange.layerCount = 1;
     barrier.srcAccessMask = getLayoutAccessFlags(oldLayout);
     barrier.dstAccessMask = getLayoutAccessFlags(newLayout);
-
-    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-    {
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-        if (hasStencilComponent(imageFormat))
-        {
-            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
-    }
-    else
-    {
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    }
+    barrier.subresourceRange.aspectMask = getImageAspect(imageFormat);
 
     return barrier;
 }

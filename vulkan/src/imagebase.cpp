@@ -2,6 +2,7 @@
 #include "vulkanhelper.h"
 #include "device.h"
 #include "buffer.h"
+#include "barrier.h"
 
 #include <cstring>
 
@@ -86,11 +87,12 @@ namespace
 
 ImageBase::ImageBase(const Device& device, uint8_t* pixelData, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage)
     : DeviceRef(device)
+    , m_format(format)
 {
     assert(format == VK_FORMAT_R8G8B8A8_UNORM);
 
     createImage(device, width, height, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT, m_image, m_memory);
-    device.transitionImageLayout(m_image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    setLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     
     const uint32_t imageSize = width * height * 4;
     StagingBuffer stagingBuffer(device, imageSize);
@@ -99,15 +101,16 @@ ImageBase::ImageBase(const Device& device, uint8_t* pixelData, uint32_t width, u
     stagingBuffer.unmap();
 
     device.copyBufferToImage(stagingBuffer, m_image, width, height);
-    device.transitionImageLayout(m_image, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, getNewImageLayout(usage));
+    setLayout(getNewImageLayout(usage));
     createImageView(device, m_image, format, m_imageView);
 }
 
 ImageBase::ImageBase(const Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage)
     : DeviceRef(device)
+    , m_format(format)
 {
     createImage(device, width, height, format, usage, m_image, m_memory);
-    device.transitionImageLayout(m_image, format, VK_IMAGE_LAYOUT_UNDEFINED, getNewImageLayout(usage));
+    setLayout(getNewImageLayout(usage));
     createImageView(device, m_image, format, m_imageView);
 }
 
@@ -154,5 +157,28 @@ void ImageBase::swap(ImageBase& other)
     std::swap(m_image, other.m_image);
     std::swap(m_imageView, other.m_imageView);
     std::swap(m_memory, other.m_memory);
+    std::swap(m_layout, other.m_layout);
+    std::swap(m_format, other.m_format);
     std::swap(m_numChannels, other.m_numChannels);
+}
+
+void ImageBase::setLayout(VkImageLayout newLayout)
+{
+    const auto barrier = createImageMemoryBarrier(m_image, m_format, m_layout, newLayout);
+    const auto sourceStage = getPipelineStageFlags(barrier.srcAccessMask);
+    const auto destinationStage = getPipelineStageFlags(barrier.dstAccessMask);
+
+    const auto commandBuffer = device().beginSingleTimeCommands();
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        sourceStage, destinationStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+
+    device().endSingleTimeCommands(commandBuffer);
+    m_layout = newLayout;
 }
