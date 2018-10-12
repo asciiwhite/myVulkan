@@ -66,16 +66,14 @@ public:
     operator VkBuffer() const { return m_vertexBuffer; }
 
 private:
-    using MemcpyFunc = std::function<void(void*)>;
     void createIndexBuffer(const void *indices, uint32_t numIndices, VkIndexType indexType);
-    void mapMemory(BufferBase& buffer, const MemcpyFunc& memcpyFunc);
 
     template<BufferUsage Usage>
-    void fillBuffer(Buffer<Usage, MemoryType::DeviceLocal>& buffer, const MemcpyFunc& memcpyFunc)
+    void fillBuffer(Buffer<Usage, MemoryType::DeviceLocal>& buffer, const BufferBase::FillFunc& memcpyFunc)
     {
         // TODO: use single persistent staging buffer?
         StagingBuffer stagingBuffer(device(), buffer.size());
-        mapMemory(stagingBuffer, memcpyFunc);
+        stagingBuffer.fill(memcpyFunc);
         device().copyBuffer(stagingBuffer, buffer, buffer.size());
     }
 

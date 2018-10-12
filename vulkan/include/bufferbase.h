@@ -3,6 +3,8 @@
 #include "deviceref.h"
 #include "noncopyable.h"
 
+#include <functional>
+#include <assert.h>
 #include <vulkan/vulkan.h>
 
 class Device;
@@ -18,6 +20,18 @@ public:
     uint64_t size() const;
     VkBuffer buffer() const;
     VkDeviceMemory memory() const;
+
+    using FillFunc = std::function<void(void*)>;
+    void fill(const FillFunc& fillFunc) const;
+
+    template<typename T>
+    void assign(T* inputData, uint64_t size) const
+    {
+        assert(size <= m_size);
+        const auto dstData = map(m_size, 0);
+        std::memcpy(dstData, inputData, size);
+        unmap();
+    }
 
     void* map(uint64_t size = VK_WHOLE_SIZE, uint64_t offset = 0) const;
     void unmap() const;

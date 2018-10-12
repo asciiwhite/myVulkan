@@ -94,11 +94,9 @@ ImageBase::ImageBase(const Device& device, uint8_t* pixelData, uint32_t width, u
     createImage(device, width, height, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT, m_image, m_memory);
     setLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     
-    const uint32_t imageSize = width * height * 4;
+    const uint64_t imageSize = width * height * 4;
     StagingBuffer stagingBuffer(device, imageSize);
-    void* data = stagingBuffer.map();
-    std::memcpy(data, pixelData, static_cast<size_t>(imageSize));
-    stagingBuffer.unmap();
+    stagingBuffer.assign(pixelData, imageSize);
 
     device.copyBufferToImage(stagingBuffer, m_image, width, height);
     setLayout(getNewImageLayout(usage));

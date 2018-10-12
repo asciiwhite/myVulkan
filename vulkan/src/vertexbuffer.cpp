@@ -119,13 +119,6 @@ void VertexBuffer::createFromInterleavedAttributes(uint32_t vertexCount, uint32_
     fillBuffer(m_vertexBuffer, memcpyFunc);
 }
 
-void VertexBuffer::mapMemory(BufferBase& buffer, const MemcpyFunc& memcpyFunc)
-{
-    void* mappedMemory = buffer.map();
-    memcpyFunc(mappedMemory);
-    buffer.unmap();
-}
-
 void VertexBuffer::setIndices(const uint16_t *indices, uint32_t numIndices)
 {
      createIndexBuffer(indices, numIndices, VK_INDEX_TYPE_UINT16);

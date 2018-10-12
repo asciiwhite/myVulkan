@@ -76,11 +76,11 @@ bool Mesh::loadMaterials(const std::vector<MaterialDescription>& materials)
         const uint32_t uboSize = sizeof(glm::vec4) + sizeof(glm::vec4) + sizeof(glm::vec4);
 
         desc.material = UniformBuffer(device(), uboSize);
-        void* data = desc.material.map();
-        std::memcpy(data, &material.ambient, 3 * sizeof(float));
-        std::memcpy(static_cast<char*>(data) + 4 * sizeof(float), &material.diffuse, 3 * sizeof(float));
-        std::memcpy(static_cast<char*>(data) + 8 * sizeof(float), &material.emission, 3 * sizeof(float));
-        desc.material.unmap();
+        desc.material.fill([&](auto data) {
+            std::memcpy(data, &material.ambient, 3 * sizeof(float));
+            std::memcpy(static_cast<char*>(data) + 4 * sizeof(float), &material.diffuse, 3 * sizeof(float));
+            std::memcpy(static_cast<char*>(data) + 8 * sizeof(float), &material.emission, 3 * sizeof(float));
+        });
 
         desc.descriptorSet.setUniformBuffer(BINDING_ID_MATERIAL, desc.material);
 

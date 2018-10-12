@@ -61,6 +61,13 @@ VkDeviceMemory BufferBase::memory() const
     return m_memory;
 }
 
+void BufferBase::fill(const FillFunc& fillfunc) const
+{
+    auto data = map(m_size, 0);
+    fillfunc(data);
+    unmap();
+}
+
 void* BufferBase::map(uint64_t size, uint64_t offset) const
 {
     void* data;

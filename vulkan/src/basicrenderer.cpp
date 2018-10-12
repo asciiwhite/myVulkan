@@ -303,11 +303,7 @@ void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer, const VkS
 void BasicRenderer::updateMVPUniform()
 {
     const auto mvp = m_cameraHandler.mvp(m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height));
-    const auto bufferSize = sizeof(mvp);
-
-    void* data = m_cameraUniformBuffer.map();
-    std::memcpy(data, &mvp, bufferSize);
-    m_cameraUniformBuffer.unmap();
+    m_cameraUniformBuffer.assign(&mvp, sizeof(mvp));
 }
 
 void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir)
