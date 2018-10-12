@@ -9,7 +9,6 @@ private:
     bool setup() override;
     void render(const FrameData& frameData) override;
     void shutdown() override;
-    void fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer);
     void createGUIContent() override;
 
     std::string meshFilename;

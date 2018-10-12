@@ -13,6 +13,7 @@
 #include <vulkan/vulkan.h>
 
 #include <memory>
+#include <functional>
 
 struct GLFWwindow;
 
@@ -32,6 +33,8 @@ public:
     void draw();
 
 protected:
+    using DrawFunc = std::function<void(VkCommandBuffer)>;
+    void fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer, const DrawFunc&);
     void submitCommandBuffer(VkCommandBuffer commandBuffer, const VkSemaphore* waitSemaphore, const VkSemaphore* signalSemaphore, VkFence* submitFence);
     void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir);
     void updateMVPUniform();
