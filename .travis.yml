@@ -8,25 +8,42 @@ matrix:
   include:
     # Linux GCC debug build.
     - os: linux
-      compiler: gcc
-      env: BUILD_TYPE=DEFAULT
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+      env:
+        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+        - BUILD_TYPE=DEFAULT
     # Linux clang debug build.
     - os: linux
       compiler: clang
       env: BUILD_TYPE=DEFAULT
     #Linux gcc coverage build.
     - os: linux
-      compiler: gcc
-      env: BUILD_TYPE=COVERAGE
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+      env:
+        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+        - BUILD_TYPE=COVERAGE
 
 # Use set -e so that the build fails when a command fails.
 # The default action for Travis-CI is to continue running even if a command fails.
 # See https://github.com/travis-ci/travis-ci/issues/1066.
 # Use the YAML block scalar header (|) to allow easier multiline script coding.
 
+before_install:
+    - eval "${MATRIX_EVAL}"
+
 install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libxinerama-dev libxcursor-dev libxi-dev libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 cmake libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev lcov
+  - sudo apt-get install -y libxinerama-dev libxcursor-dev libxi-dev libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev lcov
   - VULKAN_VERSION=1.1.73.0
   - VULKAN_SDK_FILE=vulkansdk-linux-x86_64-$VULKAN_VERSION.run
   - wget -O $VULKAN_SDK_FILE https://sdk.lunarg.com/sdk/download/$VULKAN_VERSION/linux/$VULKAN_SDK_FILE
