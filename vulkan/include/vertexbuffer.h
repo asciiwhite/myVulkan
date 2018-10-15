@@ -68,9 +68,10 @@ public:
 private:
     void createIndexBuffer(const void *indices, uint32_t numIndices, VkIndexType indexType);
 
-    template<BufferUsage Usage>
-    void fillBuffer(Buffer<Usage, MemoryType::DeviceLocal>& buffer, const BufferBase::FillFunc& memcpyFunc)
+    template<BufferUsage Usage, MemoryType Memory>
+    void fillBuffer(Buffer<Usage, Memory>& buffer, const BufferBase::FillFunc& memcpyFunc)
     {
+        static_assert(!Buffer<Usage, Memory>::isCpuVisible);
         // TODO: use single persistent staging buffer?
         StagingBuffer stagingBuffer(device(), buffer.size());
         stagingBuffer.fill(memcpyFunc);

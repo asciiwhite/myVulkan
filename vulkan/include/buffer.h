@@ -21,25 +21,13 @@ constexpr BufferUsage operator|(BufferUsage a, BufferUsage b)
 
 enum class MemoryType
 {
-    DontCare = 0,
-    DeviceLocal = 1,
-    CpuVisible = 2
+    DeviceLocal = int(VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+    CpuVisible = int(VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
 };
 
-static constexpr VkMemoryPropertyFlags getMemoryFlags(MemoryType type)
+constexpr MemoryType operator|(MemoryType a, MemoryType b)
 {
-    switch (type)
-    {
-    case MemoryType::DontCare:
-        return 0;
-    case MemoryType::DeviceLocal:
-        return VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    case MemoryType::CpuVisible:
-        return VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    default:
-        assert(!"Unknown memory type");
-        return 0;
-    }
+    return MemoryType(uint32_t(a) | uint32_t(b));
 }
 
 template<BufferUsage Usage, MemoryType Memory>
@@ -47,7 +35,8 @@ class Buffer : public BufferBase
 {
 protected:
     template<typename T>
-    static constexpr bool has(T a, T b) {
+    static constexpr bool has(T a, T b)
+    {
         return (uint32_t(a) & uint32_t(b)) == uint32_t(b);
     }
 
@@ -57,14 +46,12 @@ protected:
     }
 
 public:
-    static constexpr BufferUsage usage = Usage;
-    static constexpr MemoryType memory = Memory;
+    static constexpr bool isCpuVisible = has(Memory, MemoryType::CpuVisible);
 
     Buffer() = default;
 
-    template<typename = void>
     Buffer(const Device& device, uint64_t size)
-        : BufferBase(device, size, VkBufferUsageFlagBits(Usage), getMemoryFlags(Memory))
+        : BufferBase(device, size, VkBufferUsageFlagBits(Usage), VkMemoryPropertyFlags(Memory))
     {
     }
 
@@ -81,6 +68,31 @@ public:
         static_assert(is_compatible(U,M));
         swap(other);
         return *this;
+    }
+
+    void* map(uint64_t size = VK_WHOLE_SIZE, uint64_t offset = 0) const
+    {
+        static_assert(isCpuVisible);
+        return BufferBase::map(size, offset);
+    }
+
+    void unmap() const
+    {
+        static_assert(isCpuVisible);
+        BufferBase::unmap();
+    }
+
+    template<typename T>
+    void assign(T* inputData, uint64_t size) const
+    {
+        static_assert(isCpuVisible);
+        BufferBase::assign(inputData, size);
+    }
+
+    void fill(const FillFunc& fillFunc) const
+    {
+        static_assert(isCpuVisible);
+        BufferBase::fill(fillFunc);
     }
 };
 
