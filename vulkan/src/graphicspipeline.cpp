@@ -146,14 +146,7 @@ size_t GraphicsPipelineResourceHandler::CreateResourceKey(VkRenderPass renderPas
     const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
     const std::vector<VkVertexInputBindingDescription>& bindingDesc)
 {
-    Hasher hasher;
-    hasher.add(renderPass);
-    hasher.add(layout);
-    hasher.add(settings);
-    hasher.add(shaderStages);
-    hasher.add(attributeDesc);
-    hasher.add(bindingDesc);
-    return hasher.get();
+    return Hasher::hashme(renderPass, layout, settings, shaderStages, attributeDesc, bindingDesc);
 }
 
 VkPipeline GraphicsPipelineResourceHandler::CreateResource(const Device& device, VkRenderPass renderPass,

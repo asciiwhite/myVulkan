@@ -118,9 +118,8 @@ namespace
         }
 
         assert(meshDesc.geometry.vertexSize == currentSize);
-        Hasher hasher;
-        hasher.add(reinterpret_cast<const unsigned char*>(&meshDesc.geometry.vertices[vertexOffset]), currentSize * sizeof(float));
-        const auto vertexHash = hasher.get();
+
+        const auto vertexHash = Hasher::hashme(reinterpret_cast<const unsigned char*>(&meshDesc.geometry.vertices[vertexOffset]), currentSize * sizeof(float));
         if (uniqueVertices.count(vertexHash) == 0)
         {
             uniqueVertices[vertexHash] = static_cast<uint32_t>(uniqueVertices.size());

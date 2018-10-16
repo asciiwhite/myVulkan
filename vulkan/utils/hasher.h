@@ -19,54 +19,65 @@ inline size_t fnv1a_hash_bytes(const unsigned char * first, size_t count)
 
 //using boost::hash_combine
 template <class T>
-inline void hash_combine(std::size_t& seed, T const& v)
+inline void hash_combine(std::size_t& seed, T const& value)
 {
-    seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+template<typename T, typename... Args>
+inline auto hash(const T& t, const Args&... args)
+{
+    auto h = std::hash<T>()(t);
+    if constexpr(0 < sizeof...(args))
+        hash_combine(h, hash(args...));
+    return h;
+}
+
+template<typename B, typename E>
+inline auto hash_range(B begin, const E& end)
+{
+    decltype(hash(*begin)) h = 0;
+    for (; begin != end; ++begin)
+        hash_combine(h, hash(*begin));
+    return h;
+}
+
+template<typename C>
+inline auto hash_range(const C& c)
+{
+    return hash_range(std::begin(c), std::end(c));
 }
 
 namespace std
 {
-    template<typename T> struct hash<vector<T>>
-    {
-        std::size_t operator()(vector<T> const& in) const
-        {
-            size_t size = in.size();
-            size_t seed = 0;
-            for (size_t i = 0; i < size; i++)
-                //Combine the hash of the current vector with the hashes of the previous ones
-                hash_combine(seed, in[i]);
-            return seed;
-        }
-    };
-
     template<typename T> struct BitwiseHash
     {
         std::size_t operator()(T const& in) const
         {
             return fnv1a_hash_bytes(reinterpret_cast<const unsigned char*>(&in), sizeof(T));        }
     };
+
+    template<typename T> struct hash<vector<T>>
+    {
+        std::size_t operator()(vector<T> const& in) const
+        {
+            return hash_range(in);
+        }
+    };
 }
 
 class Hasher
 {
 public:
-    template<typename T>
-    void add(T& value)
+    template<typename... Args>
+    static Hash hashme(const Args&... args)
     {
-        hash_combine(m_seed, value);
+        return hash(args...);
     }
 
-    void add(const unsigned char* data, size_t size)
+    static Hash hashme(const unsigned char* data, size_t size)
     {
-        const auto dataHash = fnv1a_hash_bytes(data, size);
-        hash_combine(m_seed, dataHash);
+        return fnv1a_hash_bytes(data, size);
     }
 
-    Hash get() const
-    {
-        return m_seed;
-    }
-
-private:
-    Hash m_seed = 0;
 };
