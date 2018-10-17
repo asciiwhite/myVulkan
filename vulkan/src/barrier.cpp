@@ -99,3 +99,18 @@ VkImageMemoryBarrier createImageMemoryBarrier(VkImage image, VkFormat imageForma
 
     return barrier;
 }
+
+VkBufferMemoryBarrier createBufferMemoryBarrier(VkBuffer buffer, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex)
+{
+    VkBufferMemoryBarrier bufferBarrier = {};
+    bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufferBarrier.buffer = buffer;
+    bufferBarrier.size = VK_WHOLE_SIZE;
+    bufferBarrier.offset = 0;
+    bufferBarrier.srcAccessMask = srcAccessMask;
+    bufferBarrier.dstAccessMask = dstAccessMask;
+    bufferBarrier.srcQueueFamilyIndex = srcQueueFamilyIndex;    // Compute and graphics queue may have different queue families
+    bufferBarrier.dstQueueFamilyIndex = dstQueueFamilyIndex;    // For the barrier to work across different queues, we need to set their family indices
+
+    return bufferBarrier;
+}
