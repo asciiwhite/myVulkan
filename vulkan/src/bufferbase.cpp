@@ -5,7 +5,7 @@
 
 namespace
 {
-    void createBufferAndMemory(const Device& device, uint64_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties, VkBuffer& buffer, VkDeviceMemory& memory)
+    std::pair<VkBuffer, VkDeviceMemory> createBufferAndMemory(const Device& device, uint64_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties)
     {
         VkBufferCreateInfo bufferInfo = {};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -13,6 +13,7 @@ namespace
         bufferInfo.usage = usage;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+        VkBuffer buffer;
         vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
 
         VkMemoryRequirements memRequirements;
@@ -23,8 +24,11 @@ namespace
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = device.findMemoryType(memRequirements.memoryTypeBits, memoryProperties);
 
+        VkDeviceMemory memory;
         vkAllocateMemory(device, &allocInfo, nullptr, &memory);
         vkBindBufferMemory(device, buffer, memory, 0);
+
+        return { buffer, memory };
     }
 }
 
@@ -32,7 +36,7 @@ BufferBase::BufferBase(const Device& device, uint64_t size, VkBufferUsageFlagBit
     : DeviceRef(device)
     , m_size(size)
 {
-    createBufferAndMemory(device, size, usageFlags, memoryProperties, m_buffer, m_memory);
+    std::tie(m_buffer, m_memory) = createBufferAndMemory(device, size, usageFlags, memoryProperties);
 }
 
 BufferBase::~BufferBase()

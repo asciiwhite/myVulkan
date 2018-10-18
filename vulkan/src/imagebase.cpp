@@ -29,7 +29,7 @@ namespace
         return (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
 
-    void createImage(const Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImage& image, VkDeviceMemory& imageMemory)
+    std::pair<VkImage, VkDeviceMemory> createImage(const Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage)
     {
         VkImageCreateInfo imageInfo = {};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -46,6 +46,7 @@ namespace
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+        VkImage image;
         VK_CHECK_RESULT(vkCreateImage(device, &imageInfo, nullptr, &image));
 
         VkMemoryRequirements memRequirements;
@@ -56,11 +57,14 @@ namespace
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = device.findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+        VkDeviceMemory imageMemory;
         VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
         VK_CHECK_RESULT(vkBindImageMemory(device, image, imageMemory, 0));
+
+        return { image, imageMemory };
     }
 
-    void createImageView(const Device& device, VkImage image, VkFormat format, VkImageView& imageView)
+    VkImageView createImageView(const Device& device, VkImage image, VkFormat format)
     {
         VkImageViewCreateInfo viewInfo = {};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -81,7 +85,9 @@ namespace
         viewInfo.flags = 0;
         viewInfo.image = image;
 
+        VkImageView imageView;
         VK_CHECK_RESULT(vkCreateImageView(device, &viewInfo, nullptr, &imageView));
+        return imageView;
     }
 }
 
@@ -91,7 +97,7 @@ ImageBase::ImageBase(const Device& device, uint8_t* pixelData, uint32_t width, u
 {
     assert(format == VK_FORMAT_R8G8B8A8_UNORM);
 
-    createImage(device, width, height, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT, m_image, m_memory);
+    std::tie(m_image, m_memory) = createImage(device, width, height, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
     setLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     
     const uint64_t imageSize = width * height * 4;
@@ -100,16 +106,16 @@ ImageBase::ImageBase(const Device& device, uint8_t* pixelData, uint32_t width, u
 
     device.copyBufferToImage(stagingBuffer, m_image, width, height);
     setLayout(getNewImageLayout(usage));
-    createImageView(device, m_image, format, m_imageView);
+    m_imageView = createImageView(device, m_image, format);
 }
 
 ImageBase::ImageBase(const Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage)
     : DeviceRef(device)
     , m_format(format)
 {
-    createImage(device, width, height, format, usage, m_image, m_memory);
+    std::tie(m_image, m_memory) = createImage(device, width, height, format, usage);
     setLayout(getNewImageLayout(usage));
-    createImageView(device, m_image, format, m_imageView);
+    m_imageView = createImageView(device, m_image, format);
 }
 
 ImageBase::~ImageBase()
