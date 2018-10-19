@@ -37,7 +37,7 @@ namespace
     bool hasUniqueVertexAttributes(const tinyobj::attrib_t& attrib)
     {
         return !(((attrib.normals.empty() != attrib.vertices.empty()) ||
-                 (!attrib.texcoords.empty() && attrib.texcoords.size() != attrib.vertices.size())));
+                 (!attrib.texcoords.empty() && (attrib.texcoords.size() / 2)  != (attrib.vertices.size() / 3))));
     }
 
     void createSeparateVertexAttributes(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes, MeshDescription& meshDesc)
@@ -64,17 +64,19 @@ namespace
         meshDesc.geometry.vertices.resize(attrib.vertices.size() + attrib.normals.size() + attrib.texcoords.size());
         std::copy(attrib.vertices.begin(), attrib.vertices.end(), meshDesc.geometry.vertices.begin());
         meshDesc.geometry.vertexAttribs.emplace_back(0, 3, vertexCount, meshDesc.geometry.vertices.data());
+        auto offset = attrib.vertices.size();
         if (!attrib.normals.empty())
         {
-            const auto offset = attrib.vertices.size();
             std::copy(attrib.normals.begin(), attrib.normals.end(), meshDesc.geometry.vertices.begin() + offset);
             meshDesc.geometry.vertexAttribs.emplace_back(1, 3, vertexCount, meshDesc.geometry.vertices.data() + offset);
+            offset += attrib.normals.size();
         }
         if (!attrib.texcoords.empty())
         {
-            const auto offset = attrib.vertices.size() + attrib.normals.size();
-            std::copy(attrib.texcoords.begin(), attrib.texcoords.end(), meshDesc.geometry.vertices.end() + offset);
+            std::copy(attrib.texcoords.begin(), attrib.texcoords.end(), meshDesc.geometry.vertices.begin() + offset);
             meshDesc.geometry.vertexAttribs.emplace_back(2, 2, vertexCount, meshDesc.geometry.vertices.data() + offset);
+            std::for_each(meshDesc.geometry.vertices.begin() + offset, meshDesc.geometry.vertices.end(), [isTCoord = false](float& texcoords) mutable { if (isTCoord) texcoords  = -texcoords; isTCoord = !isTCoord; });
+
         }
         meshDesc.geometry.vertexSize = 0;
         meshDesc.geometry.vertexCount = vertexCount;
@@ -295,7 +297,7 @@ bool ObjFileLoader::read(const std::string& filename, MeshDescription& meshDesc)
     }
     if (!result)
     {
-        std::cerr << "Failed to load " << filename;
+        std::cerr << "Failed to load " << filename << std::endl;
         return false;
     }
 
