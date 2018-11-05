@@ -13,4 +13,6 @@ private:
 
     std::string meshFilename;
     std::unique_ptr<Mesh> m_mesh;
+
+    DrawFunc m_meshDrawFunc;
 };

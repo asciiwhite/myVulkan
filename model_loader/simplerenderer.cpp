@@ -8,19 +8,28 @@
 bool SimpleRenderer::setup()
 {
     meshFilename = "data/meshes/bunny.obj";
+    
+    auto meshLoadFunc = [&]()
+    {
+        MeshDescription meshDesc;
+        if (ObjFileLoader::read(meshFilename, meshDesc))
+        {
+            m_mesh.reset(new Mesh(m_device));
+            if (!m_mesh->init(meshDesc, m_cameraUniformBuffer, m_renderPass))
+                m_mesh.reset();
+            else
+                setCameraFromBoundingBox(meshDesc.boundingBox.min, meshDesc.boundingBox.max, glm::vec3(0, 1, 1));
+        }
 
-    MeshDescription meshDesc;
-    if (!ObjFileLoader::read(meshFilename, meshDesc))
-        return false;
+        return [&](auto commandBuffer)
+        {
+            m_mesh->render(commandBuffer);
+        };
+    };
 
-    m_mesh.reset(new Mesh(m_device));
+    m_meshDrawFunc = meshLoadFunc();
 
-    if (!m_mesh->init(meshDesc, m_cameraUniformBuffer, m_renderPass))
-        return false;
-
-    setCameraFromBoundingBox(meshDesc.boundingBox.min, meshDesc.boundingBox.max, glm::vec3(0,1,1));
-
-    return true;
+    return m_mesh.get() != nullptr;
 }
 
 void SimpleRenderer::shutdown()
@@ -30,7 +39,7 @@ void SimpleRenderer::shutdown()
 
 void SimpleRenderer::render(const FrameData& frameData)
 {
-    fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer, [&](auto commandBuffer) { m_mesh->render(commandBuffer); });
+    fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer, m_meshDrawFunc);
     submitCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapChain.getImageAvailableSemaphore(), nullptr, nullptr);
 }
 
