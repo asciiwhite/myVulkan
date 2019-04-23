@@ -42,7 +42,7 @@ bool BasicRenderer::init(GLFWwindow* window)
     m_swapChainDepthAttachment = DepthStencilAttachment(m_device, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_swapChainDepthBufferFormat);
 
     static const std::array<RenderPassAttachmentData, 2> defaultAttachmentData{ {
-        { m_swapChain.getImageFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
+        { m_swapChain.getImageFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR },
         { m_swapChainDepthBufferFormat, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL } } };
 
     m_renderPass = m_device.createRenderPass(defaultAttachmentData);
@@ -55,7 +55,7 @@ bool BasicRenderer::init(GLFWwindow* window)
     createFrameResources(frameResourceCount);
 
     m_gui = std::unique_ptr<GUI>(new GUI(m_device));
-    m_gui->setup(frameResourceCount, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_swapChain.getImageFormat(), m_swapChainDepthBufferFormat);
+    m_gui->setup(frameResourceCount, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_renderPass);
 
     return setup();
 }
@@ -135,7 +135,6 @@ bool BasicRenderer::createFrameResources(uint32_t numFrames)
     for (auto& resource : m_frameResources)
     {
         VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &allocInfo, &resource.graphicsCommandBuffer));
-        VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &allocInfo, &resource.guiCommandBuffer));
         VK_CHECK_RESULT(vkCreateFence(m_device, &fenceCreateInfo, nullptr, &resource.frameCompleteFence));
     }
 
@@ -213,7 +212,6 @@ void BasicRenderer::destroyFrameResources()
     for (const auto& resource : m_frameResources)
     {
         vkFreeCommandBuffers(m_device, m_device.getGraphicsCommandPool(), 1, &resource.graphicsCommandBuffer);
-        vkFreeCommandBuffers(m_device, m_device.getGraphicsCommandPool(), 1, &resource.guiCommandBuffer);
         vkDestroyFence(m_device, resource.frameCompleteFence, nullptr);
     }
     m_frameResources.clear();
@@ -241,8 +239,8 @@ void BasicRenderer::draw()
     render({ m_frameResources[m_frameResourceId], m_framebuffers[swapChainImageId] });
 
     // gui rendering
-    m_gui->draw(m_frameResourceId, m_frameResources[m_frameResourceId].guiCommandBuffer, m_framebuffers[swapChainImageId]);
-    submitCommandBuffer(m_frameResources[m_frameResourceId].guiCommandBuffer, nullptr, m_swapChain.getRenderFinishedSemaphore(), &m_frameResources[m_frameResourceId].frameCompleteFence);
+    m_gui->draw(m_frameResourceId, m_frameResources[m_frameResourceId].graphicsCommandBuffer);
+    submitCommandBuffer(m_frameResources[m_frameResourceId].graphicsCommandBuffer, m_swapChain.getImageAvailableSemaphore(), m_swapChain.getRenderFinishedSemaphore(), &m_frameResources[m_frameResourceId].frameCompleteFence);
 
     // presentation
     if (!m_swapChain.present(swapChainImageId))
@@ -278,10 +276,6 @@ void BasicRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuff
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     drawFunc(commandBuffer);
-
-    vkCmdEndRenderPass(commandBuffer);
-
-    VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
 void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer, const VkSemaphore* waitSemaphore, const VkSemaphore* signalSemaphore, VkFence* submitFence)

@@ -249,7 +249,6 @@ void Renderer::render(const FrameData& frameData)
 
     // graphics part
     fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer, [&](auto commandBuffer) {  renderParticles(commandBuffer); });
-    submitCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapChain.getImageAvailableSemaphore(), nullptr, nullptr);
 }
 
 void Renderer::createGUIContent()

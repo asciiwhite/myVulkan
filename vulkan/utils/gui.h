@@ -22,7 +22,6 @@ struct GUIResources
     DescriptorSet descriptorSet;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline pipeline = VK_NULL_HANDLE;
-    VkRenderPass renderPass = VK_NULL_HANDLE;
     std::vector<FrameResources> frameResources;
 };
 
@@ -36,11 +35,11 @@ public:
     GUI(Device &device);
     ~GUI();
 
-    void setup(size_t resource_count, uint32_t width, uint32_t height, VkFormat colorAttachmentFormat, VkFormat swapChainDepthBufferFormat);
+    void setup(size_t resource_count, uint32_t width, uint32_t height, VkRenderPass renderPass);
     void onResize(uint32_t width, uint32_t height);
 
     void startFrame(const Statistics& stats, const MouseInputState& mouseState);
-    void draw(uint32_t resource_index, VkCommandBuffer commandBuffer, VkFramebuffer framebuffer);
+    void draw(uint32_t resource_index, VkCommandBuffer commandBuffer);
 
 private:
     GUIResources m_resources;
@@ -58,5 +57,5 @@ private:
     void drawFrameData(VkCommandBuffer commandBuffer, GUIResources::FrameResources &drawingResources);
     void createTexture();
     void createDescriptorResources();
-    bool createGraphicsPipeline();
+    bool createGraphicsPipeline(VkRenderPass renderPass);
 };

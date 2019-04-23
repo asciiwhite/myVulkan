@@ -44,7 +44,6 @@ protected:
     struct BaseFrameResources
     {
         VkCommandBuffer graphicsCommandBuffer;
-        VkCommandBuffer guiCommandBuffer;
         VkFence frameCompleteFence;
     };
 

@@ -22,7 +22,6 @@ GUI::~GUI()
         ImGui::DestroyContext();
 
     destroy(m_resources.sampler);
-    destroy(m_resources.renderPass);
     destroy(m_resources.pipelineLayout);
     destroy(m_resources.descriptorPool);
     destroy(m_resources.descriptorSetLayout);
@@ -31,7 +30,7 @@ GUI::~GUI()
     ShaderManager::Release(device(), m_resources.shader);
 }
 
-void GUI::setup(size_t resource_count, uint32_t width, uint32_t height, VkFormat colorAttachmentFormat, VkFormat swapChainDepthBufferFormat)
+void GUI::setup(size_t resource_count, uint32_t width, uint32_t height, VkRenderPass renderPass)
 {
     IMGUI_CHECKVERSION();
 
@@ -48,15 +47,9 @@ void GUI::setup(size_t resource_count, uint32_t width, uint32_t height, VkFormat
 
     m_resources.frameResources.resize(resource_count);
 
-    static const std::array<RenderPassAttachmentData, 2> attachmentData{ {
-        { colorAttachmentFormat, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR },
-        { swapChainDepthBufferFormat, VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL } } };
-
-    m_resources.renderPass = device().createRenderPass(attachmentData);
-
     createTexture();
     createDescriptorResources();
-    createGraphicsPipeline();
+    createGraphicsPipeline(renderPass);
 }
 
 void GUI::onResize(uint32_t width, uint32_t height)
@@ -108,28 +101,8 @@ void GUI::startFrame(const Statistics& stats, const MouseInputState& mouseState)
     ImGui::End();
 }
 
-void GUI::draw(uint32_t resource_index, VkCommandBuffer commandBuffer, VkFramebuffer framebuffer)
+void GUI::draw(uint32_t resource_index, VkCommandBuffer commandBuffer)
 {
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
-
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_resources.renderPass;
-    renderPassInfo.framebuffer = framebuffer;
-    renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = { static_cast<uint32_t>(ImGui::GetIO().DisplaySize.x), static_cast<uint32_t>(ImGui::GetIO().DisplaySize.y) };
-    renderPassInfo.clearValueCount = 0;
-    renderPassInfo.pClearValues = nullptr;
-
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    VkViewport viewport = { 0.0f, 0.0f, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y, 0.0f, 1.0f };
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
     m_resources.descriptorSet.bind(commandBuffer, m_resources.pipelineLayout, GUI_PARAMETER_SET_ID);
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_resources.pipeline);
@@ -223,7 +196,7 @@ void GUI::createDescriptorResources()
     m_resources.descriptorSet.allocateAndUpdate(device(), m_resources.descriptorSetLayout, m_resources.descriptorPool);
 }
 
-bool GUI::createGraphicsPipeline()
+bool GUI::createGraphicsPipeline(VkRenderPass renderPass)
 {
     const auto shaderDesc = ShaderResourceHandler::ShaderModulesDescription{
         { VK_SHADER_STAGE_VERTEX_BIT,  "data/shaders/gui.vert.spv" },
@@ -250,7 +223,7 @@ bool GUI::createGraphicsPipeline()
         { 2, vertexBindingDesc[0].binding, VK_FORMAT_R8G8B8A8_UNORM, offsetof(ImDrawVert, col) } };
 
     m_resources.pipeline = GraphicsPipeline::Acquire(device(),
-        m_resources.renderPass,
+        renderPass,
         m_resources.pipelineLayout,
         settings,
         m_resources.shader.shaderStageCreateInfos,

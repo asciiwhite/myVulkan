@@ -40,7 +40,6 @@ void SimpleRenderer::shutdown()
 void SimpleRenderer::render(const FrameData& frameData)
 {
     fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer, m_meshDrawFunc);
-    submitCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapChain.getImageAvailableSemaphore(), nullptr, nullptr);
 }
 
 void SimpleRenderer::createGUIContent()
