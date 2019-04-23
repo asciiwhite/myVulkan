@@ -16,7 +16,7 @@ layout(set = 1, binding = 0) uniform Material
 layout(location = 0) in vec3 positions;
 layout(location = 1) in vec3 normals;
 
-layout(location = 0) out vec3 color;
+layout(location = 0) out vec4 color;
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -25,5 +25,5 @@ out gl_PerVertex {
 void main()
 {
     gl_Position = camera.mvp * vec4(positions, 1.0);
-    color = material.ambient.rgb + material.diffuse.rgb * max(0.2, dot(normalize(vec3(0.5,1,0)), normals)) + material.emission.rgb;
+    color = material.ambient + material.diffuse * max(0.2, dot(normalize(vec3(0.5,1,0)), normals)) + material.emission;
 }
