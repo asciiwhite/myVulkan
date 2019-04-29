@@ -25,7 +25,7 @@ public:
     bool init(VkInstance instance, VkSurfaceKHR surface, bool enableValidationLayers);
     void destroy();
 
-    VkRenderPass createRenderPass(const std::array<RenderPassAttachmentData, 2>& attachmentData) const;
+    VkRenderPass createRenderPass(const std::vector<RenderPassAttachmentData>& attachmentData) const;
 
     VkFramebuffer createFramebuffer(VkRenderPass renderPass, const std::vector<VkImageView>& attachments, VkExtent2D extent) const;
 
