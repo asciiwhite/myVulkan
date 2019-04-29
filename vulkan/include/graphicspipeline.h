@@ -11,7 +11,8 @@ public:
     GraphicsPipelineSettings();
 
     GraphicsPipelineSettings& setPrimitiveTopology(VkPrimitiveTopology topology);
-    GraphicsPipelineSettings& setAlphaBlending(bool blend);
+    GraphicsPipelineSettings& setAlphaBlending( VkBlendOp colorBlendOp, VkBlendFactor srcColorBlendFactor, VkBlendFactor destColorBlendFactor,
+                                                VkBlendOp alphaBlendOp, VkBlendFactor srcAlphaBlendFactor, VkBlendFactor destAlphaBlendFactor);
     GraphicsPipelineSettings& setDepthTesting(bool depth);
     GraphicsPipelineSettings& setCullMode(VkCullModeFlags mode);
 

@@ -104,24 +104,16 @@ GraphicsPipelineSettings& GraphicsPipelineSettings::setPrimitiveTopology(VkPrimi
     return *this;
 }
 
-GraphicsPipelineSettings& GraphicsPipelineSettings::setAlphaBlending(bool blend)
+GraphicsPipelineSettings& GraphicsPipelineSettings::setAlphaBlending(VkBlendOp colorBlendOp, VkBlendFactor srcColorBlendFactor, VkBlendFactor destColorBlendFactor,
+                                                                     VkBlendOp alphaBlendOp, VkBlendFactor srcAlphaBlendFactor, VkBlendFactor destAlphaBlendFactor)
 {
-    if (blend)
-    {
-        colorBlendAttachment.blendEnable = VK_TRUE;
-        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    }
-    else
-    {
-        colorBlendAttachment.blendEnable = VK_FALSE;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-    }
+    colorBlendAttachment.blendEnable = VK_TRUE;
+    colorBlendAttachment.colorBlendOp = colorBlendOp;
+    colorBlendAttachment.srcColorBlendFactor = srcColorBlendFactor;
+    colorBlendAttachment.dstColorBlendFactor = destColorBlendFactor;
+    colorBlendAttachment.alphaBlendOp = alphaBlendOp;
+    colorBlendAttachment.srcAlphaBlendFactor = srcAlphaBlendFactor;
+    colorBlendAttachment.dstAlphaBlendFactor = destAlphaBlendFactor;
     return *this;
 }
 

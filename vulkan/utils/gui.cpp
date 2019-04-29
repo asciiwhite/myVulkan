@@ -214,7 +214,7 @@ bool GUI::createGraphicsPipeline(VkRenderPass renderPass)
     m_resources.pipelineLayout = device().createPipelineLayout({ m_resources.descriptorSetLayout }, { pushConstantRange });
 
     GraphicsPipelineSettings settings;
-    settings.setAlphaBlending(true).setDepthTesting(false);
+    settings.setDepthTesting(false).setAlphaBlending(VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ZERO);
 
     const std::vector<VkVertexInputBindingDescription> vertexBindingDesc{ {0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX } };
     const std::vector<VkVertexInputAttributeDescription> vertexAttributeDesc{

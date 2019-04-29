@@ -92,7 +92,10 @@ void Renderer::setupGraphicsPipeline()
     m_graphicsPipelineLayout = m_device.createPipelineLayout({ m_cameraDescriptorSetLayout });
 
     GraphicsPipelineSettings settings;
-    settings.setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST).setAlphaBlending(true).setDepthTesting(false);
+    settings.setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST).setDepthTesting(false);
+     settings.setAlphaBlending(
+            VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE);
 
     m_graphicsPipeline = GraphicsPipeline::Acquire(m_device,
         m_renderPass,
