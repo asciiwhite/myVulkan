@@ -36,7 +36,7 @@ public:
         const std::vector<VkVertexInputAttributeDescription>& attributeDesc,
         const std::vector<VkVertexInputBindingDescription>& bindingDesc) const;
 
-    VkSampler createSampler() const;
+    VkSampler createSampler(bool clampToEdge = false) const;
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const;
     void copyBufferToImage(VkBuffer buffer, VkImage image, VkExtent2D resolution) const;
