@@ -195,6 +195,7 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
         m_gui->onResize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
 
         updateMVPUniform();
+        postResize();
 
         return true;
     }

@@ -82,6 +82,7 @@ private:
 
     virtual bool setup() = 0;
     virtual void shutdown() = 0;
+    virtual bool postResize() { return true; };
 
     VkInstance m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
