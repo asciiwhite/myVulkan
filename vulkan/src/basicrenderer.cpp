@@ -39,7 +39,7 @@ bool BasicRenderer::init(GLFWwindow* window)
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
     );
 
-    m_swapChainDepthAttachment = DepthStencilAttachment(m_device, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_swapChainDepthBufferFormat);
+    m_swapChainDepthAttachment = DepthStencilAttachment(m_device, m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
 
     static const std::array<RenderPassAttachmentData, 2> defaultAttachmentData{ {
         { m_swapChain.getImageFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR },
@@ -189,7 +189,7 @@ bool BasicRenderer::resize(uint32_t /*width*/, uint32_t /*height*/)
     if (m_swapChain.create())
     {
         destroyFramebuffers();
-        m_swapChainDepthAttachment = DepthStencilAttachment(m_device, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_swapChainDepthBufferFormat);
+        m_swapChainDepthAttachment = DepthStencilAttachment(m_device, m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
         createSwapChainFramebuffers();
 
         m_gui->onResize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);

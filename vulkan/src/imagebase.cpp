@@ -29,13 +29,13 @@ namespace
         return (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
 
-    std::pair<VkImage, VkDeviceMemory> createImage(const Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage)
+    std::pair<VkImage, VkDeviceMemory> createImage(const Device& device, VkExtent2D resolution, VkFormat format, VkImageUsageFlags usage)
     {
         VkImageCreateInfo imageInfo = {};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.extent.width = width;
-        imageInfo.extent.height = height;
+        imageInfo.extent.width = resolution.width;
+        imageInfo.extent.height = resolution.height;
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 1;
@@ -91,29 +91,31 @@ namespace
     }
 }
 
-ImageBase::ImageBase(const Device& device, uint8_t* pixelData, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage)
+ImageBase::ImageBase(const Device& device, uint8_t* pixelData, VkExtent2D resolution, VkFormat format, VkImageUsageFlags usage)
     : DeviceRef(device)
     , m_format(format)
+    , m_resolution(resolution)
 {
     assert(format == VK_FORMAT_R8G8B8A8_UNORM);
 
-    std::tie(m_image, m_memory) = createImage(device, width, height, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    std::tie(m_image, m_memory) = createImage(device, resolution, format, usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
     setLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     
-    const uint64_t imageSize = width * height * 4;
+    const uint64_t imageSize = resolution.width * resolution.height * 4;
     StagingBuffer stagingBuffer(device, imageSize);
     stagingBuffer.assign(pixelData, imageSize);
 
-    device.copyBufferToImage(stagingBuffer, m_image, width, height);
+    device.copyBufferToImage(stagingBuffer, m_image, resolution);
     setLayout(getNewImageLayout(usage));
     m_imageView = createImageView(device, m_image, format);
 }
 
-ImageBase::ImageBase(const Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage)
+ImageBase::ImageBase(const Device& device, VkExtent2D resolution, VkFormat format, VkImageUsageFlags usage)
     : DeviceRef(device)
     , m_format(format)
+    , m_resolution(resolution)
 {
-    std::tie(m_image, m_memory) = createImage(device, width, height, format, usage);
+    std::tie(m_image, m_memory) = createImage(device, resolution, format, usage);
     setLayout(getNewImageLayout(usage));
     m_imageView = createImageView(device, m_image, format);
 }
@@ -135,7 +137,7 @@ bool ImageBase::operator==(const ImageBase& rhs) const
     return m_image == rhs.m_image;
 }
 
-bool ImageBase::hasTranspareny() const
+bool ImageBase::transpareny() const
 {
     return m_numChannels == 4;
 }
@@ -155,6 +157,16 @@ VkDeviceMemory ImageBase::memory() const
     return m_memory;
 }
 
+VkFormat ImageBase::format() const
+{
+    return m_format;
+}
+
+VkExtent2D ImageBase::resolution() const
+{
+    return m_resolution;
+}
+
 void ImageBase::swap(ImageBase& other)
 {
     DeviceRef::swap(other);
@@ -163,6 +175,7 @@ void ImageBase::swap(ImageBase& other)
     std::swap(m_memory, other.m_memory);
     std::swap(m_layout, other.m_layout);
     std::swap(m_format, other.m_format);
+    std::swap(m_resolution, other.m_resolution);    
     std::swap(m_numChannels, other.m_numChannels);
 }
 

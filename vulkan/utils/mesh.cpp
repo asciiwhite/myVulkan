@@ -166,7 +166,7 @@ bool Mesh::createPipelines(VkRenderPass renderPass)
     {
         desc.descriptorSet.allocateAndUpdate(device(), m_materialDescriptorSetLayout, m_materialDescriptorPool);
 
-        auto isTransparent = desc.diffuseTexture && desc.diffuseTexture.hasTranspareny();
+        auto isTransparent = desc.diffuseTexture && desc.diffuseTexture.transpareny();
 
         GraphicsPipelineSettings settings;
         settings.setCullMode(isTransparent ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT);

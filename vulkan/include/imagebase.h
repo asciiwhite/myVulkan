@@ -15,8 +15,11 @@ public:
     VkImage image() const;
     VkImageView imageView() const;
     VkDeviceMemory memory() const;
+    VkFormat format() const;
+    VkExtent2D resolution() const;
 
-    bool hasTranspareny() const;
+    //TODO: implement
+    bool transpareny() const;
 
     void setLayout(VkImageLayout layout);
 
@@ -25,8 +28,8 @@ public:
 
 protected:
     ImageBase() = default;
-    ImageBase(const Device& device, uint8_t* pixelData, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage);
-    ImageBase(const Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage);
+    ImageBase(const Device& device, uint8_t* pixelData, VkExtent2D resolution, VkFormat format, VkImageUsageFlags usage);
+    ImageBase(const Device& device, VkExtent2D resolution, VkFormat format, VkImageUsageFlags usage);
 
     void swap(ImageBase& other);
 
@@ -37,4 +40,5 @@ private:
     VkImageLayout m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkFormat m_format = VK_FORMAT_UNDEFINED;
     int m_numChannels = 0;
+    VkExtent2D m_resolution = { 0,0 };
 };

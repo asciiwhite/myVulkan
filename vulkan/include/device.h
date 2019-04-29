@@ -39,7 +39,7 @@ public:
     VkSampler createSampler() const;
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const;
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
+    void copyBufferToImage(VkBuffer buffer, VkImage image, VkExtent2D resolution) const;
 
     VkDescriptorSetLayout createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) const;
 

@@ -184,7 +184,7 @@ void GUI::createTexture()
     unsigned char* pixels = nullptr;
     ImGui::GetIO().Fonts->GetTexDataAsRGBA32( &pixels, &w, &h );
 
-    m_resources.image = Texture(device(), pixels, static_cast<uint32_t>(w), static_cast<uint32_t>(h), VK_FORMAT_R8G8B8A8_UNORM);
+    m_resources.image = Texture(device(), pixels, { static_cast<uint32_t>(w), static_cast<uint32_t>(h) }, VK_FORMAT_R8G8B8A8_UNORM);
     m_resources.sampler = device().createSampler(); // maybe use clamp to edge 
 }
 

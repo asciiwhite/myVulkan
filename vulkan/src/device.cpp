@@ -441,7 +441,7 @@ VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, Vk
     return VK_FORMAT_UNDEFINED;
 }
 
-void Device::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const
+void Device::copyBufferToImage(VkBuffer buffer, VkImage image, VkExtent2D resolution) const
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -454,7 +454,7 @@ void Device::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
     region.imageOffset = { 0, 0, 0 };
-    region.imageExtent = { width, height, 1 };
+    region.imageExtent = { resolution.width, resolution.height, 1 };
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 

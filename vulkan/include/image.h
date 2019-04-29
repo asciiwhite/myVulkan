@@ -36,14 +36,14 @@ public:
     Image() = default;
 
     template<typename = void>
-    Image(const Device& device, uint32_t width, uint32_t height, VkFormat format)
-        : ImageBase(device, width, height, format, VkImageUsageFlagBits(Usage))
+    Image(const Device& device, VkExtent2D resolution, VkFormat format)
+        : ImageBase(device, resolution, format, VkImageUsageFlagBits(Usage))
     {
     }
 
     template<typename = void>
-    Image(const Device& device, uint8_t *pixelData, uint32_t width, uint32_t height, VkFormat format)
-        : ImageBase(device, pixelData, width, height, format, VkImageUsageFlagBits(Usage))
+    Image(const Device& device, uint8_t *pixelData, VkExtent2D resolution, VkFormat format)
+        : ImageBase(device, pixelData, resolution, format, VkImageUsageFlagBits(Usage))
     {
     }
 
@@ -64,4 +64,5 @@ public:
 };
 
 using Texture = Image<ImageUsage::Texture, MemoryType::DeviceLocal>;
+using ColorAttachment = Image<ImageUsage::ColorAttachment | ImageUsage::Texture, MemoryType::DeviceLocal>;
 using DepthStencilAttachment= Image<ImageUsage::DepthStencilAttachment | ImageUsage::Texture, MemoryType::DeviceLocal>;

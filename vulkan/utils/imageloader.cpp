@@ -12,7 +12,7 @@ Texture ImageLoader::load(const Device& device, const std::string& filename)
         return Texture();
     }
 
-    Texture texture(device, pixels, texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM);
+    Texture texture(device, pixels, { static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight) }, VK_FORMAT_R8G8B8A8_UNORM);
 //    texture.numChannels = numChannels;
 
     return texture;
