@@ -406,10 +406,11 @@ VkDescriptorSetLayout Device::createDescriptorSetLayout(const std::vector<VkDesc
     return layout;
 }
 
-VkDescriptorPool Device::createDescriptorPool(uint32_t count, const std::vector<VkDescriptorPoolSize>& sizes) const
+VkDescriptorPool Device::createDescriptorPool(uint32_t count, const std::vector<VkDescriptorPoolSize>& sizes, bool allowIndividualFreeing) const
 {
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.flags = allowIndividualFreeing ? VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT : 0;
     poolInfo.poolSizeCount = static_cast<uint32_t>(sizes.size());
     poolInfo.pPoolSizes = sizes.data();
     poolInfo.maxSets = count;
