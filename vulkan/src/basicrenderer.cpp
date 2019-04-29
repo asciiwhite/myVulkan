@@ -247,26 +247,40 @@ void BasicRenderer::draw()
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
 }
 
+void BasicRenderer::beginCommandBuffer(VkCommandBuffer commandBuffer)
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+}
 
+void BasicRenderer::beginRenderPass(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D renderAreaExtent, bool clear = true)
+{
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass;
+    renderPassInfo.renderPass = renderPass;
     renderPassInfo.framebuffer = framebuffer;
     renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = m_swapChain.getImageExtent();
-    std::array<VkClearValue, 2> clearValues = {};
-    clearValues[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
-    clearValues[1].depthStencil = { 1.0f, 0 };
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
+    renderPassInfo.renderArea.extent = renderAreaExtent;
+    if (clear)
+    {
+        std::array<VkClearValue, 2> clearValues = {};
+        clearValues[0].color = m_clearColor;
+        clearValues[1].depthStencil = { 1.0f, 0 };
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+    }
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkViewport viewport = { 0.0f, 0.0f, static_cast<float>(renderAreaExtent.width), static_cast<float>(renderAreaExtent.height), 0.0f, 1.0f };
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+    VkRect2D scissor = { { 0, 0 }, renderAreaExtent };
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+}
 
 void BasicRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, const DrawFunc& drawFunc)
 {
@@ -308,6 +322,11 @@ void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::ve
 {
     m_cameraHandler.setCameraFromBoundingBox(min, max, lookDir);
     updateMVPUniform();
+}
+
+void BasicRenderer::setClearColor(VkClearColorValue clearColor)
+{
+    m_clearColor = clearColor;
 }
 
 void BasicRenderer::update()

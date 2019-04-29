@@ -34,9 +34,12 @@ public:
 
 protected:
     using DrawFunc = std::function<void(VkCommandBuffer)>;
+    void beginCommandBuffer(VkCommandBuffer commandBuffer);
+    void beginRenderPass(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D renderAreaExtent, bool clear);
     void fillCommandBuffer(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, const DrawFunc&);
     void submitCommandBuffer(VkCommandBuffer commandBuffer, const VkSemaphore* waitSemaphore, const VkSemaphore* signalSemaphore, VkFence* submitFence);
     void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir);
+    void setClearColor(VkClearColorValue clearColor);
     void updateMVPUniform();
     void waitForAllFrames() const;
     virtual void createGUIContent() {};
@@ -84,6 +87,7 @@ private:
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     DepthStencilAttachment m_swapChainDepthAttachment;
     VkFormat m_swapChainDepthBufferFormat = VK_FORMAT_UNDEFINED;
+    VkClearColorValue m_clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
 
 protected:
     std::unique_ptr<GUI> m_gui;
