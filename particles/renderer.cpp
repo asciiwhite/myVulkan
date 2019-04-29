@@ -98,7 +98,7 @@ void Renderer::setupGraphicsPipeline()
             VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE);
 
     m_graphicsPipeline = GraphicsPipeline::Acquire(m_device,
-        m_renderPass,
+        m_swapchainRenderPass,
         m_graphicsPipelineLayout,
         settings,
         m_shader.shaderStageCreateInfos,
@@ -251,7 +251,7 @@ void Renderer::render(const FrameData& frameData)
     VK_CHECK_RESULT(vkQueueSubmit(m_device.getComputeQueue(), 1, &computeSubmitInfo, nullptr));
 
     // graphics part
-    fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer, [&](auto commandBuffer) {  renderParticles(commandBuffer); });
+    fillCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapchainRenderPass, frameData.framebuffer, [&](auto commandBuffer) {  renderParticles(commandBuffer); });
 }
 
 void Renderer::createGUIContent()

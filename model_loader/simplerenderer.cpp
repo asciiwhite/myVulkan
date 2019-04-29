@@ -15,7 +15,7 @@ bool SimpleRenderer::setup()
         if (ObjFileLoader::read(meshFilename, meshDesc))
         {
             m_mesh.reset(new Mesh(m_device));
-            if (!m_mesh->init(meshDesc, m_cameraUniformBuffer, m_renderPass))
+            if (!m_mesh->init(meshDesc, m_cameraUniformBuffer, m_swapchainRenderPass))
                 m_mesh.reset();
             else
                 setCameraFromBoundingBox(meshDesc.boundingBox.min, meshDesc.boundingBox.max, glm::vec3(0, 1, 1));
@@ -39,7 +39,7 @@ void SimpleRenderer::shutdown()
 
 void SimpleRenderer::render(const FrameData& frameData)
 {
-    fillCommandBuffer(frameData.resources.graphicsCommandBuffer, frameData.framebuffer, m_meshDrawFunc);
+    fillCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapchainRenderPass, frameData.framebuffer, m_meshDrawFunc);
 }
 
 void SimpleRenderer::createGUIContent()

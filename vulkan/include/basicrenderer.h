@@ -34,7 +34,7 @@ public:
 
 protected:
     using DrawFunc = std::function<void(VkCommandBuffer)>;
-    void fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer, const DrawFunc&);
+    void fillCommandBuffer(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, const DrawFunc&);
     void submitCommandBuffer(VkCommandBuffer commandBuffer, const VkSemaphore* waitSemaphore, const VkSemaphore* signalSemaphore, VkFence* submitFence);
     void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir);
     void updateMVPUniform();
@@ -60,7 +60,7 @@ protected:
     
     Device m_device;
     SwapChain m_swapChain;
-    VkRenderPass m_renderPass;
+    VkRenderPass m_swapchainRenderPass;
     UniformBuffer m_cameraUniformBuffer;
     Statistics m_stats;
 

@@ -45,7 +45,7 @@ bool BasicRenderer::init(GLFWwindow* window)
         { m_swapChain.getImageFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR },
         { m_swapChainDepthBufferFormat, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL } } };
 
-    m_renderPass = m_device.createRenderPass(defaultAttachmentData);
+    m_swapchainRenderPass = m_device.createRenderPass(defaultAttachmentData);
     createSwapChainFramebuffers();
 
     m_cameraUniformBuffer = UniformBuffer(m_device, sizeof(glm::mat4));
@@ -55,7 +55,7 @@ bool BasicRenderer::init(GLFWwindow* window)
     createFrameResources(frameResourceCount);
 
     m_gui = std::unique_ptr<GUI>(new GUI(m_device));
-    m_gui->setup(frameResourceCount, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_renderPass);
+    m_gui->setup(frameResourceCount, m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height, m_swapchainRenderPass);
 
     return setup();
 }
@@ -148,7 +148,7 @@ bool BasicRenderer::createSwapChainFramebuffers()
     for (size_t i = 0; i < m_framebuffers.size(); i++)
     {
         m_framebuffers[i] = m_device.createFramebuffer(
-            m_renderPass,
+            m_swapchainRenderPass,
             { m_swapChain.getImageView(static_cast<uint32_t>(i)), m_swapChainDepthAttachment.imageView() },
             m_swapChain.getImageExtent());
     }
@@ -165,7 +165,7 @@ void BasicRenderer::destroy()
 
     m_cameraUniformBuffer = UniformBuffer();
     m_swapChainDepthAttachment = DepthStencilAttachment();
-    m_device.destroy(m_renderPass);
+    m_device.destroy(m_swapchainRenderPass);
     destroyFramebuffers();
     destroyFrameResources();
     m_swapChain.destroy();
@@ -247,7 +247,6 @@ void BasicRenderer::draw()
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
 }
 
-void BasicRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer, const DrawFunc& drawFunc)
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -268,6 +267,11 @@ void BasicRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkFramebuff
     renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+void BasicRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, const DrawFunc& drawFunc)
+{
+    beginCommandBuffer(commandBuffer);
+    beginRenderPass(commandBuffer, renderPass, framebuffer, m_swapChain.getImageExtent());
 
     VkViewport viewport = { 0.0f, 0.0f, static_cast<float>(m_swapChain.getImageExtent().width), static_cast<float>(m_swapChain.getImageExtent().height), 0.0f, 1.0f };
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
