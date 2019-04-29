@@ -75,6 +75,7 @@ VkShaderModule ShaderResourceHandler::CreateShaderModule(const Device& device, c
     createInfo.codeSize = buffer.size();
     createInfo.pCode = reinterpret_cast<const uint32_t*>(buffer.data());
 
+    // TODO: shader modules can be destroyed after pipeline was created with according VkPipelineShaderStageCreateInfo
     VkShaderModule shaderModule = VK_NULL_HANDLE;
     VK_CHECK_RESULT(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule));
 
