@@ -26,8 +26,10 @@ GUI::~GUI()
     destroy(m_resources.descriptorPool);
     destroy(m_resources.descriptorSetLayout);
 
-    GraphicsPipeline::Release(device(), m_resources.pipeline);
-    ShaderManager::Release(device(), m_resources.shader);
+    if (m_resources.pipeline)
+        GraphicsPipeline::Release(device(), m_resources.pipeline);
+    if (m_resources.shader)
+        ShaderManager::Release(device(), m_resources.shader);
 }
 
 void GUI::setup(size_t resource_count, uint32_t width, uint32_t height, VkRenderPass renderPass)
