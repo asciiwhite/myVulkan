@@ -29,6 +29,8 @@ public:
     void bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t setId) const;
     static void bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t firstSet, const std::vector<VkDescriptorSet>& descriptorSets);
 
+    bool isValid() const;
+
     operator VkDescriptorSet() const { return m_descriptorSet; }
 
 private:
@@ -37,4 +39,6 @@ private:
 
     std::list<std::vector<VkDescriptorImageInfo>> m_imageInfos;
     std::vector<VkDescriptorBufferInfo> m_bufferInfos;
+
+    bool m_isValid = false;
 };

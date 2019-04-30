@@ -132,6 +132,7 @@ void DescriptorSet::update(VkDevice device)
     m_imageInfos.clear();
     m_bufferInfos.clear();
     m_descriptorWrites.clear();
+    m_isValid = true;
 }
 
 void DescriptorSet::allocateAndUpdate(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool)
@@ -156,4 +157,10 @@ void DescriptorSet::free(VkDevice device, VkDescriptorPool pool)
     assert(m_descriptorSet != VK_NULL_HANDLE);
     vkFreeDescriptorSets(device, pool, 1, &m_descriptorSet);
     m_descriptorSet = VK_NULL_HANDLE;
+    m_isValid = false;
+}
+
+bool DescriptorSet::isValid() const
+{
+    return m_isValid;
 }
