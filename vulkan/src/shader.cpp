@@ -27,6 +27,8 @@ void ShaderResourceHandler::DestroyResource(const Device& device, Shader& shader
         vkDestroyShaderModule(device, shaderModule, nullptr);
         shaderModule = VK_NULL_HANDLE;
     }
+    shader.shaderModules.clear();
+    shader.shaderStageCreateInfos.clear();
 }
 
 Shader ShaderResourceHandler::CreateFromFiles(const Device& device, const ShaderModulesDescription& modules)
@@ -37,7 +39,10 @@ Shader ShaderResourceHandler::CreateFromFiles(const Device& device, const Shader
     {
         auto shaderModule = CreateShaderModule(device, moduleDesc.filename);
         if (shaderModule == VK_NULL_HANDLE)
+        {
+            DestroyResource(device, shader);
             return shader;
+        }
 
         shader.shaderModules.push_back(shaderModule);
 

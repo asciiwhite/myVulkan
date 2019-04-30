@@ -48,27 +48,39 @@ bool Renderer::setup()
 
     m_bloomParameterUB = UniformBuffer(m_device, &m_bloomParameter);
 
-    createPlitPasses();
+    if (!createPlitPasses())
+        return false;
+
     setupBlitPipelines();
 
     return true;
 }
 
-void Renderer::createPlitPasses()
+bool Renderer::createPlitPasses()
 { 
-    createBlitPass(m_blitPasses[eBlitTechnique::COPY],           m_blitRenderPass,      "data/shaders/passthrough.frag.spv");
-    createBlitPass(m_blitPasses[eBlitTechnique::COPY_SWAPCHAIN], m_swapchainRenderPass, "data/shaders/passthrough.frag.spv");
-    createBlitPass(m_blitPasses[eBlitTechnique::BOX_4x4],        m_blitRenderPass,      "data/shaders/box_filter_4x4.frag.spv");
+    if (!createBlitPass(m_blitPasses[eBlitTechnique::COPY], m_blitRenderPass, "data/shaders/passthrough.frag.spv"))
+        return false;
 
-    createBlitPass(m_blitPasses[eBlitTechnique::BOX_3x3],        m_blitRenderPass,       "data/shaders/box_filter_3x3.frag.spv", 
-        { { 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } });
+    if (!createBlitPass(m_blitPasses[eBlitTechnique::COPY_SWAPCHAIN], m_swapchainRenderPass, "data/shaders/passthrough.frag.spv"))
+        return false;
 
-    createBlitPass(m_blitPasses[eBlitTechnique::BOX_3x3_ADD],   m_swapchainRenderPass,  "data/shaders/box_filter_3x3_add.frag.spv",
+    if (!createBlitPass(m_blitPasses[eBlitTechnique::BOX_4x4],        m_blitRenderPass,      "data/shaders/box_filter_4x4.frag.spv"))
+        return false;
+
+    if (!createBlitPass(m_blitPasses[eBlitTechnique::BOX_3x3],        m_blitRenderPass,       "data/shaders/box_filter_3x3.frag.spv",
+        { { 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } }))
+        return false;
+
+    if (!createBlitPass(m_blitPasses[eBlitTechnique::BOX_3x3_ADD],   m_swapchainRenderPass,  "data/shaders/box_filter_3x3_add.frag.spv",
         { { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT }, 
-        {   2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } }, true);
+        {   2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } }, true))
+        return false;
 
-    createBlitPass(m_blitPasses[eBlitTechnique::PREFILTER],     m_blitRenderPass,       "data/shaders/prefilter.frag.spv",
-        { { 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } });
+    if (!createBlitPass(m_blitPasses[eBlitTechnique::PREFILTER],     m_blitRenderPass,       "data/shaders/prefilter.frag.spv",
+        { { 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } }))
+        return false;
+
+    return true;
 }
 
 bool Renderer::createBlitPass(BlitPass& pass, VkRenderPass renderPass, const char* fragmentShaderFilename, const std::vector<VkDescriptorSetLayoutBinding>& additionalBindings, bool alphaBlend)
@@ -108,8 +120,10 @@ void Renderer::destroyPlitPasses()
     {
         m_device.destroy(pass.pipelineLayout);
         m_device.destroy(pass.descriptorSetLayout);
-        GraphicsPipeline::Release(m_device, pass.pipeline);
-        ShaderManager::Release(m_device, pass.shader);
+        if (pass.pipeline)
+            GraphicsPipeline::Release(m_device, pass.pipeline);
+        if (pass.shader)
+            ShaderManager::Release(m_device, pass.shader);
     }
 }
 

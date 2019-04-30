@@ -59,7 +59,7 @@ private:
         float intensity = 1.5f;
     };
 
-    void createPlitPasses();
+    bool createPlitPasses();
     void destroyPlitPasses();
     void setupBlitPipelines();
     void destroyBlitPipelines();
