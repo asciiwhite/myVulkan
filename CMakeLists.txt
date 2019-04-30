@@ -32,6 +32,7 @@ enable_testing()
 add_subdirectory(vulkan)
 add_subdirectory(model_loader)
 add_subdirectory(particles)
+add_subdirectory(bloom)
 
 install(
   DIRECTORY ${RESOURCE_DST_DIR}

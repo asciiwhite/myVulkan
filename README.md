@@ -8,3 +8,4 @@
 
 ![Particles](doc/particles.png)
 ![Mesh Loader](doc/mesh_loader.png)
+![Bloom](doc/bloom.png)
