@@ -55,6 +55,19 @@ public:
     {
     }
 
+    Buffer(const Device& device, uint64_t size, void* data)
+        : BufferBase(device, size, VkBufferUsageFlagBits(Usage), VkMemoryPropertyFlags(Memory))
+    {
+        assign(data, size);
+    }
+
+    template<typename T>
+    Buffer(const Device& device, T* data)
+        : BufferBase(device, sizeof(data), VkBufferUsageFlagBits(Usage), VkMemoryPropertyFlags(Memory))
+    {
+        assign(data, size());
+    }
+
     template<BufferUsage U, MemoryType M>
     Buffer(Buffer<U, M>&& other)
     {
