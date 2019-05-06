@@ -44,7 +44,7 @@ before_install:
 install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libxinerama-dev libxcursor-dev libxi-dev libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev lcov
-  - VULKAN_VERSION=1.1.73.0
+  - VULKAN_VERSION=1.1.106.0
   - VULKAN_SDK_FILE=vulkansdk-linux-x86_64-$VULKAN_VERSION.run
   - wget -O $VULKAN_SDK_FILE https://sdk.lunarg.com/sdk/download/$VULKAN_VERSION/linux/$VULKAN_SDK_FILE
   - chmod ugo+x $VULKAN_SDK_FILE
