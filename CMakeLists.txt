@@ -30,9 +30,7 @@ endif()
 enable_testing()
 
 add_subdirectory(vulkan)
-add_subdirectory(model_loader)
-add_subdirectory(particles)
-add_subdirectory(bloom)
+add_subdirectory(examples)
 
 install(
   DIRECTORY ${RESOURCE_DST_DIR}

@@ -1,0 +1,3 @@
+add_subdirectory(model_loader)
+add_subdirectory(particles)
+add_subdirectory(bloom)
