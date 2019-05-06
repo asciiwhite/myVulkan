@@ -13,7 +13,7 @@ add_executable(particles
 )
 
 set_target_properties(particles PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-
+set_property(TARGET particles PROPERTY FOLDER "examples")
 #add_coverage(particles)
 
 target_link_libraries(particles

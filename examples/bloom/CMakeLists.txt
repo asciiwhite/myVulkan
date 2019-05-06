@@ -13,7 +13,7 @@ add_executable(bloom
 )
 
 set_target_properties(bloom PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-
+set_property(TARGET bloom PROPERTY FOLDER "examples")
 #add_coverage(particles)
 
 target_link_libraries(bloom
