@@ -137,9 +137,14 @@ bool ImageBase::operator==(const ImageBase& rhs) const
     return m_image == rhs.m_image;
 }
 
+void ImageBase::setTranspareny(bool hasTransparency)
+{
+    m_hasTransparency = hasTransparency;
+}
+
 bool ImageBase::transpareny() const
 {
-    return m_numChannels == 4;
+    return m_hasTransparency;
 }
 
 VkImageView ImageBase::imageView() const
@@ -176,7 +181,7 @@ void ImageBase::swap(ImageBase& other)
     std::swap(m_layout, other.m_layout);
     std::swap(m_format, other.m_format);
     std::swap(m_resolution, other.m_resolution);    
-    std::swap(m_numChannels, other.m_numChannels);
+    std::swap(m_hasTransparency, other.m_hasTransparency);
 }
 
 void ImageBase::setLayout(VkImageLayout newLayout)

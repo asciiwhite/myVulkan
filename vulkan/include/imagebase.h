@@ -18,8 +18,8 @@ public:
     VkFormat format() const;
     VkExtent2D resolution() const;
 
-    //TODO: implement
     bool transpareny() const;
+    void setTranspareny(bool);
 
     void setLayout(VkImageLayout layout);
 
@@ -39,6 +39,6 @@ private:
     VkDeviceMemory m_memory = VK_NULL_HANDLE;
     VkImageLayout m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkFormat m_format = VK_FORMAT_UNDEFINED;
-    int m_numChannels = 0;
+    bool m_hasTransparency = false;
     VkExtent2D m_resolution = { 0,0 };
 };

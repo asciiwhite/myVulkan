@@ -13,7 +13,6 @@ Texture ImageLoader::load(const Device& device, const std::string& filename)
     }
 
     Texture texture(device, pixels, { static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight) }, VK_FORMAT_R8G8B8A8_UNORM);
-//    texture.numChannels = numChannels;
-
+    texture.setTranspareny(numChannels == 4);
     return texture;
 }
