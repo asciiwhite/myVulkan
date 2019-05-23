@@ -14,6 +14,7 @@ void CameraInputHandler::setCameraFromBoundingBox(const glm::vec3& min, const gl
     const auto size = max - min;
     const auto center = (min + max) / 2.f;
     m_sceneBoundingBoxDiameter = std::max(std::max(size.x, size.y), size.z);
+    m_farPlane = 20.f * m_sceneBoundingBoxDiameter;
     const auto cameraDistance = m_sceneBoundingBoxDiameter * 1.5f;
 
     m_cameraPosition = glm::vec3(cameraDistance) * glm::normalize(lookDir) - center;
@@ -27,7 +28,7 @@ glm::mat4 CameraInputHandler::mvp(float aspectRatio) const
     const auto lookVec = m_observerCameraMode ? m_cameraTarget : m_cameraPosition + m_cameraLook;
 
     const glm::mat4 view = glm::lookAt(m_cameraPosition, lookVec, m_cameraUp);
-    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspectRatio, 0.01f, 20.f * m_sceneBoundingBoxDiameter);
+    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspectRatio, m_nearPlane, m_farPlane);
     const glm::mat4 mvp = projection * view;
 
     return mvp;

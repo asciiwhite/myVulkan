@@ -14,6 +14,9 @@ public:
 
     glm::mat4x4 mvp(float aspectRatio) const;
     
+    const float m_nearPlane = 0.01f;
+    float m_farPlane = 1.f;
+
 private:
     glm::vec3 m_cameraPosition = glm::vec3(0.0);
     glm::vec3 m_cameraTarget = glm::vec3(0.0);
