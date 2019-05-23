@@ -220,56 +220,63 @@ void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
     endSingleTimeCommands(commandBuffer);
 }
 
+bool isDepthAttachment(VkFormat format)
 {
-    assert(!attachmentData.empty());
+    return format == VK_FORMAT_D32_SFLOAT || format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
 
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = attachmentData[0].format;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = attachmentData[0].loadOp;
-    colorAttachment.storeOp = attachmentData[0].storeOp;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = attachmentData[0].initialLayout;
-    colorAttachment.finalLayout = attachmentData[0].finalLayout;
- 
-    VkAttachmentReference colorAttachmentRef = {};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 VkRenderPass Device::createRenderPass(const std::vector<RenderPassAttachmentDescription>& attachmentDescriptions) const
+{
+    assert(!attachmentDescriptions.empty());
+
+    std::vector<VkAttachmentDescription> attachments;
+    attachments.resize(attachmentDescriptions.size());
+
+    std::vector<VkAttachmentReference> attachmentRefs;
+    attachmentRefs.resize(attachmentDescriptions.size()); // depth attachment is last one
 
     VkSubpassDescription subpass = {};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.inputAttachmentCount = 0;
     subpass.pInputAttachments = nullptr;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.preserveAttachmentCount = 0;
+    subpass.pPreserveAttachments = nullptr;
+    subpass.pResolveAttachments = nullptr;
 
-    std::vector<VkAttachmentDescription> attachments = { colorAttachment };
-
-    if (attachmentData.size() > 1)
+    int attachmentCount = 0;
+    for (const auto& attachmentData : attachmentDescriptions)
     {
-        VkAttachmentDescription depthAttachment = {};
-        depthAttachment.format = attachmentData[1].format;
-        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = attachmentData[1].loadOp;
-        depthAttachment.storeOp = attachmentData[1].storeOp;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.initialLayout = attachmentData[1].initialLayout;
-        depthAttachment.finalLayout = attachmentData[1].finalLayout;
+        VkAttachmentDescription& attachment = attachments[attachmentCount];
+        attachment.format = attachmentData.format;
+        attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        attachment.loadOp = attachmentData.loadOp;
+        attachment.storeOp = attachmentData.storeOp;
+        attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachment.initialLayout = attachmentData.initialLayout;
+        attachment.finalLayout = attachmentData.finalLayout;
 
-        VkAttachmentReference depthAttachmentRef = {};
-        depthAttachmentRef.attachment = 1;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        if (isDepthAttachment(attachmentData.format))
+        {
+            assert(subpass.pDepthStencilAttachment == nullptr);
+            VkAttachmentReference& attachmentRef = attachmentRefs.back();
+            attachmentRef.attachment = attachmentCount;
+            attachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            subpass.pDepthStencilAttachment = &attachmentRef;
+        }
+        else
+        {
+            VkAttachmentReference& attachmentRef = attachmentRefs[subpass.colorAttachmentCount];
+            attachmentRef.attachment = attachmentCount;
+            attachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            subpass.colorAttachmentCount++;
+        }
 
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
-        subpass.preserveAttachmentCount = 0;
-        subpass.pResolveAttachments = nullptr;
-        subpass.pPreserveAttachments = nullptr;
-        
-        attachments.push_back(depthAttachment);
+        attachmentCount++;
     }
+
+    if (subpass.colorAttachmentCount)
+        subpass.pColorAttachments = attachmentRefs.data();
 
     // Subpass dependencies for layout transitions
     std::array<VkSubpassDependency, 2> dependencies;
