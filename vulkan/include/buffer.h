@@ -63,7 +63,7 @@ public:
 
     template<typename T>
     Buffer(const Device& device, T* data)
-        : BufferBase(device, sizeof(data), VkBufferUsageFlagBits(Usage), VkMemoryPropertyFlags(Memory))
+        : BufferBase(device, sizeof(T), VkBufferUsageFlagBits(Usage), VkMemoryPropertyFlags(Memory))
     {
         assign(data, size());
     }
