@@ -35,12 +35,12 @@ bool Renderer::setup()
     setupCameraDescriptorSet();
     setClearColor({ 0.0f, 0.0f, 0.0f, 0.0f });
 
-    const std::vector<RenderPassAttachmentData> sceneAttachmentData{ {
+    const std::vector<RenderPassAttachmentDescription> sceneAttachmentData{ {
         { VK_FORMAT_B8G8R8A8_UNORM, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
         { VK_FORMAT_D32_SFLOAT, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL } } };
     m_sceneRenderPass = m_device.createRenderPass(sceneAttachmentData);
 
-    const std::vector<RenderPassAttachmentData> blitAttachmentData{ {
+    const std::vector<RenderPassAttachmentDescription> blitAttachmentData{ {
         { VK_FORMAT_B8G8R8A8_UNORM, VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } } };
     m_blitRenderPass = m_device.createRenderPass(blitAttachmentData);
 

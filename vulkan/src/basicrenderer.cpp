@@ -42,7 +42,7 @@ bool BasicRenderer::init(GLFWwindow* window)
 
     m_swapChainDepthAttachment = DepthStencilAttachment(m_device, m_swapChain.getImageExtent(), m_swapChainDepthBufferFormat);
 
-    static const std::vector<RenderPassAttachmentData> defaultAttachmentData{ {
+    static const std::vector<RenderPassAttachmentDescription> defaultAttachmentData{ {
         { m_swapChain.getImageFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR },
         { m_swapChainDepthBufferFormat, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL } } };
 

@@ -10,7 +10,7 @@
 struct GraphicsPipelineSettings;
 class VertexBuffer;
 
-struct RenderPassAttachmentData
+struct RenderPassAttachmentDescription
 {
     VkFormat            format;
     VkAttachmentLoadOp  loadOp;
@@ -25,7 +25,7 @@ public:
     bool init(VkInstance instance, VkSurfaceKHR surface, bool enableValidationLayers);
     void destroy();
 
-    VkRenderPass createRenderPass(const std::vector<RenderPassAttachmentData>& attachmentData) const;
+    VkRenderPass createRenderPass(const std::vector<RenderPassAttachmentDescription>& attachmentDescriptions) const;
 
     VkFramebuffer createFramebuffer(VkRenderPass renderPass, const std::vector<VkImageView>& attachments, VkExtent2D extent) const;
 

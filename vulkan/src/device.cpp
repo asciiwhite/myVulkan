@@ -220,7 +220,6 @@ void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
     endSingleTimeCommands(commandBuffer);
 }
 
-VkRenderPass Device::createRenderPass(const std::vector<RenderPassAttachmentData>& attachmentData) const
 {
     assert(!attachmentData.empty());
 
@@ -237,6 +236,7 @@ VkRenderPass Device::createRenderPass(const std::vector<RenderPassAttachmentData
     VkAttachmentReference colorAttachmentRef = {};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+VkRenderPass Device::createRenderPass(const std::vector<RenderPassAttachmentDescription>& attachmentDescriptions) const
 
     VkSubpassDescription subpass = {};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
