@@ -1,3 +1,4 @@
 add_subdirectory(model_loader)
 add_subdirectory(particles)
 add_subdirectory(bloom)
+add_subdirectory(depth_of_field)
