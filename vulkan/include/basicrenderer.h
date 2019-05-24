@@ -4,6 +4,7 @@
 #include "device.h"
 #include "image.h"
 #include "buffer.h"
+#include "imagepool.h"
 
 #include "../utils/camerainputhandler.h"
 #include "../utils/statistics.h"
@@ -66,6 +67,7 @@ protected:
     VkRenderPass m_swapchainRenderPass;
     UniformBuffer m_cameraUniformBuffer;
     Statistics m_stats;
+    ImagePool m_imagePool;
 
 private:
     std::vector<BaseFrameResources> m_frameResources;

@@ -3,10 +3,10 @@
 
 #include <algorithm>
 
-ImagePool::Images ImagePool::m_images;
-
 void ImagePool::clear()
 {
+    for (auto image : m_images)
+        delete image;
     m_images.clear();
 }
 

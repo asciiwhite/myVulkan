@@ -6,7 +6,6 @@
 #include "descriptorset.h"
 #include "graphicspipeline.h"
 #include "mesh.h"
-#include "imagepool.h" 
 
 class Renderer : public BasicRenderer
 {
@@ -90,4 +89,6 @@ private:
     bool m_showCoC = false;
     UniformBuffer m_doFParameterUB;
     DofParameter m_doFParameter;
+
+    ImagePool m_imagePool;
 };

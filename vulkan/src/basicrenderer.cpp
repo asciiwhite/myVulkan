@@ -1,6 +1,5 @@
 #include "basicrenderer.h"
 #include "vulkanhelper.h"
-#include "imagepool.h"
 #include "debug.h"
 #include "imgui.h"
 
@@ -170,8 +169,7 @@ void BasicRenderer::destroy()
     destroyFramebuffers();
     destroyFrameResources();
     m_swapChain.destroy();
-    ImagePool::clear();
-
+    m_imagePool.clear();
     shutdown();
 
     m_device.destroy();

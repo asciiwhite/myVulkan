@@ -4,7 +4,6 @@
 #include "barrier.h"
 #include "imgui.h"
 #include "objfileloader.h"
-#include "imagepool.h" 
 
 const uint32_t SET_ID_CAMERA = 0;
 const uint32_t BINDING_ID_CAMERA = 0;
@@ -243,8 +242,8 @@ void Renderer::render(const FrameData& frameData)
     const VkCommandBuffer commandBuffer = frameData.resources.graphicsCommandBuffer;
     VkExtent2D res = m_swapChain.getImageExtent();
     
-    auto sceneColor = ImagePool::Aquire<ColorAttachment>(m_device, res, VK_FORMAT_B8G8R8A8_UNORM);
-    auto sceneDepth = ImagePool::Aquire<DepthStencilAttachment>(m_device, res, VK_FORMAT_D32_SFLOAT);
+    auto sceneColor = m_imagePool.aquire<ColorAttachment>(m_device, res, VK_FORMAT_B8G8R8A8_UNORM);
+    auto sceneDepth = m_imagePool.aquire<DepthStencilAttachment>(m_device, res, VK_FORMAT_D32_SFLOAT);
     if (!m_sceneFrameBuffer)
         m_sceneFrameBuffer = m_device.createFramebuffer(m_sceneRenderPass, { sceneColor->imageView(), sceneDepth->imageView() }, res);
 
@@ -252,7 +251,7 @@ void Renderer::render(const FrameData& frameData)
     beginRenderPass(commandBuffer, m_sceneRenderPass, m_sceneFrameBuffer, res, true);
     m_mesh->render(commandBuffer);
     vkCmdEndRenderPass(commandBuffer);
-    ImagePool::Release(std::move(sceneDepth));
+    m_imagePool.release(std::move(sceneDepth));
 
     ImagePool::ImageHandle<ColorAttachment> srcImage;
     ImagePool::ImageHandle<ColorAttachment> dstImage;
@@ -261,7 +260,7 @@ void Renderer::render(const FrameData& frameData)
     {
         auto& firstPassDescr = m_blitPassDescriptions[0];
         res = firstPassDescr.frameBufferExtent;
-        dstImage = ImagePool::Aquire<ColorAttachment>(m_device, res, VK_FORMAT_B8G8R8A8_UNORM);
+        dstImage = m_imagePool.aquire<ColorAttachment>(m_device, res, VK_FORMAT_B8G8R8A8_UNORM);
         if (!firstPassDescr.frameBuffer)
             firstPassDescr.frameBuffer = m_device.createFramebuffer(m_blitRenderPass, { dstImage->imageView() }, res);
 
@@ -276,7 +275,7 @@ void Renderer::render(const FrameData& frameData)
             auto& passDescr = m_blitPassDescriptions[i];
             res = passDescr.frameBufferExtent;
 
-            dstImage = ImagePool::Aquire<ColorAttachment>(m_device, res, VK_FORMAT_B8G8R8A8_UNORM);
+            dstImage = m_imagePool.aquire<ColorAttachment>(m_device, res, VK_FORMAT_B8G8R8A8_UNORM);
             if (!passDescr.frameBuffer)
                 passDescr.frameBuffer = m_device.createFramebuffer(m_blitRenderPass, { dstImage->imageView() }, res);
 
@@ -284,7 +283,6 @@ void Renderer::render(const FrameData& frameData)
             blitAttachment(commandBuffer, { srcImage->imageView() }, passDescr);
             vkCmdEndRenderPass(commandBuffer);
 
-            ImagePool::Release(std::move(srcImage));
             srcImage = std::move(dstImage);
         }
     }
@@ -306,10 +304,6 @@ void Renderer::render(const FrameData& frameData)
             blitAttachment(commandBuffer, { sceneColor->imageView() }, passDescr);
         }
     }
-
-    if (m_enableBloom)
-        ImagePool::Release(std::move(srcImage));
-    ImagePool::Release(std::move(sceneColor));
 
     // this is done in base class
     //vkCmdEndRenderPass(commandBuffer);

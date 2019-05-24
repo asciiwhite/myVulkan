@@ -81,6 +81,4 @@ private:
     const int m_maxDownsampleLoops = 6;
     UniformBuffer m_bloomParameterUB;
     BloomParameter m_bloomParameter;
-
-
 };

@@ -4,7 +4,6 @@
 #include "barrier.h"
 #include "imgui.h"
 #include "objfileloader.h"
-#include "imagepool.h" 
 
 const uint32_t SET_ID_CAMERA = 0;
 const uint32_t BINDING_ID_CAMERA = 0;
@@ -168,6 +167,7 @@ void Renderer::recreateDoFPipeline()
 
     destroyBlitPipelines();
     setupBlitPipelines();
+    m_imagePool.clear();
 
     m_device.destroy(m_sceneFrameBuffer);
     m_sceneFrameBuffer = VK_NULL_HANDLE;
@@ -247,14 +247,6 @@ void Renderer::render(const FrameData& frameData)
     beginRenderPass(commandBuffer, m_swapchainRenderPass, frameData.framebuffer, fullRes, true);
     blitAttachment(commandBuffer, { m_showCoC ? cocImage->imageView() : m_enableDoF ? combinedDoFCImage->imageView() : sceneColor->imageView() }, m_blitPassDescriptions[passId++]);
 
-    // cleanup
-    ImagePool::Release(std::move(sceneColor));
-    ImagePool::Release(std::move(sceneDepth));
-    ImagePool::Release(std::move(cocImage));
-    ImagePool::Release(std::move(combinedCoCImage));
-    ImagePool::Release(std::move(combinedDoFCImage));
-    ImagePool::Release(std::move(bokehImage));
-    ImagePool::Release(std::move(filteredBokehImage));
 
     // this is done in base class
     //vkCmdEndRenderPass(commandBuffer);
@@ -263,8 +255,8 @@ void Renderer::render(const FrameData& frameData)
 
 std::pair<Renderer::ColorImageHandle, Renderer::DepthImageHandle> Renderer::renderScenePass(VkCommandBuffer commandBuffer, VkExtent2D extend)
 {
-    auto sceneColor = ImagePool::Aquire<ColorAttachment>(m_device, extend, VK_FORMAT_B8G8R8A8_UNORM);
-    auto sceneDepth = ImagePool::Aquire<DepthStencilAttachment>(m_device, extend, VK_FORMAT_D32_SFLOAT);
+    auto sceneColor = m_imagePool.aquire<ColorAttachment>(m_device, extend, VK_FORMAT_B8G8R8A8_UNORM);
+    auto sceneDepth = m_imagePool.aquire<DepthStencilAttachment>(m_device, extend, VK_FORMAT_D32_SFLOAT);
     if (!m_sceneFrameBuffer)
         m_sceneFrameBuffer = m_device.createFramebuffer(m_sceneRenderPass, { sceneColor->imageView(), sceneDepth->imageView() }, extend);
     beginCommandBuffer(commandBuffer);
@@ -277,7 +269,7 @@ std::pair<Renderer::ColorImageHandle, Renderer::DepthImageHandle> Renderer::rend
 
 Renderer::ColorImageHandle Renderer::renderBlitPass(VkCommandBuffer commandBuffer, BlitPassDescription& passDescr, const std::vector<VkImageView>& attachments)
 {
-    auto destImage = ImagePool::Aquire<ColorAttachment>(m_device, passDescr.frameBufferExtent, passDescr.frameBufferFormat);
+    auto destImage = m_imagePool.aquire<ColorAttachment>(m_device, passDescr.frameBufferExtent, passDescr.frameBufferFormat);
     if (!passDescr.frameBuffer)
         passDescr.frameBuffer = m_device.createFramebuffer(passDescr.blitPass->renderPass, { destImage->imageView() }, passDescr.frameBufferExtent);
     beginRenderPass(commandBuffer, passDescr.blitPass->renderPass, passDescr.frameBuffer, passDescr.frameBufferExtent, false);
