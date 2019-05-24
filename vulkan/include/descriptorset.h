@@ -30,6 +30,7 @@ public:
     static void bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t firstSet, const std::vector<VkDescriptorSet>& descriptorSets);
 
     bool isValid() const;
+    void invalidate();
 
     operator VkDescriptorSet() const { return m_descriptorSet; }
 

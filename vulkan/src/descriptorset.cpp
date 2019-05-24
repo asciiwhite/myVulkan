@@ -164,3 +164,8 @@ bool DescriptorSet::isValid() const
 {
     return m_isValid;
 }
+
+void DescriptorSet::invalidate()
+{
+    m_isValid = false;
+}

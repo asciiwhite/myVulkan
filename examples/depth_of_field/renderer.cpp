@@ -44,7 +44,7 @@ bool Renderer::setup()
     m_colorBlitRenderPass = m_device.createRenderPass(colorBlitAttachmentData);
 
     const std::vector<RenderPassAttachmentDescription> cocBlitAttachmentData{ {
-        { m_cocBufferFormat, VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } } };
+        { VK_FORMAT_R16_SFLOAT, VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } } };
     m_cocBlitRenderPass = m_device.createRenderPass(cocBlitAttachmentData);
 
     const std::vector<RenderPassAttachmentDescription> combineBlitAttachmentData{ {
@@ -59,7 +59,7 @@ bool Renderer::setup()
 //    m_doFParameter.focusRange = m_cameraHandler.m_farPlane / 100.f;
     m_doFParameterUB = UniformBuffer(m_device, &m_doFParameter);
 
-    if (!createPlitPasses())
+    if (!createMaterials())
         return false;
 
     setupBlitPipelines();
@@ -67,35 +67,35 @@ bool Renderer::setup()
     return true;
 }
 
-bool Renderer::createPlitPasses()
+bool Renderer::createMaterials()
 { 
-    if (!createBlitPass(m_blitPasses[eBlitTechnique::COPY_SWAPCHAIN], m_swapchainRenderPass, "data/shaders/passthrough.frag.spv"))
+    if (!createMaterial(m_materials[eMaterialType::COPY_SWAPCHAIN], m_swapchainRenderPass, "data/shaders/passthrough.frag.spv"))
         return false;
 
-    if (!createBlitPass(m_blitPasses[eBlitTechnique::DOWNSAMPLE], m_colorBlitRenderPass, "data/shaders/box_filter_3x3.frag.spv"))
+    if (!createMaterial(m_materials[eMaterialType::DOWNSAMPLE], m_colorBlitRenderPass, "data/shaders/box_filter_3x3.frag.spv"))
         return false;
 
-    if (!createBlitPass(m_blitPasses[eBlitTechnique::COMBINE_COC], m_combineBlitRenderPass, "data/shaders/combineCoc.frag.spv",
+    if (!createMaterial(m_materials[eMaterialType::COMBINE_COC], m_combineBlitRenderPass, "data/shaders/combineCoc.frag.spv",
          { { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } }))
         return false;
 
-    if (!createBlitPass(m_blitPasses[eBlitTechnique::COMBINE_DOF], m_colorBlitRenderPass, "data/shaders/combineDof.frag.spv",
+    if (!createMaterial(m_materials[eMaterialType::COMBINE_DOF], m_colorBlitRenderPass, "data/shaders/combineDof.frag.spv",
         { { 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
           { 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } }))
         return false;
 
-    if (!createBlitPass(m_blitPasses[eBlitTechnique::BOKEH], m_colorBlitRenderPass, "data/shaders/bokeh.frag.spv",
+    if (!createMaterial(m_materials[eMaterialType::BOKEH], m_colorBlitRenderPass, "data/shaders/bokeh.frag.spv",
          { { 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } }))
         return false;
 
-    if (!createBlitPass(m_blitPasses[eBlitTechnique::COC], m_cocBlitRenderPass, "data/shaders/coc.frag.spv",
+    if (!createMaterial(m_materials[eMaterialType::COC], m_cocBlitRenderPass, "data/shaders/coc.frag.spv",
         { { 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } }))
         return false;
 
     return true;
 }
 
-bool Renderer::createBlitPass(BlitPass& pass, VkRenderPass renderPass, const char* fragmentShaderFilename, const std::vector<VkDescriptorSetLayoutBinding>& additionalBindings, bool alphaBlend)
+bool Renderer::createMaterial(Material& pass, VkRenderPass renderPass, const char* fragmentShaderFilename, const std::vector<VkDescriptorSetLayoutBinding>& additionalBindings, bool alphaBlend)
 {
     const ShaderResourceHandler::ShaderModulesDescription shaderDesc(
         { { VK_SHADER_STAGE_VERTEX_BIT, "data/shaders/fullscreen.vert.spv" },
@@ -128,16 +128,16 @@ bool Renderer::createBlitPass(BlitPass& pass, VkRenderPass renderPass, const cha
     return pass.pipeline;
 }
 
-void Renderer::destroyPlitPasses()
+void Renderer::destroyMaterials()
 {
-    for (auto& pass : m_blitPasses)
+    for (auto& mat : m_materials)
     {
-        m_device.destroy(pass.pipelineLayout);
-        m_device.destroy(pass.descriptorSetLayout);
-        if (pass.pipeline)
-            GraphicsPipeline::Release(m_device, pass.pipeline);
-        if (pass.shader)
-            ShaderManager::Release(m_device, pass.shader);
+        m_device.destroy(mat.pipelineLayout);
+        m_device.destroy(mat.descriptorSetLayout);
+        if (mat.pipeline)
+            GraphicsPipeline::Release(m_device, mat.pipeline);
+        if (mat.shader)
+            ShaderManager::Release(m_device, mat.shader);
     }
 }
 
@@ -146,12 +146,12 @@ void Renderer::setupBlitPipelines()
     VkExtent2D fullRes = m_swapChain.getImageExtent();
     VkExtent2D halfRes = { fullRes.width / 2, fullRes.height / 2 };
 
-    addBlitPipeline(fullRes, m_cocBufferFormat, eBlitTechnique::COC);
-    addBlitPipeline(halfRes, VK_FORMAT_R16G16B16A16_SFLOAT, eBlitTechnique::COMBINE_COC);
-    addBlitPipeline(halfRes, VK_FORMAT_B8G8R8A8_UNORM, eBlitTechnique::BOKEH);
-    addBlitPipeline(halfRes, VK_FORMAT_B8G8R8A8_UNORM, eBlitTechnique::DOWNSAMPLE);
-    addBlitPipeline(fullRes, VK_FORMAT_B8G8R8A8_UNORM, eBlitTechnique::COMBINE_DOF);
-    addBlitPipeline(fullRes, VK_FORMAT_B8G8R8A8_UNORM, eBlitTechnique::COPY_SWAPCHAIN);
+    addBlitPipeline(fullRes, VK_FORMAT_R16_SFLOAT,          eMaterialType::COC);
+    addBlitPipeline(halfRes, VK_FORMAT_R16G16B16A16_SFLOAT, eMaterialType::COMBINE_COC);
+    addBlitPipeline(halfRes, VK_FORMAT_B8G8R8A8_UNORM,      eMaterialType::BOKEH);
+    addBlitPipeline(halfRes, VK_FORMAT_B8G8R8A8_UNORM,      eMaterialType::DOWNSAMPLE);
+    addBlitPipeline(fullRes, VK_FORMAT_B8G8R8A8_UNORM,      eMaterialType::COMBINE_DOF);
+    addBlitPipeline(fullRes, VK_FORMAT_B8G8R8A8_UNORM,      eMaterialType::COPY_SWAPCHAIN);
 }
 
 bool Renderer::postResize()
@@ -172,19 +172,18 @@ void Renderer::recreateDoFPipeline()
     m_device.destroy(m_sceneFrameBuffer);
     m_sceneFrameBuffer = VK_NULL_HANDLE;
 }
-
-void Renderer::addBlitPipeline(VkExtent2D extent, VkFormat format, eBlitTechnique blitTechnique)
+void Renderer::addBlitPipeline(VkExtent2D extent, VkFormat format, eMaterialType materialType)
 {
     BlitPassDescription passDescr;
     passDescr.frameBufferExtent = extent;
     passDescr.frameBufferFormat = format;
-    passDescr.blitPass = &m_blitPasses[blitTechnique];
-    passDescr.destriptorSet.allocate(m_device, passDescr.blitPass->descriptorSetLayout, m_descriptorPool);
+    passDescr.materialType = materialType;
+    passDescr.destriptorSet.allocate(m_device, m_materials[materialType].descriptorSetLayout, m_descriptorPool);
 
-    switch (blitTechnique)
+    switch (materialType)
     {
-    case eBlitTechnique::COC:
-    case eBlitTechnique::BOKEH:
+    case eMaterialType::COC:
+    case eMaterialType::BOKEH:
         passDescr.destriptorSet.setUniformBuffer(1, m_doFParameterUB);
         break;
     default:
@@ -218,7 +217,7 @@ void Renderer::shutdown()
 
     m_doFParameterUB = UniformBuffer();
     destroyBlitPipelines();
-    destroyPlitPasses();
+    destroyMaterials();
     m_device.destroy(m_cameraDescriptorSetLayout);
     m_device.destroy(m_descriptorPool);
     m_device.destroy(m_colorBlitRenderPass);
@@ -231,21 +230,20 @@ void Renderer::shutdown()
 
 void Renderer::render(const FrameData& frameData)
 {
-    const VkCommandBuffer commandBuffer = frameData.resources.graphicsCommandBuffer;
-    VkExtent2D fullRes = m_swapChain.getImageExtent();
+    const auto commandBuffer = frameData.resources.graphicsCommandBuffer;
+    const auto fullRes = m_swapChain.getImageExtent();
 
     auto [sceneColor, sceneDepth] = renderScenePass(commandBuffer, fullRes);
 
-    size_t passId = 0;
-    auto cocImage = renderBlitPass(commandBuffer, m_blitPassDescriptions[passId++], { sceneDepth->imageView() });
-    auto combinedCoCImage = renderBlitPass(commandBuffer, m_blitPassDescriptions[passId++], { sceneColor->imageView(), cocImage->imageView() });
-    auto bokehImage = renderBlitPass(commandBuffer, m_blitPassDescriptions[passId++], { combinedCoCImage->imageView() });
-    auto filteredBokehImage = renderBlitPass(commandBuffer, m_blitPassDescriptions[passId++], { bokehImage->imageView() });
-    auto combinedDoFCImage = renderBlitPass(commandBuffer, m_blitPassDescriptions[passId++], { sceneColor->imageView(), filteredBokehImage->imageView(), cocImage->imageView() });
+    auto cocImage           = renderBlitPass(commandBuffer, m_blitPassDescriptions[0], { sceneDepth->imageView() });
+    auto combinedCoCImage   = renderBlitPass(commandBuffer, m_blitPassDescriptions[1], { sceneColor->imageView(), cocImage->imageView() });
+    auto bokehImage         = renderBlitPass(commandBuffer, m_blitPassDescriptions[2], { combinedCoCImage->imageView() });
+    auto filteredBokehImage = renderBlitPass(commandBuffer, m_blitPassDescriptions[3], { bokehImage->imageView() });
+    auto combinedDoFCImage  = renderBlitPass(commandBuffer, m_blitPassDescriptions[4], { sceneColor->imageView(), filteredBokehImage->imageView(), cocImage->imageView() });
 
     // show final image
     beginRenderPass(commandBuffer, m_swapchainRenderPass, frameData.framebuffer, fullRes, true);
-    blitAttachment(commandBuffer, { m_showCoC ? cocImage->imageView() : m_enableDoF ? combinedDoFCImage->imageView() : sceneColor->imageView() }, m_blitPassDescriptions[passId++]);
+    blitAttachment(commandBuffer, { m_showCoC ? cocImage->imageView() : m_enableDoF ? combinedDoFCImage->imageView() : sceneColor->imageView() }, m_blitPassDescriptions[5]);
 
 
     // this is done in base class
@@ -269,10 +267,11 @@ std::pair<Renderer::ColorImageHandle, Renderer::DepthImageHandle> Renderer::rend
 
 Renderer::ColorImageHandle Renderer::renderBlitPass(VkCommandBuffer commandBuffer, BlitPassDescription& passDescr, const std::vector<VkImageView>& attachments)
 {
+    const auto& material = m_materials[passDescr.materialType];
     auto destImage = m_imagePool.aquire<ColorAttachment>(m_device, passDescr.frameBufferExtent, passDescr.frameBufferFormat);
     if (!passDescr.frameBuffer)
-        passDescr.frameBuffer = m_device.createFramebuffer(passDescr.blitPass->renderPass, { destImage->imageView() }, passDescr.frameBufferExtent);
-    beginRenderPass(commandBuffer, passDescr.blitPass->renderPass, passDescr.frameBuffer, passDescr.frameBufferExtent, false);
+        passDescr.frameBuffer = m_device.createFramebuffer(material.renderPass, { destImage->imageView() }, passDescr.frameBufferExtent);
+    beginRenderPass(commandBuffer, material.renderPass, passDescr.frameBuffer, passDescr.frameBufferExtent, false);
     blitAttachment(commandBuffer, attachments, passDescr);
     vkCmdEndRenderPass(commandBuffer);
 
@@ -287,23 +286,24 @@ void Renderer::blitAttachment(VkCommandBuffer commandBuffer, const std::vector<V
             blitPassDescr.destriptorSet.setImageSampler(i, attachments[i], m_clampToEdgeSampler);
         blitPassDescr.destriptorSet.update(m_device);
     }
-    blitPassDescr.destriptorSet.bind(commandBuffer, blitPassDescr.blitPass->pipelineLayout, 0);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, blitPassDescr.blitPass->pipeline);
+    const auto& material = m_materials[blitPassDescr.materialType];
+    blitPassDescr.destriptorSet.bind(commandBuffer, material.pipelineLayout, 0);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.pipeline);
     vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 }
 
 void Renderer::createGUIContent()
 {
     ImGui::Begin("Depth of field", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
-    bool updateDoFPipeline = false;
+    bool updateFinalBlitPass = false;
     bool updateDoFParameter = false;
-    updateDoFPipeline |= ImGui::Checkbox("Enable Depth of Field", &m_enableDoF);
-    updateDoFPipeline |= ImGui::Checkbox("Show circle of confusion", &m_showCoC);
+    updateFinalBlitPass |= ImGui::Checkbox("Enable Depth of Field", &m_enableDoF);
+    updateFinalBlitPass |= ImGui::Checkbox("Show circle of confusion", &m_showCoC);
     updateDoFParameter |= ImGui::SliderFloat("Focus range", &m_doFParameter.focusRange, 0.1f, m_cameraHandler.m_farPlane);
     updateDoFParameter |= ImGui::SliderFloat("Focus distance", &m_doFParameter.focusDistance, 0.1f, m_cameraHandler.m_farPlane);
     updateDoFParameter |= ImGui::SliderFloat("Bokeh radius", &m_doFParameter.bokehRadius, 1.0f, 10.f);
-    if (updateDoFPipeline)
-        recreateDoFPipeline();
+    if (updateFinalBlitPass)
+        m_blitPassDescriptions.back().destriptorSet.invalidate();
     if (updateDoFParameter)
         m_doFParameterUB.assign(&m_doFParameter, sizeof(m_doFParameter));
     ImGui::End();

@@ -27,7 +27,8 @@ private:
     std::string meshFilename;
     std::unique_ptr<Mesh> m_mesh;
 
-    enum eBlitTechnique {
+    enum eMaterialType {
+        INVALID,
         COC,
         BOKEH,
         DOWNSAMPLE,
@@ -37,7 +38,7 @@ private:
         COUNT
     };
 
-    struct BlitPass {
+    struct Material {
         Shader shader;
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -45,10 +46,10 @@ private:
         VkRenderPass renderPass = VK_NULL_HANDLE;
     };
 
-    BlitPass m_blitPasses[eBlitTechnique::COUNT];
+    Material m_materials[eMaterialType::COUNT];
 
     struct BlitPassDescription {
-        BlitPass* blitPass = nullptr;
+        eMaterialType materialType = eMaterialType::INVALID;
         DescriptorSet destriptorSet;
         VkFramebuffer frameBuffer = VK_NULL_HANDLE;
         VkExtent2D frameBufferExtent = { 0,0 };
@@ -68,14 +69,14 @@ private:
     using DepthImageHandle = ImagePool::ImageHandle<DepthStencilAttachment>;
 
     std::pair<Renderer::ColorImageHandle, Renderer::DepthImageHandle> renderScenePass(VkCommandBuffer commandBuffer, VkExtent2D extend);
-    bool createPlitPasses();
-    void destroyPlitPasses();
+    bool createMaterials();
+    void destroyMaterials();
     void setupBlitPipelines();
     void destroyBlitPipelines();
-    void addBlitPipeline(VkExtent2D extent, VkFormat format, eBlitTechnique blitTechnique);
+    void addBlitPipeline(VkExtent2D extent, VkFormat format, eMaterialType blitTechnique);
     ColorImageHandle renderBlitPass(VkCommandBuffer commandBuffer, BlitPassDescription& passDescr, const std::vector<VkImageView>& attachments);
-    void blitAttachment(VkCommandBuffer commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& blitPass);
-    bool createBlitPass(BlitPass& pass, VkRenderPass renderPass, const char* fragmentShaderFilename, const std::vector<VkDescriptorSetLayoutBinding>& additionalBindings = {}, bool alphaBlend = false);
+    void blitAttachment(VkCommandBuffer commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& material);
+    bool createMaterial(Material& pass, VkRenderPass renderPass, const char* fragmentShaderFilename, const std::vector<VkDescriptorSetLayoutBinding>& additionalBindings = {}, bool alphaBlend = false);
 
     std::vector<BlitPassDescription> m_blitPassDescriptions;
     VkRenderPass m_sceneRenderPass = VK_NULL_HANDLE;
@@ -84,11 +85,8 @@ private:
     VkRenderPass m_combineBlitRenderPass = VK_NULL_HANDLE;
     VkFramebuffer m_sceneFrameBuffer = VK_NULL_HANDLE;
     VkSampler m_clampToEdgeSampler = VK_NULL_HANDLE;
-    VkFormat m_cocBufferFormat = VK_FORMAT_R16_SFLOAT;
     bool m_enableDoF = true;
     bool m_showCoC = false;
     UniformBuffer m_doFParameterUB;
     DofParameter m_doFParameter;
-
-    ImagePool m_imagePool;
 };
