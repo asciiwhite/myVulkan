@@ -48,7 +48,8 @@ bool BasicRenderer::init(GLFWwindow* window)
     m_swapchainRenderPass = m_device.createRenderPass(defaultAttachmentData);
     createSwapChainFramebuffers();
 
-    m_cameraUniformBuffer = UniformBuffer(m_device, sizeof(glm::mat4));
+    m_cameraUniformBuffer = UniformBuffer(m_device, sizeof(CameraParameter));
+    m_mappedCameraUniformBuffer = reinterpret_cast<CameraParameter*>(m_cameraUniformBuffer.map());
 
     const auto frameResourceCount = 2u;
 
@@ -315,8 +316,9 @@ void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer, const VkS
 
 void BasicRenderer::updateMVPUniform()
 {
-    const auto mvp = m_cameraHandler.mvp(m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height));
-    m_cameraUniformBuffer.assign(&mvp, sizeof(mvp));
+    m_mappedCameraUniformBuffer->mvp = m_cameraHandler.mvp(m_swapChain.getImageExtent().width / static_cast<float>(m_swapChain.getImageExtent().height));
+    m_mappedCameraUniformBuffer->pos = glm::make_vec4(m_cameraHandler.cameraPosition());
+    m_mappedCameraUniformBuffer->pixelsPerRadians = static_cast<float>(m_swapChain.getImageExtent().height) / m_cameraHandler.m_fovRadians;
 }
 
 void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir)

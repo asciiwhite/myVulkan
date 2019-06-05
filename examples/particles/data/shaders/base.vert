@@ -4,6 +4,8 @@
 layout(set = 0, binding = 0) uniform Camera
 {
     mat4 mvp;
+    vec4 cameraPos;
+    float pixelsPerRadians;
 } camera;
 
 
@@ -17,6 +19,8 @@ out gl_PerVertex {
     float gl_PointSize;
 };
 
+const float PixelSizePerRadians = 0.2;
+
 void main()
 {
     float opacity = 0.0;
@@ -26,7 +30,7 @@ void main()
     float hitCount = age.y;
 
     outColor = vec4(1, hitCount, hitCount - 1, opacity);
-
-    gl_PointSize = 4.0;
+       
     gl_Position = camera.mvp * vec4(positions, 0.0, 1.0);
+    gl_PointSize = camera.pixelsPerRadians * PixelSizePerRadians / gl_Position.w;
 }

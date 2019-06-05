@@ -65,9 +65,17 @@ protected:
     Device m_device;
     SwapChain m_swapChain;
     VkRenderPass m_swapchainRenderPass;
-    UniformBuffer m_cameraUniformBuffer;
     Statistics m_stats;
     ImagePool m_imagePool;
+
+    struct CameraParameter
+    {
+        glm::mat4x4 mvp;
+        glm::vec4 pos;
+        float pixelsPerRadians;
+    };
+    UniformBuffer m_cameraUniformBuffer;
+    CameraParameter * m_mappedCameraUniformBuffer = nullptr;
 
 private:
     std::vector<BaseFrameResources> m_frameResources;

@@ -28,7 +28,7 @@ glm::mat4 CameraInputHandler::mvp(float aspectRatio) const
     const auto lookVec = m_observerCameraMode ? m_cameraTarget : m_cameraPosition + m_cameraLook;
 
     const glm::mat4 view = glm::lookAt(m_cameraPosition, lookVec, m_cameraUp);
-    const glm::mat4 projection = glm::perspective(glm::radians(45.0f), aspectRatio, m_nearPlane, m_farPlane);
+    const glm::mat4 projection = glm::perspective(m_fovRadians, aspectRatio, m_nearPlane, m_farPlane);
     const glm::mat4 mvp = projection * view;
 
     return mvp;
