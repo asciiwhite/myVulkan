@@ -105,4 +105,10 @@ target_include_directories(vulkanBase
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
 )
 
+if(MSVC)
+    target_compile_options(vulkanBase PRIVATE /W4 /WX /MP)
+elseif()
+    target_compile_options(vulkanBase PRIVATE -W -Wall -Werror -pedantic)
+endif()
+
 add_subdirectory(test)
