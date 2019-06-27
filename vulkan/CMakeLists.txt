@@ -1,15 +1,4 @@
-if (NOT CMAKE_VERSION VERSION_LESS 3.7.0)
-	message(STATUS "Using module to find Vulkan")
-	find_package(Vulkan)
-endif()
-
-if (NOT Vulkan_FOUND)
-    if(WIN32)
-        find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan REQUIRED)
-    else(WIN32)
-        find_library(Vulkan_LIBRARY NAMES vulkan REQUIRED)
-    endif()
-endif()	
+find_package(Vulkan REQUIRED)
 
 if (Vulkan_LIBRARY)
     message(STATUS "Found Vulkan library: " ${Vulkan_LIBRARY})
@@ -106,16 +95,14 @@ target_link_libraries(vulkanBase
         Vulkan::Vulkan
     PRIVATE
         glfw
+        tiny_obj_loader
+        stb
 )
 
 target_include_directories(vulkanBase
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/externals/stb
-        ${CMAKE_SOURCE_DIR}/externals/tiny_obj_loader
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/externals/tiny_obj_loader>
 )
 
 add_subdirectory(test)

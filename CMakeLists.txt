@@ -5,9 +5,6 @@ project(myVulkan LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(RESOURCE_SRC_DIR data)
-set(RESOURCE_DST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${RESOURCE_SRC_DIR})
-
 SET(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
     ${CMAKE_SOURCE_DIR}/cmake
@@ -15,19 +12,13 @@ SET(CMAKE_MODULE_PATH
 )
 
 include(HandleResources)
-include(GNUInstallDirs)
+include(Examples)
 
 find_package(codecov)
-
 add_subdirectory(externals)
 
-if(MSVC)
-    add_compile_options( /W4 /WX /MP )
-elseif()
-    add_compile_options( -W -Wall -Werror -pedantic)
-endif()
-
-enable_testing()
+set(RESOURCE_SRC_DIR data)
+set(RESOURCE_DST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${RESOURCE_SRC_DIR})
 
 add_subdirectory(vulkan)
 add_subdirectory(examples)
@@ -36,6 +27,8 @@ install(
   DIRECTORY ${RESOURCE_DST_DIR}
   DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+enable_testing()
 
 list(APPEND LCOV_REMOVE_PATTERNS "'${CMAKE_SOURCE_DIR}/externals/*'")
 coverage_evaluate()

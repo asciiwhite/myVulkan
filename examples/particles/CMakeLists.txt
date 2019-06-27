@@ -4,24 +4,4 @@ set(SOURCES
     renderer.cpp
 )
 
-add_resources()
-
-add_executable(particles
-    ${SOURCES}
-    ${SHADERS}
-    ${BINARY_SHADERS}
-)
-
-set_target_properties(particles PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-set_property(TARGET particles PROPERTY FOLDER "examples")
-#add_coverage(particles)
-
-target_link_libraries(particles
-    PRIVATE
-        vulkanBase
-)
-
-install(
-  TARGETS particles
-  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-)
+add_example(particles "${SOURCES}")
