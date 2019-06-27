@@ -3,12 +3,6 @@
 
 namespace debug
 {
-    int32_t validationLayerCount = 2;
-    const char *validationLayerNames[] = {
-        "VK_LAYER_LUNARG_standard_validation",
-        "VK_LAYER_LUNARG_assistant_layer"
-    };
-
     PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallback = VK_NULL_HANDLE;
     PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallback = VK_NULL_HANDLE;
     PFN_vkDebugReportMessageEXT DebugReportCallback = VK_NULL_HANDLE;

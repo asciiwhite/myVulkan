@@ -92,8 +92,8 @@ bool BasicRenderer::createInstance()
     instanceCreateInfo.ppEnabledExtensionNames = &extensions[0];
     if (enableValidationLayers)
     {
-        instanceCreateInfo.enabledLayerCount = debug::validationLayerCount;
-        instanceCreateInfo.ppEnabledLayerNames = debug::validationLayerNames;
+        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(debug::validationLayerNames.size());
+        instanceCreateInfo.ppEnabledLayerNames = debug::validationLayerNames.data();
     }
 
     VK_CHECK_RESULT(vkCreateInstance(&instanceCreateInfo, nullptr, &m_instance));

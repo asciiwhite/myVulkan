@@ -1,9 +1,9 @@
 #include <vulkan/vulkan.h>
+#include <array>
 
 namespace debug
 {
-    extern int32_t validationLayerCount;
-    extern const char* validationLayerNames[];
+    const std::array<const char*, 1> validationLayerNames{ "VK_LAYER_LUNARG_standard_validation" };
 
     VkBool32 debugCallback(
         VkDebugReportFlagsEXT flags,

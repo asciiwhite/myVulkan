@@ -70,8 +70,8 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
 
     if (enableValidationLayers)
     {
-        deviceCreateInfo.enabledLayerCount = debug::validationLayerCount;
-        deviceCreateInfo.ppEnabledLayerNames = debug::validationLayerNames;
+        deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(debug::validationLayerNames.size());
+        deviceCreateInfo.ppEnabledLayerNames = debug::validationLayerNames.data();
     }
 
     VK_CHECK_RESULT(vkCreateDevice(m_physicalDevice, &deviceCreateInfo, nullptr, &m_device));
