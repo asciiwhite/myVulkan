@@ -18,6 +18,11 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 set(INSTALL_GMOCK OFF CACHE BOOL "" FORCE)
 add_subdirectory(googletest)
+mark_as_advanced(
+    BUILD_GMOCK BUILD_GTEST BUILD_SHARED_LIBS
+    gmock_build_tests gtest_build_samples gtest_build_tests
+    gtest_disable_pthreads gtest_force_shared_crt gtest_hide_internal_symbols
+)
 set_property(TARGET gmock      PROPERTY FOLDER "externals")
 set_property(TARGET gmock_main PROPERTY FOLDER "externals")
 set_property(TARGET gtest      PROPERTY FOLDER "externals")
@@ -35,10 +40,7 @@ add_library(imgui
     imgui/imstb_textedit.h
     imgui/imstb_truetype.h
 )
-target_include_directories(imgui
-    PUBLIC
-        imgui
-)
+target_include_directories(imgui PUBLIC imgui)
 set_property(TARGET imgui PROPERTY FOLDER "externals")
 
 # stb
