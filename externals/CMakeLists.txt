@@ -7,7 +7,7 @@ add_subdirectory(glfw)
 set_property(TARGET glfw PROPERTY FOLDER "externals")
 
 # glm
-set(GLM_INSTALL_ENABLE OFF CACHE BOOL "" FORCE)
+set(GLM_INSTALL_ENABLE ON CACHE BOOL "" FORCE)
 set(GLM_STATIC_LIBRARY_ENABLE ON CACHE BOOL "" FORCE)
 add_subdirectory(glm)
 set_property(TARGET glm_static uninstall PROPERTY FOLDER "externals")
@@ -25,26 +25,29 @@ mark_as_advanced(
 set_property(TARGET gmock gmock_main gtest gtest_main PROPERTY FOLDER "externals")
 
 # imgui
-add_library(imgui
+add_library(imgui STATIC
     imgui/imgui.cpp
     imgui/imgui.h
     imgui/imgui_draw.cpp
     imgui/imgui_widgets.cpp
     imgui/imgui_internal.h
-    imgui/imconfig.h
     imgui/imstb_rectpack.h
     imgui/imstb_textedit.h
     imgui/imstb_truetype.h
 )
-target_include_directories(imgui PUBLIC imgui)
-set_property(TARGET imgui PROPERTY FOLDER "externals")
+target_include_directories(imgui
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/imgui>
+           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/imgui>
+)
+target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_INCLUDE_IMCONFIG_H)
+set_target_properties(imgui PROPERTIES FOLDER "externals")
+
+install(FILES imgui/imgui.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/imgui)
 
 # stb
-get_filename_component(STB_INCLUDE_DIR ${CMAKE_CURRENT_LIST_FILE} DIRECTORY)
 add_library(stb INTERFACE)
-set_target_properties(stb PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${STB_INCLUDE_DIR}/stb")
+target_include_directories(stb SYSTEM INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/stb>)
 
 # tiny_obj_loader
-get_filename_component(TINY_OBJ_LOADER_INCLUDE_DIR ${CMAKE_CURRENT_LIST_FILE} DIRECTORY)
 add_library(tiny_obj_loader INTERFACE)
-set_target_properties(tiny_obj_loader PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${TINY_OBJ_LOADER_INCLUDE_DIR}/tiny_obj_loader")
+target_include_directories(tiny_obj_loader SYSTEM INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tiny_obj_loader>)

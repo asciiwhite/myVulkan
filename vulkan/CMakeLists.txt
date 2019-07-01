@@ -103,7 +103,11 @@ target_include_directories(vulkanBase
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/vulkanBase>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/vulkanBase/utils>
 )
+
+target_compile_features(vulkanBase PUBLIC cxx_std_17)
 
 if(MSVC)
     target_compile_options(vulkanBase PRIVATE /W4 /WX /MP)
@@ -112,3 +116,45 @@ elseif()
 endif()
 
 add_subdirectory(test)
+
+# Installation
+set(INSTALL_CONFIGDIR "${CMAKE_INSTALL_LIBDIR}/cmake")
+
+install(
+    DIRECTORY ${RESOURCE_DST_DIR} DESTINATION "${CMAKE_INSTALL_BINDIR}"
+)
+
+install(
+    TARGETS vulkanBase imgui glm glfw stb tiny_obj_loader
+    EXPORT vulkanBaseTargets
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+)
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vulkanBase)
+install(DIRECTORY utils DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vulkanBase FILES_MATCHING PATTERN "*.h*")
+
+install(EXPORT vulkanBaseTargets
+    FILE vulkanBaseTargets.cmake
+    DESTINATION ${INSTALL_CONFIGDIR})
+
+# ConfigVersion file
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfig.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+    ${CMAKE_SOURCE_DIR}/cmake/vulkanBaseConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfig.cmake
+    INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
+)
+
+# Install all the helper files
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfig.cmake
+    DESTINATION ${INSTALL_CONFIGDIR}
+)
