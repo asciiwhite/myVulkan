@@ -10,8 +10,7 @@ set_property(TARGET glfw PROPERTY FOLDER "externals")
 set(GLM_INSTALL_ENABLE OFF CACHE BOOL "" FORCE)
 set(GLM_STATIC_LIBRARY_ENABLE ON CACHE BOOL "" FORCE)
 add_subdirectory(glm)
-set_property(TARGET uninstall PROPERTY FOLDER "externals")
-set_property(TARGET glm_static PROPERTY FOLDER "externals")
+set_property(TARGET glm_static uninstall PROPERTY FOLDER "externals")
 
 # gtest
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -23,10 +22,7 @@ mark_as_advanced(
     gmock_build_tests gtest_build_samples gtest_build_tests
     gtest_disable_pthreads gtest_force_shared_crt gtest_hide_internal_symbols
 )
-set_property(TARGET gmock      PROPERTY FOLDER "externals")
-set_property(TARGET gmock_main PROPERTY FOLDER "externals")
-set_property(TARGET gtest      PROPERTY FOLDER "externals")
-set_property(TARGET gtest_main PROPERTY FOLDER "externals")
+set_property(TARGET gmock gmock_main gtest gtest_main PROPERTY FOLDER "externals")
 
 # imgui
 add_library(imgui
