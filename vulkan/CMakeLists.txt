@@ -107,6 +107,8 @@ target_include_directories(vulkanBase
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/vulkanBase/utils>
 )
 
+add_library(VulkanBase::vulkanBase ALIAS vulkanBase)
+
 target_compile_features(vulkanBase PUBLIC cxx_std_17)
 
 if(MSVC)
@@ -130,6 +132,7 @@ install(
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vulkanBase)
@@ -137,12 +140,13 @@ install(DIRECTORY utils DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vulkanBase FILES
 
 install(EXPORT vulkanBaseTargets
     FILE vulkanBaseTargets.cmake
+    NAMESPACE VulkanBase::
     DESTINATION ${INSTALL_CONFIGDIR})
 
 # ConfigVersion file
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion
 )
@@ -155,6 +159,8 @@ configure_package_config_file(
 
 # Install all the helper files
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfig.cmake
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfigVersion.cmake
     DESTINATION ${INSTALL_CONFIGDIR}
 )
