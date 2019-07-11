@@ -23,7 +23,5 @@ set(RESOURCE_DST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${RESOURCE_SRC_DIR})
 add_subdirectory(vulkan)
 add_subdirectory(examples)
 
-enable_testing()
-
 list(APPEND LCOV_REMOVE_PATTERNS "'${CMAKE_SOURCE_DIR}/externals/*'")
 coverage_evaluate()

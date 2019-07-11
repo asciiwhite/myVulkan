@@ -20,4 +20,6 @@ install(
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 )
 
+enable_testing()
+
 add_test(NAME vulkanBaseUnitTests COMMAND vulkanBaseUnitTests)

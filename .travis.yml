@@ -53,6 +53,7 @@ install:
   - mkdir -p deps && cd deps
   - travis_retry wget --no-check-certificate --quiet -O - https://cmake.org/files/v3.14/cmake-3.14.5-Linux-x86_64.tar.gz | tar --strip-components=1 -xz
   - export PATH=${TRAVIS_BUILD_DIR}/deps/bin:${PATH}
+  - export INSTALL_PATH=${TRAVIS_BUILD_DIR}/install
   - cd -
 
 # Specify a display with xvfb for window creation / testing
@@ -65,14 +66,19 @@ script:
   - set -ev
   - |
     if [[ "$BUILD_TYPE" == "DEFAULT" ]]; then
-      cmake .
-      cmake --build . -- -j $core_count
+      cmake --version
+      cmake . -DCMAKE_INSTALL_PREFIX=${INSTALL_PATH}
+      cmake --build . --target install -- -j $core_count
+      ctest --output-on-failure
+      cd vulkan/install-test
+      cmake . -DCMAKE_PREFIX_PATH=${INSTALL_PATH}/lib
+      cmake --build .
       ctest --output-on-failure
     fi
   - |
     if [[ "$BUILD_TYPE" == "COVERAGE" ]]; then
       cmake . -DENABLE_COVERAGE=On
-      make vulkanBaseUnitTests -j $core_count
+      cmake --build . --target vulkanBaseUnitTests -- -j $core_count
       ctest --output-on-failure
       make lcov
     fi

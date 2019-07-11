@@ -1,10 +1,5 @@
 find_package(Vulkan REQUIRED)
-
-if (Vulkan_LIBRARY)
-    message(STATUS "Found Vulkan library: " ${Vulkan_LIBRARY})
-else()    
-    message(FATAL_ERROR "Could not find Vulkan SDK!")
-endif()
+message(STATUS "Found Vulkan library: " ${Vulkan_LIBRARY})
 
 set(VULKAN_SOURCES
     include/basicrenderer.h
@@ -139,28 +134,28 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vulkanBase)
 install(DIRECTORY utils DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vulkanBase FILES_MATCHING PATTERN "*.h*")
 
 install(EXPORT vulkanBaseTargets
-    FILE vulkanBaseTargets.cmake
+    FILE VulkanBaseTargets.cmake
     NAMESPACE VulkanBase::
     DESTINATION ${INSTALL_CONFIGDIR})
 
 # ConfigVersion file
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfigVersion.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/VulkanBaseConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion
 )
 
 configure_package_config_file(
-    ${CMAKE_SOURCE_DIR}/cmake/vulkanBaseConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfig.cmake
+    ${CMAKE_SOURCE_DIR}/cmake/VulkanBaseConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/VulkanBaseConfig.cmake
     INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
 )
 
 # Install all the helper files
 install(
     FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfig.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/vulkanBaseConfigVersion.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/VulkanBaseConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/VulkanBaseConfigVersion.cmake
     DESTINATION ${INSTALL_CONFIGDIR}
 )
