@@ -64,6 +64,9 @@ public:
     VkCommandBuffer beginSingleTimeCommands() const;
     void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
+    const VkPhysicalDeviceProperties& properties() const { return m_deviceProperties; }
+    const VkPhysicalDeviceFeatures& features() const { return m_deviceFeatures; }
+
     template<typename T>
     void destroy(T t) const
     {
@@ -86,6 +89,9 @@ private:
     VkQueue m_computeQueue = VK_NULL_HANDLE;
     VkCommandPool m_graphicsCommandPool = VK_NULL_HANDLE;
     VkCommandPool m_computeCommandPool = VK_NULL_HANDLE;
+
+    VkPhysicalDeviceProperties m_deviceProperties;
+    VkPhysicalDeviceFeatures m_deviceFeatures;
 };
 
 template<typename T>

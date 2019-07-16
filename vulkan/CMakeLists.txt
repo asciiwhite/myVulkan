@@ -22,6 +22,7 @@ set(VULKAN_SOURCES
     include/bufferbase.h
     include/resourcemanager.h
     include/imagepool.h
+    include/querypool.h
     src/basicrenderer.cpp
     src/swapchain.cpp
     src/vulkanhelper.cpp
@@ -40,6 +41,7 @@ set(VULKAN_SOURCES
     src/window.cpp
     src/bufferbase.cpp
     src/imagepool.cpp
+    src/querypool.cpp
 )
 
 set(UTILS_SOURCES

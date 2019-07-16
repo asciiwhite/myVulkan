@@ -87,15 +87,12 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
 
 bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 {
-    VkPhysicalDeviceProperties device_properties;
-    VkPhysicalDeviceFeatures   device_features;
+    vkGetPhysicalDeviceProperties(physicalDevice, &m_deviceProperties);
+    vkGetPhysicalDeviceFeatures(physicalDevice, &m_deviceFeatures);
 
-    vkGetPhysicalDeviceProperties(physicalDevice, &device_properties);
-    vkGetPhysicalDeviceFeatures(physicalDevice, &device_features);
+    const uint32_t major_version = VK_VERSION_MAJOR(m_deviceProperties.apiVersion);
 
-    const uint32_t major_version = VK_VERSION_MAJOR(device_properties.apiVersion);
-
-    if ((major_version < 1) || (device_properties.limits.maxImageDimension2D < 4096))
+    if ((major_version < 1) || (m_deviceProperties.limits.maxImageDimension2D < 4096))
     {
         std::cout << "Physical device " << physicalDevice << " doesn't support required parameters!" << std::endl;
         return false;
