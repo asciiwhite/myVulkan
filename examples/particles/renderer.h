@@ -19,8 +19,8 @@ private:
     void setupGraphicsPipeline();
     void setupComputePipeline();
     bool createComputeCommandBuffer();
-    void buildComputeCommandBuffer(VkCommandBuffer commandBuffer);
-    void renderParticles(VkCommandBuffer commandBuffer) const;
+    void buildComputeCommandBuffer(CommandBuffer& commandBuffer);
+    void renderParticles(CommandBuffer& commandBuffer) const;
     void updateParticleCount();
     void createGUIContent() override;
 
@@ -32,7 +32,7 @@ private:
     DescriptorSet m_cameraUniformDescriptorSet;
 
     VkCommandPool m_computeCommandPool = VK_NULL_HANDLE;
-    std::vector<VkCommandBuffer> m_computeCommandBuffers;
+    std::vector<CommandBufferPtr> m_computeCommandBuffers;
     VkPipeline m_computePipeline;
     VkPipelineLayout m_computePipelineLayout;
     VkDescriptorSetLayout m_computeDescriptorSetLayout = VK_NULL_HANDLE;

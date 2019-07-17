@@ -120,14 +120,7 @@ bool BasicRenderer::createDevice()
 bool BasicRenderer::createFrameResources(uint32_t numFrames)
 {
     m_frameResourceCount = numFrames;
-
     m_frameResources.resize(m_frameResourceCount);
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_device.getGraphicsCommandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
 
     VkFenceCreateInfo fenceCreateInfo = {};
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -135,7 +128,7 @@ bool BasicRenderer::createFrameResources(uint32_t numFrames)
 
     for (auto& resource : m_frameResources)
     {
-        VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &allocInfo, &resource.graphicsCommandBuffer));
+        resource.graphicsCommandBuffer.reset(new CommandBuffer(m_device, m_device.getGraphicsCommandPool()));
         VK_CHECK_RESULT(vkCreateFence(m_device, &fenceCreateInfo, nullptr, &resource.frameCompleteFence));
     }
 
@@ -213,7 +206,6 @@ void BasicRenderer::destroyFrameResources()
 {
     for (const auto& resource : m_frameResources)
     {
-        vkFreeCommandBuffers(m_device, m_device.getGraphicsCommandPool(), 1, &resource.graphicsCommandBuffer);
         vkDestroyFence(m_device, resource.frameCompleteFence, nullptr);
     }
     m_frameResources.clear();
@@ -237,57 +229,29 @@ void BasicRenderer::draw()
     if (!m_swapChain.acquireNextImage(swapChainImageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
     
+    auto& commandBuffer = *m_frameResources[m_frameResourceId].graphicsCommandBuffer;
+
     // scene rendering
     render({ m_frameResources[m_frameResourceId], m_framebuffers[swapChainImageId] });
 
     // gui rendering
-    m_gui->draw(m_frameResourceId, m_frameResources[m_frameResourceId].graphicsCommandBuffer);
-    submitCommandBuffer(m_frameResources[m_frameResourceId].graphicsCommandBuffer, m_swapChain.getImageAvailableSemaphore(), m_swapChain.getRenderFinishedSemaphore(), &m_frameResources[m_frameResourceId].frameCompleteFence);
+    m_gui->draw(m_frameResourceId, commandBuffer);
+    
+    // submission
+    commandBuffer.submitAsync<SubmissionQueue::Graphics>(
+        m_swapChain.getImageAvailableSemaphore(),
+        m_swapChain.getRenderFinishedSemaphore(),
+        m_frameResources[m_frameResourceId].frameCompleteFence);
 
     // presentation
     if (!m_swapChain.present(swapChainImageId))
         resize(m_swapChain.getImageExtent().width, m_swapChain.getImageExtent().height);
 }
 
-void BasicRenderer::beginCommandBuffer(VkCommandBuffer commandBuffer)
+void BasicRenderer::fillCommandBuffer(CommandBuffer& commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, const DrawFunc& drawFunc)
 {
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
-}
-
-void BasicRenderer::beginRenderPass(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D renderAreaExtent, bool clear = true)
-{
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
-    renderPassInfo.framebuffer = framebuffer;
-    renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = renderAreaExtent;
-    if (clear)
-    {
-        std::array<VkClearValue, 2> clearValues = {};
-        clearValues[0].color = m_clearColor;
-        clearValues[1].depthStencil = { 1.0f, 0 };
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-    }
-
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    VkViewport viewport = { 0.0f, 0.0f, static_cast<float>(renderAreaExtent.width), static_cast<float>(renderAreaExtent.height), 0.0f, 1.0f };
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-    VkRect2D scissor = { { 0, 0 }, renderAreaExtent };
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-}
-
-void BasicRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, const DrawFunc& drawFunc)
-{
-    beginCommandBuffer(commandBuffer);
-    beginRenderPass(commandBuffer, renderPass, framebuffer, m_swapChain.getImageExtent());
+    commandBuffer.begin();
+    commandBuffer.beginRenderPass(renderPass, framebuffer, m_swapChain.getImageExtent());
 
     VkViewport viewport = { 0.0f, 0.0f, static_cast<float>(m_swapChain.getImageExtent().width), static_cast<float>(m_swapChain.getImageExtent().height), 0.0f, 1.0f };
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -296,22 +260,6 @@ void BasicRenderer::fillCommandBuffer(VkCommandBuffer commandBuffer, VkRenderPas
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     drawFunc(commandBuffer);
-}
-
-void BasicRenderer::submitCommandBuffer(VkCommandBuffer commandBuffer, const VkSemaphore* waitSemaphore, const VkSemaphore* signalSemaphore, VkFence* submitFence)
-{
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    submitInfo.waitSemaphoreCount = waitSemaphore ? 1 : 0;
-    submitInfo.pWaitSemaphores = waitSemaphore;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-    submitInfo.signalSemaphoreCount = signalSemaphore ? 1 : 0;
-    submitInfo.pSignalSemaphores = signalSemaphore;
-
-    VK_CHECK_RESULT(vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, submitFence ? *submitFence : nullptr));
 }
 
 void BasicRenderer::updateMVPUniform()
@@ -330,6 +278,11 @@ void BasicRenderer::setCameraFromBoundingBox(const glm::vec3& min, const glm::ve
 void BasicRenderer::setClearColor(VkClearColorValue clearColor)
 {
     m_clearColor = clearColor;
+}
+
+const VkClearColorValue& BasicRenderer::clearColor() const
+{
+    return m_clearColor;
 }
 
 void BasicRenderer::update()

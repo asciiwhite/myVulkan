@@ -4,6 +4,7 @@
 #include "statistics.h"
 #include "mouseinputhandler.h"
 #include "vulkanhelper.h"
+#include "commandbuffer.h"
 
 #include <imgui.h>
 #include <array>
@@ -103,17 +104,16 @@ void GUI::startFrame(const Statistics& stats, const MouseInputState& mouseState)
     ImGui::End();
 }
 
-void GUI::draw(uint32_t resource_index, VkCommandBuffer commandBuffer)
+void GUI::draw(uint32_t resource_index, CommandBuffer& commandBuffer)
 {
     m_resources.descriptorSet.bind(commandBuffer, m_resources.pipelineLayout, GUI_PARAMETER_SET_ID);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_resources.pipeline);
+    commandBuffer.bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, m_resources.pipeline);
 
     drawFrameData(commandBuffer, m_resources.frameResources[resource_index]);
 
-    vkCmdEndRenderPass(commandBuffer);
-
-    VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+    commandBuffer.endRenderPass();    
+    commandBuffer.end();
 }
 
 void GUI::drawFrameData(VkCommandBuffer commandBuffer, GUIResources::FrameResources& frameResources)

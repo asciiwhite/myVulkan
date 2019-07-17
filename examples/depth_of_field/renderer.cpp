@@ -230,7 +230,7 @@ void Renderer::shutdown()
 
 void Renderer::render(const FrameData& frameData)
 {
-    const auto commandBuffer = frameData.resources.graphicsCommandBuffer;
+    auto& commandBuffer = *frameData.resources.graphicsCommandBuffer;
     const auto fullRes = m_swapChain.getImageExtent();
 
     auto [sceneColor, sceneDepth] = renderScenePass(commandBuffer, fullRes);
@@ -242,43 +242,42 @@ void Renderer::render(const FrameData& frameData)
     auto combinedDoFCImage  = renderBlitPass(commandBuffer, m_blitPassDescriptions[4], { sceneColor->imageView(), filteredBokehImage->imageView(), cocImage->imageView() });
 
     // show final image
-    beginRenderPass(commandBuffer, m_swapchainRenderPass, frameData.framebuffer, fullRes, true);
+    commandBuffer.beginRenderPass(m_swapchainRenderPass, frameData.framebuffer, fullRes, &clearColor());
     blitAttachment(commandBuffer, { m_showCoC ? cocImage->imageView() : m_enableDoF ? combinedDoFCImage->imageView() : sceneColor->imageView() }, m_blitPassDescriptions[5]);
-
 
     // this is done in base class
     //vkCmdEndRenderPass(commandBuffer);
     //VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
-std::pair<Renderer::ColorImageHandle, Renderer::DepthImageHandle> Renderer::renderScenePass(VkCommandBuffer commandBuffer, VkExtent2D extend)
+std::pair<Renderer::ColorImageHandle, Renderer::DepthImageHandle> Renderer::renderScenePass(CommandBuffer& commandBuffer, VkExtent2D extend)
 {
     auto sceneColor = m_imagePool.aquire<ColorAttachment>(m_device, extend, VK_FORMAT_B8G8R8A8_UNORM);
     auto sceneDepth = m_imagePool.aquire<DepthStencilAttachment>(m_device, extend, VK_FORMAT_D32_SFLOAT);
     if (!m_sceneFrameBuffer)
         m_sceneFrameBuffer = m_device.createFramebuffer(m_sceneRenderPass, { sceneColor->imageView(), sceneDepth->imageView() }, extend);
-    beginCommandBuffer(commandBuffer);
-    beginRenderPass(commandBuffer, m_sceneRenderPass, m_sceneFrameBuffer, extend, true);
+    commandBuffer.begin();
+    commandBuffer.beginRenderPass(m_sceneRenderPass, m_sceneFrameBuffer, extend, &clearColor());
     m_mesh->render(commandBuffer);
-    vkCmdEndRenderPass(commandBuffer);
+    commandBuffer.endRenderPass();
 
     return { std::move(sceneColor), std::move(sceneDepth) };
 }
 
-Renderer::ColorImageHandle Renderer::renderBlitPass(VkCommandBuffer commandBuffer, BlitPassDescription& passDescr, const std::vector<VkImageView>& attachments)
+Renderer::ColorImageHandle Renderer::renderBlitPass(CommandBuffer& commandBuffer, BlitPassDescription& passDescr, const std::vector<VkImageView>& attachments)
 {
     const auto& material = m_materials[passDescr.materialType];
     auto destImage = m_imagePool.aquire<ColorAttachment>(m_device, passDescr.frameBufferExtent, passDescr.frameBufferFormat);
     if (!passDescr.frameBuffer)
         passDescr.frameBuffer = m_device.createFramebuffer(material.renderPass, { destImage->imageView() }, passDescr.frameBufferExtent);
-    beginRenderPass(commandBuffer, material.renderPass, passDescr.frameBuffer, passDescr.frameBufferExtent, false);
+    commandBuffer.beginRenderPass(material.renderPass, passDescr.frameBuffer, passDescr.frameBufferExtent);
     blitAttachment(commandBuffer, attachments, passDescr);
-    vkCmdEndRenderPass(commandBuffer);
+    commandBuffer.endRenderPass();
 
     return std::move(destImage);
 }
 
-void Renderer::blitAttachment(VkCommandBuffer commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& blitPassDescr)
+void Renderer::blitAttachment(CommandBuffer& commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& blitPassDescr)
 {
     if (!blitPassDescr.destriptorSet.isValid())
     {

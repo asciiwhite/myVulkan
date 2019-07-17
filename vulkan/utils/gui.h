@@ -25,6 +25,7 @@ struct GUIResources
     std::vector<FrameResources> frameResources;
 };
 
+class CommandBuffer;
 class Statistics;
 class Device;
 struct MouseInputState;
@@ -39,7 +40,7 @@ public:
     void onResize(uint32_t width, uint32_t height);
 
     void startFrame(const Statistics& stats, const MouseInputState& mouseState);
-    void draw(uint32_t resource_index, VkCommandBuffer commandBuffer);
+    void draw(uint32_t resource_index, CommandBuffer& commandBuffer);
 
 private:
     GUIResources m_resources;

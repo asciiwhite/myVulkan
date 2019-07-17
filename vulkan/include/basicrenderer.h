@@ -5,6 +5,7 @@
 #include "image.h"
 #include "buffer.h"
 #include "imagepool.h"
+#include "commandbuffer.h" 
 
 #include "../utils/camerainputhandler.h"
 #include "../utils/statistics.h"
@@ -34,20 +35,18 @@ public:
     void draw();
 
 protected:
-    using DrawFunc = std::function<void(VkCommandBuffer)>;
-    void beginCommandBuffer(VkCommandBuffer commandBuffer);
-    void beginRenderPass(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D renderAreaExtent, bool clear);
-    void fillCommandBuffer(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, const DrawFunc&);
-    void submitCommandBuffer(VkCommandBuffer commandBuffer, const VkSemaphore* waitSemaphore, const VkSemaphore* signalSemaphore, VkFence* submitFence);
+    using DrawFunc = std::function<void(CommandBuffer&)>;
+    void fillCommandBuffer(CommandBuffer& commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, const DrawFunc&);
     void setCameraFromBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::vec3& lookDir);
     void setClearColor(VkClearColorValue clearColor);
+    const VkClearColorValue& clearColor() const;
     void updateMVPUniform();
     void waitForAllFrames() const;
     virtual void createGUIContent() {};
 
     struct BaseFrameResources
     {
-        VkCommandBuffer graphicsCommandBuffer;
+        CommandBufferPtr graphicsCommandBuffer;
         VkFence frameCompleteFence;
     };
 

@@ -61,9 +61,6 @@ public:
     VkCommandPool getGraphicsCommandPool() const { return m_graphicsCommandPool; };
     VkCommandPool getComputeCommandPool() const { return m_computeCommandPool; };
 
-    VkCommandBuffer beginSingleTimeCommands() const;
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
-
     const VkPhysicalDeviceProperties& properties() const { return m_deviceProperties; }
     const VkPhysicalDeviceFeatures& features() const { return m_deviceFeatures; }
 

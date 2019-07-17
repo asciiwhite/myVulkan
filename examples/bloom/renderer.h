@@ -64,7 +64,7 @@ private:
     void setupBlitPipelines();
     void destroyBlitPipelines();
     void addBlitPipeline(VkExtent2D extent, eBlitTechnique blitTechnique);
-    void blitAttachment(VkCommandBuffer commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& blitPass);
+    void blitAttachment(CommandBuffer& commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& blitPass);
     bool createBlitPass(BlitPass& pass, VkRenderPass renderPass, const char* fragmentShaderFilename, const std::vector<VkDescriptorSetLayoutBinding>& additionalBindings = {}, bool alphaBlend = false);
 
     std::vector<BlitPassDescription> m_blitPassDescriptions;

@@ -3,6 +3,7 @@
 #include "device.h"
 #include "buffer.h"
 #include "barrier.h"
+#include "commandbuffer.h"
 
 #include <cstring>
 
@@ -190,17 +191,11 @@ void ImageBase::setLayout(VkImageLayout newLayout)
     const auto sourceStage = getPipelineStageFlags(barrier.srcAccessMask);
     const auto destinationStage = getPipelineStageFlags(barrier.dstAccessMask);
 
-    const auto commandBuffer = device().beginSingleTimeCommands();
+    CommandBuffer commandBuffer(device(), device().getGraphicsCommandPool());
+    commandBuffer.begin();
+    commandBuffer.pipelineBarrier(sourceStage, destinationStage, barrier);
+    commandBuffer.end();
+    commandBuffer.submitBlocking<SubmissionQueue::Graphics>();
 
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    device().endSingleTimeCommands(commandBuffer);
     m_layout = newLayout;
 }

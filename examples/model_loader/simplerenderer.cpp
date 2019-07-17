@@ -21,7 +21,7 @@ bool SimpleRenderer::setup()
                 setCameraFromBoundingBox(meshDesc.boundingBox.min, meshDesc.boundingBox.max, glm::vec3(0, 1, 1));
         }
 
-        return [&](auto commandBuffer)
+        return [&](auto& commandBuffer)
         {
             m_mesh->render(commandBuffer);
         };
@@ -39,7 +39,7 @@ void SimpleRenderer::shutdown()
 
 void SimpleRenderer::render(const FrameData& frameData)
 {
-    fillCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapchainRenderPass, frameData.framebuffer, m_meshDrawFunc);
+    fillCommandBuffer(*frameData.resources.graphicsCommandBuffer, m_swapchainRenderPass, frameData.framebuffer, m_meshDrawFunc);
 }
 
 void SimpleRenderer::createGUIContent()

@@ -5,6 +5,7 @@
 #include "vertexbuffer.h"
 #include "graphicspipeline.h"
 #include "barrier.h"
+#include "commandbuffer.h"
 
 #include <array>
 #include <cstring>
@@ -208,13 +209,11 @@ void Device::createCommandPools()
 
 void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkBufferCopy copyRegion = {};
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-    endSingleTimeCommands(commandBuffer);
+    CommandBuffer commandBuffer(*this, getGraphicsCommandPool());
+    commandBuffer.begin();
+    commandBuffer.copyBuffer(srcBuffer, dstBuffer, size);
+    commandBuffer.end();
+    commandBuffer.submitBlocking<SubmissionQueue::Graphics>();
 }
 
 bool isDepthAttachment(VkFormat format)
@@ -494,57 +493,11 @@ VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, Vk
 
 void Device::copyBufferToImage(VkBuffer buffer, VkImage image, VkExtent2D resolution) const
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkBufferImageCopy region = {};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = { 0, 0, 0 };
-    region.imageExtent = { resolution.width, resolution.height, 1 };
-
-    vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-    endSingleTimeCommands(commandBuffer);
-}
-
-VkCommandBuffer Device::beginSingleTimeCommands() const
-{
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = m_graphicsCommandPool;
-    allocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBuffer;
-    VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer));
-
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
-
-    return commandBuffer;
-}
-
-void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
-{
-    VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
-
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    VK_CHECK_RESULT(vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
-    VK_CHECK_RESULT(vkQueueWaitIdle(m_graphicsQueue));
-
-    vkFreeCommandBuffers(m_device, m_graphicsCommandPool, 1, &commandBuffer);
+    CommandBuffer commandBuffer(*this, getGraphicsCommandPool());
+    commandBuffer.begin();
+    commandBuffer.copyBufferToImage(buffer, image, resolution);
+    commandBuffer.end();
+    commandBuffer.submitBlocking<SubmissionQueue::Graphics>();
 }
 
 void Device::destroy()

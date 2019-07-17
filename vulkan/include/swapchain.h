@@ -22,8 +22,8 @@ public:
     VkImageView getImageView(uint32_t imageViewId) const { return m_imageViews[imageViewId].imageView(); }
     VkFormat getImageFormat() const { return m_surfaceFormat.format; }
 
-    const VkSemaphore* getImageAvailableSemaphore() const { return &m_semaphores[m_currentImageId].first; }
-    const VkSemaphore* getRenderFinishedSemaphore() const { return &m_semaphores[m_currentImageId].second; }
+    VkSemaphore getImageAvailableSemaphore() const { return m_semaphores[m_currentImageId].first; }
+    VkSemaphore getRenderFinishedSemaphore() const { return m_semaphores[m_currentImageId].second; }
 
     bool acquireNextImage(uint32_t& imageId);
     bool present(uint32_t imageId);

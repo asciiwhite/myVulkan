@@ -148,8 +148,7 @@ void Renderer::shutdown()
     m_device.destroy(m_cameraDescriptorSetLayout);
     m_device.destroy(m_descriptorPool);
 
-    vkFreeCommandBuffers(m_device, m_device.getComputeCommandPool(), static_cast<uint32_t>(m_computeCommandBuffers.size()), m_computeCommandBuffers.data());
-
+    m_computeCommandBuffers.clear();
     m_computeInputBuffer = UniformBuffer();
     m_device.destroy(m_computeDescriptorSetLayout);
     m_device.destroy(m_computePipeline);
@@ -160,11 +159,11 @@ void Renderer::shutdown()
     ShaderManager::Release(m_device, m_computeShader);
 }
 
-void Renderer::renderParticles(VkCommandBuffer commandBuffer) const
+void Renderer::renderParticles(CommandBuffer& commandBuffer) const
 {
     m_cameraUniformDescriptorSet.bind(commandBuffer, m_graphicsPipelineLayout, SET_ID_CAMERA);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    commandBuffer.bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
     m_vertexBuffer->bind(commandBuffer);
     m_vertexBuffer->draw(commandBuffer);
@@ -174,24 +173,15 @@ bool Renderer::createComputeCommandBuffer()
 {
     // Create a command buffer for compute operations
     m_computeCommandBuffers.resize(m_frameResourceCount);
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_device.getComputeCommandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(m_computeCommandBuffers.size());
-    VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &allocInfo, m_computeCommandBuffers.data()));
+    for (auto& buffer : m_computeCommandBuffers)
+        buffer.reset(new CommandBuffer(m_device, m_device.getComputeCommandPool()));
 
     return true;
 }
  
-void Renderer::buildComputeCommandBuffer(VkCommandBuffer commandBuffer)
+void Renderer::buildComputeCommandBuffer(CommandBuffer& commandBuffer)
 {
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+    commandBuffer.begin();
 
     // Add memory barrier to ensure that the (graphics) vertex shader has fetched attributes before compute starts to write to the buffer
     auto bufferBarrier = createBufferMemoryBarrier(*m_vertexBuffer,
@@ -200,16 +190,9 @@ void Renderer::buildComputeCommandBuffer(VkCommandBuffer commandBuffer)
         m_device.getGraphicsQueueFamilyId(),
         m_device.getComputeQueueFamilyId());
   
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        0,
-        0, nullptr,
-        1, &bufferBarrier,
-        0, nullptr);
+    commandBuffer.pipelineBarrier(VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, bufferBarrier);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
+    commandBuffer.bindPipeline(VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
     VkDescriptorSet descriptorSets{ m_computeDescriptorSet };
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout, 0, 1, &descriptorSets, 0, 0);
 
@@ -223,16 +206,9 @@ void Renderer::buildComputeCommandBuffer(VkCommandBuffer commandBuffer)
         m_device.getComputeQueueFamilyId(),
         m_device.getGraphicsQueueFamilyId());
 
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-        0,
-        0, nullptr,
-        1, &bufferBarrier,
-        0, nullptr);
+    commandBuffer.pipelineBarrier(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, bufferBarrier);
 
-    vkEndCommandBuffer(commandBuffer);
+    commandBuffer.end();
 }
 
 void Renderer::render(const FrameData& frameData)
@@ -240,18 +216,11 @@ void Renderer::render(const FrameData& frameData)
     // compute part
     m_computeMappedInputBuffer->timeDeltaInSeconds = m_stats.getDeltaTime();
 
-
-    buildComputeCommandBuffer(m_computeCommandBuffers[m_frameResourceId]);
-
-    VkSubmitInfo computeSubmitInfo = {};
-    computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    computeSubmitInfo.commandBufferCount = 1;
-    computeSubmitInfo.pCommandBuffers = &m_computeCommandBuffers[m_frameResourceId];
-
-    VK_CHECK_RESULT(vkQueueSubmit(m_device.getComputeQueue(), 1, &computeSubmitInfo, nullptr));
+    buildComputeCommandBuffer(*m_computeCommandBuffers[m_frameResourceId]);
+    m_computeCommandBuffers[m_frameResourceId]->submitAsync<SubmissionQueue::Compute>();
 
     // graphics part
-    fillCommandBuffer(frameData.resources.graphicsCommandBuffer, m_swapchainRenderPass, frameData.framebuffer, [&](auto commandBuffer) {  renderParticles(commandBuffer); });
+    fillCommandBuffer(*frameData.resources.graphicsCommandBuffer, m_swapchainRenderPass, frameData.framebuffer, [this](auto& commandBuffer) { renderParticles(commandBuffer); });
 }
 
 void Renderer::createGUIContent()

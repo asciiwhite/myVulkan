@@ -68,14 +68,14 @@ private:
     using ColorImageHandle = ImagePool::ImageHandle<ColorAttachment>;
     using DepthImageHandle = ImagePool::ImageHandle<DepthStencilAttachment>;
 
-    std::pair<Renderer::ColorImageHandle, Renderer::DepthImageHandle> renderScenePass(VkCommandBuffer commandBuffer, VkExtent2D extend);
+    std::pair<Renderer::ColorImageHandle, Renderer::DepthImageHandle> renderScenePass(CommandBuffer& commandBuffer, VkExtent2D extend);
     bool createMaterials();
     void destroyMaterials();
     void setupBlitPipelines();
     void destroyBlitPipelines();
     void addBlitPipeline(VkExtent2D extent, VkFormat format, eMaterialType blitTechnique);
-    ColorImageHandle renderBlitPass(VkCommandBuffer commandBuffer, BlitPassDescription& passDescr, const std::vector<VkImageView>& attachments);
-    void blitAttachment(VkCommandBuffer commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& material);
+    ColorImageHandle renderBlitPass(CommandBuffer& commandBuffer, BlitPassDescription& passDescr, const std::vector<VkImageView>& attachments);
+    void blitAttachment(CommandBuffer& commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& material);
     bool createMaterial(Material& pass, VkRenderPass renderPass, const char* fragmentShaderFilename, const std::vector<VkDescriptorSetLayoutBinding>& additionalBindings = {}, bool alphaBlend = false);
 
     std::vector<BlitPassDescription> m_blitPassDescriptions;

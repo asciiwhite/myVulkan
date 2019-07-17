@@ -239,7 +239,7 @@ void Renderer::shutdown()
 
 void Renderer::render(const FrameData& frameData)
 {
-    const VkCommandBuffer commandBuffer = frameData.resources.graphicsCommandBuffer;
+    auto& commandBuffer = *frameData.resources.graphicsCommandBuffer;
     VkExtent2D res = m_swapChain.getImageExtent();
     
     auto sceneColor = m_imagePool.aquire<ColorAttachment>(m_device, res, VK_FORMAT_B8G8R8A8_UNORM);
@@ -247,10 +247,10 @@ void Renderer::render(const FrameData& frameData)
     if (!m_sceneFrameBuffer)
         m_sceneFrameBuffer = m_device.createFramebuffer(m_sceneRenderPass, { sceneColor->imageView(), sceneDepth->imageView() }, res);
 
-    beginCommandBuffer(commandBuffer);
-    beginRenderPass(commandBuffer, m_sceneRenderPass, m_sceneFrameBuffer, res, true);
+    commandBuffer.begin();
+    commandBuffer.beginRenderPass(m_sceneRenderPass, m_sceneFrameBuffer, res, &clearColor());
     m_mesh->render(commandBuffer);
-    vkCmdEndRenderPass(commandBuffer);
+    commandBuffer.endRenderPass();
     m_imagePool.release(std::move(sceneDepth));
 
     ImagePool::ImageHandle<ColorAttachment> srcImage;
@@ -264,9 +264,9 @@ void Renderer::render(const FrameData& frameData)
         if (!firstPassDescr.frameBuffer)
             firstPassDescr.frameBuffer = m_device.createFramebuffer(m_blitRenderPass, { dstImage->imageView() }, res);
 
-        beginRenderPass(commandBuffer, m_blitRenderPass, firstPassDescr.frameBuffer, res, false);
+        commandBuffer.beginRenderPass(m_blitRenderPass, firstPassDescr.frameBuffer, res);
         blitAttachment(commandBuffer, { sceneColor->imageView() }, firstPassDescr);
-        vkCmdEndRenderPass(commandBuffer);
+        commandBuffer.endRenderPass();
 
         srcImage = std::move(dstImage);
 
@@ -279,16 +279,16 @@ void Renderer::render(const FrameData& frameData)
             if (!passDescr.frameBuffer)
                 passDescr.frameBuffer = m_device.createFramebuffer(m_blitRenderPass, { dstImage->imageView() }, res);
 
-            beginRenderPass(commandBuffer, m_blitRenderPass, passDescr.frameBuffer, res, false);
+            commandBuffer.beginRenderPass(m_blitRenderPass, passDescr.frameBuffer, res);
             blitAttachment(commandBuffer, { srcImage->imageView() }, passDescr);
-            vkCmdEndRenderPass(commandBuffer);
+            commandBuffer.endRenderPass();
 
             srcImage = std::move(dstImage);
         }
     }
 
     auto& passDescr = m_blitPassDescriptions.back();
-    beginRenderPass(commandBuffer, m_swapchainRenderPass, frameData.framebuffer, m_swapChain.getImageExtent(), true);
+    commandBuffer.beginRenderPass(m_swapchainRenderPass, frameData.framebuffer, m_swapChain.getImageExtent(), &clearColor());
     if (m_showDebug)
     {
         blitAttachment(commandBuffer, { srcImage->imageView() }, passDescr);
@@ -310,7 +310,7 @@ void Renderer::render(const FrameData& frameData)
     //VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
-void Renderer::blitAttachment(VkCommandBuffer commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& blitPassDescr)
+void Renderer::blitAttachment(CommandBuffer& commandBuffer, const std::vector<VkImageView>& attachments, BlitPassDescription& blitPassDescr)
 {
     if (!blitPassDescr.destriptorSet.isValid())
     {
