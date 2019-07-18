@@ -6,6 +6,7 @@
 #include "graphicspipeline.h"
 #include "barrier.h"
 #include "commandbuffer.h"
+#include "queue.h"
 
 #include <array>
 #include <cstring>
@@ -23,9 +24,10 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
     std::vector<VkPhysicalDevice> physicalDevices(numDevices);
     VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &numDevices, &physicalDevices[0]));
 
+    QueueFamilyIds queueFamilyIds;
     for (uint32_t i = 0; i < numDevices; ++i)
     {
-        if (checkPhysicalDeviceProperties(physicalDevices[i], surface))
+        if (checkPhysicalDeviceProperties(physicalDevices[i], surface, queueFamilyIds))
         {
             m_physicalDevice = physicalDevices[i];
             break;
@@ -38,13 +40,12 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
         return false;
     }
 
-    auto queuePriority = 1.0f;
-
+    const float queuePriority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfo = {
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,     // VkStructureType              sType
         nullptr,                                        // const void                  *pNext
         0,                                              // VkDeviceQueueCreateFlags     flags
-        m_graphicsQueueFamilyIndex,                     // uint32_t                     queueFamilyIndex
+        queueFamilyIds.graphics,                        // uint32_t                     queueFamilyIndex
         1,                                              // uint32_t                     queueCount
         &queuePriority                                  // const float                 *pQueuePriorities
     };
@@ -66,7 +67,7 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
         nullptr,                                        // const char * const                *ppEnabledLayerNames
         static_cast<uint32_t>(extensions.size()),       // uint32_t                           enabledExtensionCount
         &extensions[0],                                 // const char * const                *ppEnabledExtensionNames
-        &requiredFeatures                                // const VkPhysicalDeviceFeatures    *pEnabledFeatures
+        &requiredFeatures                               // const VkPhysicalDeviceFeatures    *pEnabledFeatures
     };
 
     if (enableValidationLayers)
@@ -77,16 +78,16 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
 
     VK_CHECK_RESULT(vkCreateDevice(m_physicalDevice, &deviceCreateInfo, nullptr, &m_device));
 
-    vkGetDeviceQueue(m_device, m_presentQueueFamilyIndex, 0, &m_presentQueue);
-    vkGetDeviceQueue(m_device, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
-    vkGetDeviceQueue(m_device, m_computeQueueFamilyIndex, 0, &m_computeQueue);
+    vkGetDeviceQueue(m_device, queueFamilyIds.present, 0, &m_presentQueue.m_queue);
+    vkGetDeviceQueue(m_device, queueFamilyIds.graphics, 0, &m_graphicsQueue.m_queue);
+    vkGetDeviceQueue(m_device, queueFamilyIds.compute, 0, &m_computeQueue.m_queue);
 
     createCommandPools();
 
     return true;
 }
 
-bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIds& queueFamilyIds)
 {
     vkGetPhysicalDeviceProperties(physicalDevice, &m_deviceProperties);
     vkGetPhysicalDeviceFeatures(physicalDevice, &m_deviceFeatures);
@@ -112,17 +113,13 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
 
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, &queueProps[0]);
 
-    m_graphicsQueueFamilyIndex = UINT32_MAX;
-    m_presentQueueFamilyIndex = UINT32_MAX;
-    m_computeQueueFamilyIndex = UINT32_MAX;
-
     // Some devices have dedicated compute queues, so we first try to find a queue that supports compute and not graphics
     bool computeQueueFound = false;
     for (uint32_t i = 0; i < queueCount; i++)
     {
         if ((queueProps[i].queueFlags & VK_QUEUE_COMPUTE_BIT) && ((queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
         {
-            m_computeQueueFamilyIndex = i;
+            queueFamilyIds.compute = i;
             computeQueueFound = true;
             break;
         }
@@ -136,9 +133,9 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
             (queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
         {
             // Select first queue that supports graphics
-            if (m_graphicsQueueFamilyIndex == UINT32_MAX)
+            if (queueFamilyIds.graphics == UINT32_MAX)
             {
-                m_graphicsQueueFamilyIndex = i;
+                queueFamilyIds.graphics = i;
             }
         }
 
@@ -146,18 +143,18 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
             (queueProps[i].queueFlags & VK_QUEUE_COMPUTE_BIT))
         {
             // Select first queue that supports compute
-            if (m_computeQueueFamilyIndex == UINT32_MAX)
+            if (queueFamilyIds.compute == UINT32_MAX)
             {
-                m_computeQueueFamilyIndex = i;
+                queueFamilyIds.compute = i;
             }
         }
 
         // If there is queue that supports both graphics and present - prefer it
         if (supportsPresent[i])
         {
-            m_graphicsQueueFamilyIndex = i;
-            m_presentQueueFamilyIndex = i;
-            m_computeQueueFamilyIndex = i;
+            queueFamilyIds.graphics = i;
+            queueFamilyIds.present = i;
+            queueFamilyIds.compute = i;
             return true;
         }
     }
@@ -167,15 +164,15 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
     {
         if (supportsPresent[i])
         {
-            m_presentQueueFamilyIndex = i;
+            queueFamilyIds.present = i;
             break;
         }
     }
 
     // If this device doesn't support queues with graphics and present capabilities don't use it
-    if ((m_graphicsQueueFamilyIndex == UINT32_MAX) ||
-        (m_presentQueueFamilyIndex  == UINT32_MAX) ||
-        (m_computeQueueFamilyIndex  == UINT32_MAX))
+    if ((queueFamilyIds.graphics == UINT32_MAX) ||
+        (queueFamilyIds.present  == UINT32_MAX) ||
+        (queueFamilyIds.compute  == UINT32_MAX))
     {
         std::cout << "Could not find queue family with required properties on physical device " << physicalDevice << "!" << std::endl;
         return false;
@@ -188,16 +185,16 @@ void Device::createCommandPools()
 {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = m_graphicsQueueFamilyIndex;
+    poolInfo.queueFamilyIndex = m_graphicsQueue.familyId();
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
     VK_CHECK_RESULT(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_graphicsCommandPool));
 
-    if (m_graphicsQueueFamilyIndex != m_computeQueueFamilyIndex)
+    if (m_graphicsQueue.familyId() != m_computeQueue.familyId())
     {
         VkCommandPoolCreateInfo cmdPoolInfo = {};
         cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        cmdPoolInfo.queueFamilyIndex = m_computeQueueFamilyIndex;
+        cmdPoolInfo.queueFamilyIndex = m_computeQueue.familyId();
         cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         VK_CHECK_RESULT(vkCreateCommandPool(m_device, &cmdPoolInfo, nullptr, &m_computeCommandPool));
     }
@@ -205,15 +202,6 @@ void Device::createCommandPools()
     {
         m_computeCommandPool = m_graphicsCommandPool;
     }
-}
-
-void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const
-{
-    CommandBuffer commandBuffer(*this, getGraphicsCommandPool());
-    commandBuffer.begin();
-    commandBuffer.copyBuffer(srcBuffer, dstBuffer, size);
-    commandBuffer.end();
-    commandBuffer.submitBlocking<SubmissionQueue::Graphics>();
 }
 
 bool isDepthAttachment(VkFormat format)
@@ -491,13 +479,32 @@ VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, Vk
     return VK_FORMAT_UNDEFINED;
 }
 
+void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const
+{
+    auto commandBuffer = createCommandBuffer();
+    commandBuffer->begin();
+    commandBuffer->copyBuffer(srcBuffer, dstBuffer, size);
+    commandBuffer->end();
+    Queue(m_graphicsQueue).submitBlocking(*commandBuffer);
+}
+
 void Device::copyBufferToImage(VkBuffer buffer, VkImage image, VkExtent2D resolution) const
 {
-    CommandBuffer commandBuffer(*this, getGraphicsCommandPool());
-    commandBuffer.begin();
-    commandBuffer.copyBufferToImage(buffer, image, resolution);
-    commandBuffer.end();
-    commandBuffer.submitBlocking<SubmissionQueue::Graphics>();
+    auto commandBuffer = createCommandBuffer();
+    commandBuffer->begin();
+    commandBuffer->copyBufferToImage(buffer, image, resolution);
+    commandBuffer->end();
+    Queue(m_graphicsQueue).submitBlocking(*commandBuffer);
+}
+
+CommandBufferPtr Device::createCommandBuffer() const
+{
+    return CommandBufferPtr(new CommandBuffer(*this, m_graphicsCommandPool));
+}
+
+CommandBufferPtr Device::createComputeCommandBuffer() const
+{
+    return CommandBufferPtr(new CommandBuffer(*this, m_computeCommandPool));
 }
 
 void Device::destroy()

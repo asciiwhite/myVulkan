@@ -172,23 +172,23 @@ bool SwapChain::create(bool vsync)
 
     // Get physical device surface properties and formats
     VkSurfaceCapabilitiesKHR surfCaps;
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device().getVkPysicalDevice(), m_surface, &surfCaps));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device().vkPysicalDevice(), m_surface, &surfCaps));
 
     // Get available present modes
     uint32_t presentModeCount;
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(device().getVkPysicalDevice(), m_surface, &presentModeCount, nullptr));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(device().vkPysicalDevice(), m_surface, &presentModeCount, nullptr));
     assert(presentModeCount > 0);
 
     std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(device().getVkPysicalDevice(), m_surface, &presentModeCount, presentModes.data()));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(device().vkPysicalDevice(), m_surface, &presentModeCount, presentModes.data()));
 
     // Get list of supported surface formats
     uint32_t formatCount;
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(device().getVkPysicalDevice(), m_surface, &formatCount, nullptr));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(device().vkPysicalDevice(), m_surface, &formatCount, nullptr));
     assert(formatCount > 0);
 
     std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(device().getVkPysicalDevice(), m_surface, &formatCount, surfaceFormats.data()));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(device().vkPysicalDevice(), m_surface, &formatCount, surfaceFormats.data()));
 
     m_surfaceFormat = getSwapChainFormat(surfaceFormats);
     m_extent        = getSwapChainExtent(surfCaps);
@@ -224,7 +224,7 @@ bool SwapChain::create(bool vsync)
 
     // Set additional usage flag for blitting from the swapchain images if supported
     VkFormatProperties formatProps;
-    vkGetPhysicalDeviceFormatProperties(device().getVkPysicalDevice(), m_surfaceFormat.format, &formatProps);
+    vkGetPhysicalDeviceFormatProperties(device().vkPysicalDevice(), m_surfaceFormat.format, &formatProps);
     if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)
     {
         swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -307,7 +307,7 @@ bool SwapChain::present(uint32_t imageId)
     presentInfo.pSwapchains = &m_swapChain;
     presentInfo.pImageIndices = &imageId;
 
-    auto result = vkQueuePresentKHR(device().getPresentationQueue(), &presentInfo);
+    auto result = vkQueuePresentKHR(device().presentationQueue(), &presentInfo);
 
     m_currentImageId = ++m_currentImageId % m_images.size();
 

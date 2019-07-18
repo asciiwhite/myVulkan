@@ -67,11 +67,6 @@ void CommandBuffer::endRenderPass()
     vkCmdEndRenderPass(m_commandBuffer);
 }
 
-void CommandBuffer::submit(VkQueue queue, const VkSubmitInfo& submitInfo, VkFence submitFence)
-{
-    VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, submitFence));
-}
-
 void CommandBuffer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
     VkBufferCopy copyRegion = {};

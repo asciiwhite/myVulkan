@@ -2,6 +2,8 @@
 
 #include "devicedestroy.h"
 #include "deviceref.h"
+#include "types.h"
+#include "queue.h"
 
 #include <vulkan/vulkan.h>
 #include <vector>
@@ -50,19 +52,16 @@ public:
 
     operator VkDevice() const { return m_device; }
 
-    VkPhysicalDevice getVkPysicalDevice() const { return m_physicalDevice; };
-    VkQueue getPresentationQueue() const { return m_presentQueue; };
-    VkQueue getGraphicsQueue() const { return m_graphicsQueue; };
-    VkQueue getComputeQueue() const { return m_computeQueue; };
-
-    uint32_t getGraphicsQueueFamilyId() const { return m_graphicsQueueFamilyIndex; };
-    uint32_t getComputeQueueFamilyId() const { return m_computeQueueFamilyIndex; };
-
-    VkCommandPool getGraphicsCommandPool() const { return m_graphicsCommandPool; };
-    VkCommandPool getComputeCommandPool() const { return m_computeCommandPool; };
+    VkPhysicalDevice vkPysicalDevice() const { return m_physicalDevice; };
+    const Queue& presentationQueue() const { return m_presentQueue; };
+    const Queue& graphicsQueue() const { return m_graphicsQueue; };
+    const Queue& computeQueue() const { return m_computeQueue; };
 
     const VkPhysicalDeviceProperties& properties() const { return m_deviceProperties; }
     const VkPhysicalDeviceFeatures& features() const { return m_deviceFeatures; }
+
+    CommandBufferPtr createCommandBuffer() const;
+    CommandBufferPtr createComputeCommandBuffer() const;
 
     template<typename T>
     void destroy(T t) const
@@ -71,21 +70,26 @@ public:
     }
 
 private:
-    bool checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+    struct QueueFamilyIds
+    {
+        uint32_t graphics = UINT32_MAX;
+        uint32_t compute = UINT32_MAX;
+        uint32_t present = UINT32_MAX;
+    };
+
+    bool checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIds& queueFamilyIds);
     void createCommandPools();
 
     static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     VkDevice m_device = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    uint32_t m_presentQueueFamilyIndex = UINT32_MAX;
-    uint32_t m_graphicsQueueFamilyIndex = UINT32_MAX;
-    uint32_t m_computeQueueFamilyIndex = UINT32_MAX;
-    VkQueue m_presentQueue = VK_NULL_HANDLE;
-    VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-    VkQueue m_computeQueue = VK_NULL_HANDLE;
     VkCommandPool m_graphicsCommandPool = VK_NULL_HANDLE;
     VkCommandPool m_computeCommandPool = VK_NULL_HANDLE;
+
+    Queue m_presentQueue;
+    Queue m_graphicsQueue;
+    Queue m_computeQueue;
 
     VkPhysicalDeviceProperties m_deviceProperties;
     VkPhysicalDeviceFeatures m_deviceFeatures;

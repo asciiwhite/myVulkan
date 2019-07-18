@@ -191,11 +191,11 @@ void ImageBase::setLayout(VkImageLayout newLayout)
     const auto sourceStage = getPipelineStageFlags(barrier.srcAccessMask);
     const auto destinationStage = getPipelineStageFlags(barrier.dstAccessMask);
 
-    CommandBuffer commandBuffer(device(), device().getGraphicsCommandPool());
-    commandBuffer.begin();
-    commandBuffer.pipelineBarrier(sourceStage, destinationStage, barrier);
-    commandBuffer.end();
-    commandBuffer.submitBlocking<SubmissionQueue::Graphics>();
+    auto commandBuffer = device().createCommandBuffer();
+    commandBuffer->begin();
+    commandBuffer->pipelineBarrier(sourceStage, destinationStage, barrier);
+    commandBuffer->end();
+    device().graphicsQueue().submitBlocking(*commandBuffer);
 
     m_layout = newLayout;
 }

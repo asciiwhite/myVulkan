@@ -128,7 +128,7 @@ bool BasicRenderer::createFrameResources(uint32_t numFrames)
 
     for (auto& resource : m_frameResources)
     {
-        resource.graphicsCommandBuffer.reset(new CommandBuffer(m_device, m_device.getGraphicsCommandPool()));
+        resource.graphicsCommandBuffer = m_device.createCommandBuffer();
         VK_CHECK_RESULT(vkCreateFence(m_device, &fenceCreateInfo, nullptr, &resource.frameCompleteFence));
     }
 
@@ -238,10 +238,12 @@ void BasicRenderer::draw()
     m_gui->draw(m_frameResourceId, commandBuffer);
     
     // submission
-    commandBuffer.submitAsync<SubmissionQueue::Graphics>(
+    m_device.graphicsQueue().submitAsync(
+        commandBuffer,
         m_swapChain.getImageAvailableSemaphore(),
         m_swapChain.getRenderFinishedSemaphore(),
-        m_frameResources[m_frameResourceId].frameCompleteFence);
+        m_frameResources[m_frameResourceId].frameCompleteFence,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
     // presentation
     if (!m_swapChain.present(swapChainImageId))

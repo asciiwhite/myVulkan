@@ -174,7 +174,7 @@ bool Renderer::createComputeCommandBuffer()
     // Create a command buffer for compute operations
     m_computeCommandBuffers.resize(m_frameResourceCount);
     for (auto& buffer : m_computeCommandBuffers)
-        buffer.reset(new CommandBuffer(m_device, m_device.getComputeCommandPool()));
+        buffer = m_device.createComputeCommandBuffer();
 
     return true;
 }
@@ -187,8 +187,8 @@ void Renderer::buildComputeCommandBuffer(CommandBuffer& commandBuffer)
     auto bufferBarrier = createBufferMemoryBarrier(*m_vertexBuffer,
         VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,    // Vertex shader invocations have finished reading from the buffer
         VK_ACCESS_SHADER_WRITE_BIT,             // Compute shader wants to write to the buffer
-        m_device.getGraphicsQueueFamilyId(),
-        m_device.getComputeQueueFamilyId());
+        m_device.graphicsQueue().familyId(),
+        m_device.computeQueue().familyId());
   
     commandBuffer.pipelineBarrier(VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, bufferBarrier);
 
@@ -203,8 +203,8 @@ void Renderer::buildComputeCommandBuffer(CommandBuffer& commandBuffer)
     bufferBarrier = createBufferMemoryBarrier(*m_vertexBuffer,
         VK_ACCESS_SHADER_WRITE_BIT,             // Compute shader has finished writes to the buffer
         VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,    // Vertex shader invocations want to read from the buffer
-        m_device.getComputeQueueFamilyId(),
-        m_device.getGraphicsQueueFamilyId());
+        m_device.computeQueue().familyId(),
+        m_device.graphicsQueue().familyId());
 
     commandBuffer.pipelineBarrier(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, bufferBarrier);
 
@@ -217,7 +217,7 @@ void Renderer::render(const FrameData& frameData)
     m_computeMappedInputBuffer->timeDeltaInSeconds = m_stats.getDeltaTime();
 
     buildComputeCommandBuffer(*m_computeCommandBuffers[m_frameResourceId]);
-    m_computeCommandBuffers[m_frameResourceId]->submitAsync<SubmissionQueue::Compute>();
+    m_device.computeQueue().submitAsync(*m_computeCommandBuffers[m_frameResourceId]);
 
     // graphics part
     fillCommandBuffer(*frameData.resources.graphicsCommandBuffer, m_swapchainRenderPass, frameData.framebuffer, [this](auto& commandBuffer) { renderParticles(commandBuffer); });
